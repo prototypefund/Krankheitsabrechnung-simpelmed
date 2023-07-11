@@ -1,0 +1,12 @@
+# Dieses »Docker-Image« stellt die Inhalte bereit
+image: alpine:latest
+
+pages:
+  stage: deploy
+  script:
+  - echo 'Hier gibt es nichts zu tun...'
+  artifacts:
+    paths:
+    - public
+  only:
+  - main
