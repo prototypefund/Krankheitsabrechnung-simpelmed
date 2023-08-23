@@ -1,0 +1,383 @@
+%------------------------------------------------------------------
+% Medikationsplan gemäß AMTS 2.0 für GNUmed (http://www.gnumed.de)
+%
+% License: GPL v2 or later
+%
+% Author: karsten.hilbert@gmx.net
+% Thanks to: G.Hellmann
+%
+% requires pdflatex to be run with -recorder option
+%------------------------------------------------------------------
+
+% debugging
+\listfiles
+\errorcontextlines 10000
+
+\documentclass[
+	version=last,
+	paper=landscape,
+	paper=a4,
+	DIV=9,									% help typearea find a good Satzspiegel
+	BCOR=0mm,								% keine BindeCORrektur
+	fontsize=12pt,							% per spec
+	parskip=full,							% Absätze mit Leerzeilen trennen, kein Einzug
+	headsepline=off,
+	footsepline=off,
+	titlepage=false
+]{scrartcl}
+
+%------------------------------------------------------------------
+% packages
+\usepackage{scrlayer-scrpage}				% Kopf- und Fußzeilen
+\usepackage{geometry}						% setup margins
+\usepackage{microtype}						% micro-adjustments to typesetting
+\usepackage[cjkjis,graphics]{ucs}			% lots of UTF8 symbols, breaks with xelatex
+\usepackage[T1]{fontenc}					% fonts are T1
+\usepackage[ngerman]{babel}					% Deutsch und Trennung
+\usepackage[utf8x]{inputenc}				% content is UTF8, breaks with xelatex
+\usepackage{textcomp}						% Symbole für Textmodus zum Escapen
+\usepackage{ragged2e}						% improved alignment, needed for raggedleft in header table cell
+\usepackage{tabularx}						% bessere Tabellen
+\usepackage{tabu}							% bessere Tabellen
+\usepackage{longtable}						% Tabellen über mehrere Seiten
+\usepackage{helvet}							% Arial alike Helvetica
+\usepackage{lastpage}						% easy access to page number of last page
+\usepackage{embedfile}						% store copy of data file for producing data matrix inside PDF
+\usepackage{array}							% improved column styles
+\usepackage[abspath]{currfile}				% generically refer to input file
+\usepackage{graphicx}						% Grafiken laden (datamatrix)
+\usepackage[space]{grffile}					% besserer Zugriff auf Grafikdateien
+\usepackage[export]{adjustbox}				% improved options for \includegraphics
+%\usepackage[ocgcolorlinks=true]{hyperref}	% aktive URLs, needs to be loaded last, most of the time
+\usepackage{hyperref}						% aktive URLs, needs to be loaded last, most of the time
+
+% debugging:
+%\usepackage{showkeys}
+
+%\usepackage{marvosym}					% Symbole: Handy, Telefon, E-Mail
+%\usepackage{calc}						% \widthof (für signature)
+
+%------------------------------------------------------------------
+% setup:
+% - debugging
+%\tracingtabu=2
+%\hypersetup{debug=true}
+
+
+% - placeholder handler options
+% switch on ellipsis handling:
+$<ph_cfg::ellipsis//…//%% <%(name)s> set to [%(value)s]::>$
+
+
+% - PDF metadata
+\hypersetup{
+	pdftitle = {Medikationsplan: $<name::%(firstnames)s %(lastnames)s::>$, $<date_of_birth::%d.%b %Y::>$},
+	pdfauthor = {$<current_provider::::>$, $<praxis::%(branch)s, %(praxis)s::>$},
+	pdfsubject = {Medikationsplan (AMTS, NICHT KONFORM)},
+	pdfproducer = {GNUmed $<client_version::::>$, Vorlage $<form_name_long::::>$ ($<form_version::::>$)},
+	pdfdisplaydoctitle = true
+}
+
+
+% - precise positioning of things to satisfy spec
+\setlength{\tabcolsep}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\topskip}{0pt}
+\setlength{\marginparwidth}{0pt}
+\setlength{\marginparsep}{0pt}
+
+
+% - page
+\geometry{
+	verbose,
+	% debugging:
+%	showframe,											% show page frames
+%	showcrop,											% show crop marks
+	a4paper,
+	landscape,
+	includehead=true,
+	headheight=4cm,
+	headsep=0pt,
+	includefoot=true,									% make margins absolute
+	footskip=1cm,										% per spec
+	left=0.8cm,right=0.8cm,top=0.8cm,bottom=0.8cm		% per spec
+}
+
+% - font: Arial (Helvetica)
+\renewcommand{\rmdefault}{phv}
+\renewcommand{\sfdefault}{phv}
+
+
+% - header = top part
+\lohead{
+	\upshape
+	% debugging (with vertical lines):
+	%\begin{tabu} to \textwidth {>{\raggedleft\arraybackslash}p{7cm}|X[-1,L]|@{\hspace{1cm}}|X[-1,R]|p{4.6cm}}
+	\begin{tabu} to \textwidth {>{\raggedleft\arraybackslash}p{7cm}@{\hspace{1.5mm}}X[-1,L]@{\hspace{1cm}}X[-1,R]p{4.3cm}}
+			{\fontsize{20pt}{22pt}\selectfont \textbf{\href{http://www.akdae.de/AMTS/Medikationsplan/}{Medikationsplan}}} \newline
+			\ \newline
+			{\fontsize{14pt}{16pt}\selectfont Seite \thepage\ von \pageref{LastPage}} \newline
+			% as long as we don't have certification or claim conformance we can put here any image we want :-)
+			\includegraphics[scale=5,max height=2.4cm,center]{$<patient_photo::%s//image/png//.png::>$}
+		&
+			% line 1
+			\fontsize{14pt}{16pt}\selectfont
+			$<ph_cfg::ellipsis//NONE//%% <%(name)s> set to [%(value)s]::>$		% switch off ellipsis handling so first range of name does not get one if too long
+			für:\ \textbf{$<name::%(firstnames)s %(lastnames)s::1-37>$} \newline
+			$<ph_cfg::ellipsis//…//%% <%(name)s> set to [%(value)s]::>$			% but reenable in case second line of name still too long so that we need an ellipsis
+			% line 2
+			$<name::\textbf{%(firstnames)s %(lastnames)s}::38-90>$\  \newline
+			% line 3
+			ausgedruckt von: $<current_provider::::30>$ \newline
+			% line 4
+			\href{http://$<praxis_comm::web::>$}{$<praxis::%(branch)s, %(praxis)s::50>$} \newline
+			% line 5: use \mbox{TEXT} to prevent TEXT from getting hyphenated
+			$<ph_cfg::argumentsdivider//||//%% <%(name)s> set to [%(value)s]::>$
+			$<praxis_address::\href{http://nominatim.openstreetmap.org/search/$<<<url_escape::$<<praxis_address::%(country)s::>>$::>>>$/$<<<url_escape::$<<praxis_address::%(urb)s::>>$::>>>$/$<<<url_escape::$<<praxis_address::%(street)s::>>$::>>>$/$<<<url_escape::$<<praxis_address::%(number)s::>>$::>>>$?limit=3}{\mbox{$<<praxis_address::%(street)s %(number)s %(subunit)s,%(postcode)s %(urb)s::55>>$}}::>$
+			$<ph_cfg::argumentsdivider//DEFAULT//%% <%(name)s> set to [%(value)s]::>$
+			\ \newline
+			% line 6
+			$<<praxis_comm::workphone//\href{tel:$<praxis_comm::workphone::>$}{$<praxis_comm::workphone::50>$}::>>$\  \newline
+			% line 7
+			$<<praxis_comm::email//{\fontsize{12pt}{14pt}\selectfont \href{mailto:$<praxis_comm::email::>$}{$<praxis_comm::email::80>$}}::>>$\ 
+		&
+			\fontsize{14pt}{16pt}\selectfont			% alle Zeilen
+			% line 1
+			geb.\ am: \textbf{$<date_of_birth::%d.%b %Y::>$}\newline
+			% line 2
+			\ \newline
+			% line 3
+			\ \newline
+			% line 4			%$<allergy_state::::15>$
+			Allergie: Seite \pageref{LastPage}\ \hyperref[AnchorAllergieDetails]{unten}\newline
+			% line 5
+			\ \newline											%Gewicht: 125 kg\newline		::25
+			% line 6
+			\ \newline											%schwanger / stillend\newline	::25
+			% line 7: soll eigentlich linksbündig ...
+			ausgedruckt am: $<today::%d.%b %Y::>$
+		&
+			\includegraphics[valign=t,raise=6ex,max height=4cm,max width=4cm,center]{$<<amts_png_file_current_page::::>>$}
+%		\tabularnewline
+	\end{tabu}
+}
+%\lehead{test}
+%\cehead{}
+%\cohead{}
+%\rehead{}
+%\rohead{}
+
+
+% footer setup = bottom part
+\lofoot{{
+	\begin{tabular}[t]{p{6cm}p{17cm}p{5cm}}
+		\hline
+		{	% left side: Versionsinformationen
+			\raggedright
+			\fontsize{10pt}{12pt}\selectfont
+			\upshape
+			%DE-DE-Version 2.0 vom 15.12.2014
+			NICHT KONFORM (2.0)
+		} & {
+			% middle part: Herstellerfeld
+			\parbox[t][1cm][t]{17cm}{
+				\centering
+				GNUmed $<client_version::::>$ --- \href{http://www.gnumed.org}{www.gnumed.org}
+			}
+		} & {
+			% right side: Freifeld, must be empty
+			% debugging:
+			%---Freifeld---
+		}
+	\end{tabular}
+}}
+\lefoot{{
+	\begin{tabular}[t]{p{6cm}p{17cm}p{5cm}}
+		\hline
+		{	% left side: Versionsinformationen
+			\raggedright
+			\fontsize{10pt}{12pt}\selectfont
+			\upshape
+			%DE-DE-Version 2.0 vom 15.12.2014
+			NICHT KONFORM (2.0)
+		} & {
+			% middle part: Herstellerfeld
+			\parbox[t][1cm][t]{17cm}{
+				\centering
+				GNUmed $<client_version::::>$ --- \href{http://www.gnumed.org}{www.gnumed.org}
+			}
+		} & {
+			% right side: Freifeld, must be empty
+			% debugging:
+			%---Freifeld---
+		}
+	\end{tabular}
+}}
+\cefoot{}
+\cofoot{}
+\refoot{}
+\rofoot{}
+
+%------------------------------------------------------------------
+\begin{document}
+
+% middle part: Medikationsliste
+\begin{longtable} {|
+	% column definition
+	p{4cm}|									% Wirkstoff
+	p{4.4cm}|								% Handelsname
+	>{\RaggedLeft}p{1.8cm}|					% Stärke
+	p{1.8cm}|								% Form
+	p{0.8cm}|								% Dosierung: morgens
+	p{0.8cm}|								% Dosierung: mittags
+	p{0.8cm}|								% Dosierung: abends
+	p{0.8cm}|								% Dosierung: zur Nacht
+	p{2.0cm}|								% Einheit
+	p{6.4cm}|								% Hinweise
+	p{4.3cm}|								% Grund
+}
+	% Tabellenkopf:
+	\hline
+	\rule{0pt}{4.5mm}						% vertical strut to ensure 14pt doesn't touch top \hline
+	\fontsize{14pt}{16pt}\selectfont \centering Wirkstoff &
+	\fontsize{14pt}{16pt}\selectfont \centering Handelsname &
+	\fontsize{14pt}{16pt}\selectfont \centering Stärke &
+	\fontsize{14pt}{16pt}\selectfont \centering Form &
+	\fontsize{14pt}{16pt}\selectfont \centering Mo &
+	\fontsize{14pt}{16pt}\selectfont \centering Mi &
+	\fontsize{14pt}{16pt}\selectfont \centering Ab &
+	\fontsize{14pt}{16pt}\selectfont \centering zN &
+	\fontsize{14pt}{16pt}\selectfont \centering Einheit &
+	\fontsize{14pt}{16pt}\selectfont \centering Hinweise &
+	\fontsize{14pt}{16pt}\selectfont \centering Grund
+	\endhead
+	% Tabellenende auf 1. und 2. Seite
+	\endfoot
+	% Tabellenende auf letzter (3.) Seite
+	\endlastfoot
+	% Tabelleninhalt:
+\hline
+$<current_meds_AMTS_enhanced::::>$
+\end{longtable}
+
+%------------------------------------------------------------------
+% include data in PDF for easier processing:
+
+% VCF of creator
+\IfFileExists{$<praxis_vcf::::>$}{
+	\embedfile[
+		desc=01) digitale Visitenkarte des Erstellers des Medikationsplans,
+		mimetype=text/vcf,
+		ucfilespec=AMTS-Medikationsplan-Ersteller.vcf
+	]{$<praxis_vcf::::>$}
+}{\typeout{[$<praxis_vcf::::>$] not found}}
+
+% LaTeX source code from which the PDF was produced
+\embedfile[
+	desc=02) LaTeX-Quellcode des Medikationsplans (übersetzbar mit "pdflatex -recorder -interaction=nonstopmode \currfilename\ "),
+	mimetype=text/plain,
+	ucfilespec=\currfilename
+]{\currfileabspath}
+
+% enhanced QR code
+\IfFileExists{$<<amts_png_file_utf8::::>>$}{
+	\embedfile[
+		desc=03) QR-Code (Bild) für alle Seiten (lesbar mit "dmtxread -v $<<amts_png_file_utf8::::>>$ > $<<amts_png_file_utf8::::>>$.txt"),
+		mimetype=image/png,
+		ucfilespec=AMTS-QR-Code-utf8-alle-Seiten.png
+	]{$<<amts_png_file_utf8::::>>$}
+}{\typeout{[$<<amts_png_file_utf8::::>>$] (all pages) not found}}
+
+\IfFileExists{$<<amts_data_file_utf8::::>>$}{
+	\embedfile[
+		desc=04) QR-Code (Daten) für alle Seiten (übersetzbar mit "dmtxwrite -e a -m 2 -f PNG -o $<<amts_data_file_utf8::::>>$.png -s s -v $<<amts_data_file_utf8::::>>$"),
+		mimetype=image/png,
+		ucfilespec=AMTS-QR-Code-utf8-alle-Seiten.txt
+	]{$<<amts_data_file_utf8::::>>$}
+}{\typeout{[$<<amts_data_file_utf8::::>>$] (all pages) not found}}
+
+% per-page QR codes
+% page 1
+\IfFileExists{$<<amts_png_file_1::::>>$}{
+	\embedfile[
+		desc=05) QR-Code (Bild) für Seite 1 (lesbar mit "dmtxread -U -v $<<amts_png_file_1::::>>$ > $<<amts_png_file_1::::>>$.txt"),
+		mimetype=image/png,
+		ucfilespec=AMTS-QR-Code-Seite-1.png
+	]{$<<amts_png_file_1::::>>$}
+}{\typeout{[$<<amts_png_file_1::::>>$] (page 1) not found}}
+
+\IfFileExists{$<<amts_data_file_1::::>>$}{
+	\embedfile[
+		desc=06) QR-Code (Daten) für Seite 1 (übersetzbar mit "dmtxwrite -e a -m 2 -f PNG -o $<<amts_data_file_1::::>>$.png -s s -v $<<amts_data_file_1::::>>$"),
+		mimetype=text/plain,
+		ucfilespec=AMTS-QR-Code-Daten-Seite-1.txt
+	]{$<<amts_data_file_1::::>>$}
+}{\typeout{[$<<amts_data_file_1::::>>$] (page 1) not found}}
+
+% page 2
+\IfFileExists{$<<amts_png_file_2::::>>$}{
+	\embedfile[
+		desc=07) QR-Code (Bild) für Seite 2 (lesbar mit "dmtxread -U -v $<<amts_png_file_1::::>>$ > $<<amts_png_file_2::::>>$.txt"),
+		mimetype=image/png,
+		ucfilespec=AMTS-QR-Code-Seite-2.png
+	]{$<<amts_png_file_2::::>>$}
+}{\typeout{[$<<amts_png_file_2::::>>$] (page 2) not found}}
+
+\IfFileExists{$<<amts_data_file_2::::>>$}{
+	\embedfile[
+		desc=08) QR-Code (Daten) für Seite 2 (übersetzbar mit "dmtxwrite -e a -m 2 -f PNG -o $<<amts_data_file_2::::>>$.png -s s -v $<<amts_data_file_2::::>>$"),
+		mimetype=text/plain,
+		ucfilespec=AMTS-QR-Code-Daten-Seite-2.txt
+	]{$<<amts_data_file_2::::>>$}
+}{\typeout{[$<<amts_data_file_2::::>>$] (page 2) not found}}
+
+% page 3
+\IfFileExists{$<<amts_png_file_3::::>>$}{
+	\embedfile[
+		desc=09) QR-Code (Bild) für Seite 3 (lesbar mit "dmtxread -U -v $<<amts_png_file_1::::>>$ > $<<amts_png_file_3::::>>$.txt"),
+		mimetype=image/png,
+		ucfilespec=AMTS-QR-Code-Seite-3.png
+	]{$<<amts_png_file_3::::>>$}
+}{\typeout{[$<<amts_png_file_3::::>>$] (page 3) not found}}
+
+\IfFileExists{$<<amts_data_file_3::::>>$}{
+	\embedfile[
+		desc=10) QR-Code (Daten) für Seite 3 (übersetzbar mit "dmtxwrite -e a -m 2 -f PNG -o $<<amts_data_file_3::::>>$.png -s s -v $<<amts_data_file_3::::>>$"),
+		mimetype=text/plain,
+		ucfilespec=AMTS-QR-Code-Daten-Seite-3.txt
+	]{$<<amts_data_file_3::::>>$}
+}{\typeout{[$<<amts_data_file_3::::>>$] (page 3) not found}}
+
+% patient photo
+\IfFileExists{$<patient_photo::%s//image/png//.png::>$}{
+	\embedfile[
+		desc=11) Patientenphoto,
+		mimetype=image/png,
+		ucfilespec=Patientenphoto.png
+	]{$<patient_photo::%s//image/png//.png::>$}
+}{\typeout{[$<patient_photo::%s//image/png//.png::>$] (patient photo) not found}}
+
+% patient vcf -- really a good idea ? (it would tell more
+% about the patient than is defined by the Medikationsplan specs)
+\IfFileExists{$<patient_vcf::::>$}{
+	\embedfile[
+		desc=12) digitale Visitenkarte des Patienten,
+		mimetype=text/vcf,
+		ucfilespec=Patient.vcf
+	]{$<patient_vcf::::>$}
+}{\typeout{[$<patient_vcf::::>$] (patient VCF) not found}}
+
+% patient gdt -- really a good idea ? (it would tell more
+% about the patient than is defined by the Medikationsplan specs)
+\IfFileExists{$<patient_gdt::::>$}{
+	\embedfile[
+		desc=13) GDT-Datei des Patienten,
+		mimetype=text/plain,
+		ucfilespec=Patient.gdt
+	]{$<patient_gdt::::>$}
+}{\typeout{[$<patient_gdt::::>$] (patient GDT) not found}}
+
+%------------------------------------------------------------------
+
+\end{document}
+%------------------------------------------------------------------

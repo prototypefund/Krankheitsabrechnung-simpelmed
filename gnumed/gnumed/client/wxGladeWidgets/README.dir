@@ -1,0 +1,18 @@
+This directory contains Python code as generated from *.wxg
+XML files by wxGlade. The classes define what certain parts
+of the GUI look like. They are inherited from by actual UI
+classes in client/wxpython/.
+
+DO NOT EDIT THE CODE IN THE FILES IN THIS DIRECTORY !
+
+(Unless you know exactly what you are doing. Editing may in
+some cases be necessary to add import statements.)
+
+The code may be overwritten the next time someone changes
+the GUI with wxGlade and puts the new version back in here.
+All your changes may be lost. If you want to make your
+changes permanent edit the appropriate *.wxg file in
+client/wxg/ (preferably using wxGlade), regenerate the GUI
+code and put it here.
+
+Karsten

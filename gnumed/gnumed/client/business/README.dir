@@ -1,0 +1,7 @@
+This contains business objects written in Python.
+
+Once we have clients written in other languages we will
+have to reorganize the client/ directory somewhat but
+until then ...
+
+Happy coding

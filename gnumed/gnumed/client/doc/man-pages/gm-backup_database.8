@@ -1,0 +1,37 @@
+.TH GM-BACKUP_DATABASE 8 "2009 January 8th" "GNUmed server database backup"
+
+.SH NOTE
+
+.I Deprecated in favour of gm-backup(8).
+
+.SH NAME
+.B gm-backup_database
+- complete backup of GNUmed database
+
+.SH SYNOPSIS
+.B gm-backup_database
+
+.SH DESCRIPTION
+The
+.B gm-backup_database
+script creates a backup of the database schema,
+data, and roles which can be used to restore a GNUmed
+database from scratch.
+
+It is a really good idea to use it in a daily cron/anacron
+job to ensure that GNUmed patient data are safe against data
+loss.  The Debian GNU/Linux packaged version of the GNUmed
+server installs such a cron job by default.
+
+It is recommended to use
+.B gm-backup
+instead.
+
+.SH SEE ALSO
+.B  gm-backup_data(8)
+
+.B /etc/gnumed/gnumed-backup.conf
+
+.SH AUTHOR
+This manual page was written by Andreas Tille <tille@debian.org>,
+for the Debian GNU/Linux system (but may be used by others).

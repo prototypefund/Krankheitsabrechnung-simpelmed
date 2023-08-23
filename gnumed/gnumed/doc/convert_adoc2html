@@ -1,0 +1,16 @@
+#!/bin/sh
+
+SRC="$1"
+
+mkdir --verbose html
+echo "Converting ${SRC}: asciidoc -> html5 ..."
+asciidoctor --safe --backend=html5 --destination-dir=html --verbose --trace ${SRC}
+#--section-numbers
+
+RESULT="$?"
+if test "${RESULT}" != "0" ; then
+	echo "Cannot convert asciidoc to html5 (${RESULT}). Aborting."
+	exit ${RESULT}
+fi
+
+exit 0

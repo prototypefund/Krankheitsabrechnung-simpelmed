@@ -1,0 +1,34 @@
+
+Welcome to the GNUmed VCS tree !
+
+To check if you have installed all the components
+necessary to run GNUmed use:
+	gnumed/external-tools/check-prerequisites.sh
+
+
+Documentation is in:
+	https://wwww.gnumed.de/documentation/
+
+
+If you want to look at the frontend code go to:
+	gnumed/client/*
+
+
+SQL schema files can be found in:
+	gnumed/server/sql/*
+
+
+If you want to set up your own database see:
+	gnumed/server/bootstrap/*
+
+
+Mailing list:
+	http://lists.gnu.org/mailman/listinfo/gnumed-devel
+
+
+Enjoy, join the mailing list, ask questions, develop and use !
+
+
+Karsten Hilbert, MD
+
+<Karsten.Hilbert@gmx.net>

@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# ===========================================================
+# Fetch and unpack LOINC data.
+#
+# 	https://loinc.org
+#
+# ===========================================================
+ARCH_NAME="atc-data.zip"
+DL_URL="https://www.gnumed.de/downloads/data/atc/${ARCH_NAME}"
+DL_DIR="/tmp"
+
+
+wget -c ${DL_URL} -P ${DL_DIR}
+unzip -o ${DL_DIR}/${ARCH_NAME} -d ${DL_DIR}
+rm -v ${DL_DIR}/${ARCH_NAME}
+
+# ===========================================================

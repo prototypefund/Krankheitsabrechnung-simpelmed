@@ -1,0 +1,282 @@
+# GNUmed database system bootstrapping config file
+#-------------------------------------------------
+# license: GPL v2 or later
+# author: Karsten Hilbert@gmx.net
+
+#----------------------------------
+[revision control]
+file = $Source: /home/ncq/Projekte/cvs2git/vcs-mirror/gnumed/gnumed/server/bootstrap/bootstrap-standard.conf.template,v $
+version = $Revision: 1.32 $
+
+#----------------------------------
+[installation]
+
+# this lists a number of config files that are processed
+# one after another instead of processing *this* file,
+# if this option exists all other options in *this* file
+# are ignored
+config files = $config files$
+a-file.conf
+another-file.conf
+$config files$
+
+# set this to no if you want to run this script without
+# any user interaction, in this case you must provide passwords
+# for the users to be installed,
+# this has been conceived to make Debian postinst happy :-)
+interactive = yes
+
+# mainly for debugging, if you set this to "yes" the
+# bootstrapper will not delete the temporary files it
+# creates in the process
+keep temp files = no
+
+# this description is displayed just before the user is
+# prompted whether she actually wants to install this setup
+description = $description$
+This setup is not intended to actually be used. It just
+serves to document the config file options. Also you cannot
+rely on this setup to import all necessary schema files.
+
+DO NOT USE !
+$description$
+
+# these NEED NOT correspond to GNUmed service names,
+# you just need to have a section in this file
+# corresponding to each line
+services = $services$
+config
+patients
+$services$
+
+#----------------------------------
+# corresponds to one of the services listed under installation
+[service config]
+
+# real GNUmed service name (see docs)
+name = default
+
+# under which [section] do we find database specifics
+# for this service -> [database ...]
+database alias = gnumed-test
+
+# later to be used for service version tracking
+version = 0.1
+
+# a common base path for the schema files,
+# to be used anywhere a $schema$ files
+# list is defined
+schema base directory =
+
+# the sql files to be imported for this service
+schema = $schema$
+../sql/gmConfig-static.sql
+$schema$
+
+# the PostgreSQL version necessary to run this service
+postgres version = 7.3
+
+#----------------------------------
+[database gnumed]
+
+# the real name of the database in the PostgreSQL system
+name = gnumed
+
+# the name of an environment variable which can be used
+# to override the database name from the shell
+override name by = GM_CORE_DB
+
+# The name of a tablespace as created in PostgreSQL. This
+# specifies an alternate location for the database as described
+# in the Manual under the "Managing Databases" Chapter.
+# This can be used for putting the GNUmed database on a
+# fast and/or RAIDed disk or an encrypted volume etc.
+tablespace = tablespace_gnumed
+
+# which [section] holds specifics about the server
+# hosting this database -> [server ...]
+server alias = local host
+
+# do we check for procedural language library
+# existence in the filesystem ?
+# set this to "no" if you want to bootstrap remote
+# machines where you don't have filesystem access ...
+procedural language library check = yes
+
+# audit trail related options:
+# setting this to 1 will disable creation of any
+# auditing related tables, triggers, and functions
+audit disable = 0
+# all audit trail tables inherit from this table
+audit trail parent table = audit_trail
+# all audit trail tables start with this prefix
+audit trail table prefix = log_
+# all audited tables must inherit from this table
+audit fields table = audit_fields
+
+# here you can import some schema files once per database
+# such as revision tracking, translation, auditing etc.
+schema = $schema$
+sql/gmSchemaRevision.sql
+gmSchemaRevisionViews.sql
+sql/gmServices.sql
+sql/gmI18N.sql
+sql/gmAudit.sql
+sql/gmCrossDB_FKs.sql
+sql/gmCrossDB_FK-views.sql
+sql/gmScoring.sql
+sql/gmNotifications.sql
+$schema$
+
+
+#----------------------------------
+[server local host]
+
+# can be a host name or an IP address,
+# if left empty local UNIX domain sockets are used
+name = 127.0.0.1
+
+# the port on which to connect to the server,
+# standard is 5432
+port = 5432
+
+# the name of the template database on
+# the server
+template database = template1
+
+# which [section] lists particulars about the
+# database server super user -> [user ...]
+super user alias = postgres
+
+# you can put some schema files here,
+# they will be imported into the template database
+# so be very careful,
+# this is mainly useful for importing database accounts
+# for an example see server/sql/gmTestAccounts.sql
+schema = $schema$
+$schema$
+
+#---------------------------------------------------------------------
+# these shouldn't be changed unless you really know what you are doing
+#---------------------------------------------------------------------
+[GnuMed defaults]
+
+# needs to have a section [user GnuMed owner] in this file
+database owner alias = GnuMed owner
+
+# - these are the standard groups that exist
+#   in every GNUmed database
+# - note how some groups don't have a write-enabled counterpart
+# - you can (and probably should) define site-specific
+#   groups in another file
+# - at the end of the setup you'll be asked if you want to
+#   install your site-specific groups/users, too
+groups = $groups$
+gm-doctors
+_gm-doctors
+gm-staff_medical
+_gm-staff_medical
+gm-staff_office
+_gm-staff_office
+gm-trainees_medical
+gm-trainees_office
+gm-public
+$groups$
+
+# - activate these backend languages
+# - the names just point to the corresponding sections
+procedural languages = $procedural languages$
+pg/SQL
+$procedural languages$
+
+# Python isn't included in the default PostgreSQL
+# binaries yet although this is being discussed,
+# it may soon become a requirement for GNUmed, though
+#pg/Python
+
+# where to look for dynamic libraries for procedural languages
+# - we can safely list any directories here that we come
+#   across on any distribution
+# - newer PostgreSQL versions use $libdir for portability
+# - the first match will be used
+# - reorder the list if you want to force a particular
+#   directory to be used for a particular language
+language library dirs = $language library dirs$
+$libdir/
+/usr/lib/postgresql/7.4/lib/
+/usr/lib/postgresql/
+/usr/lib/postgresql/lib/
+/usr/lib/pgsql/
+/usr/local/pgsql/lib
+$language library dirs$
+
+#----------------------------------
+# if the password is not given for any account the script
+# will ask the user to provide it given "interactive" is
+# true, otherwise it will fail
+#
+# - this account will own the GNUmed databases and all
+#   the objects in them
+# - it is not intended to be used as an everyday account
+# - it's also the one used to set up other GNUmed accounts
+[user GnuMed owner]
+name = gm-dbo
+
+# - if this option is commented out or missing it is
+#   assumed that no password is needed because IDENT
+#   or TRUST connects are attempted
+#
+# - if it is not commented out but set to be empty and
+#   interactive is "yes" the user will be asked for the
+#   password, if we are non-interactive we leave it empty
+#
+password = 
+
+# - this user will hardly ever need to be changed
+# - this group provides the details for the PostgreSQL
+#   super user (the database root, if you will) which was
+#   created when the database server was set up
+# - on most standard Linux systems this is user "postgres"
+#   and does not need a password on localhost
+# - don't change unless you know what you are doing
+[user postgres]
+name = postgres
+
+#----------------------------------
+# don't ask, this is deep magic ;-)
+# meditate over it and enlightenment will be thine
+[pg/SQL]
+name = plpgsql
+library name = plpgsql.so
+
+# if <procedural language library check> is set to "no"
+# you need to set this to an explicit path valid for the
+# remote server
+library dir = 
+
+call handler = $call handler$
+CREATE FUNCTION plpgsql_call_handler () RETURNS OPAQUE AS '%s' LANGUAGE 'C';
+$call handler$
+
+language activation = $language activation$
+CREATE TRUSTED PROCEDURAL LANGUAGE 'plpgsql' HANDLER plpgsql_call_handler LANCOMPILER 'PL/pgSQL';
+$language activation$
+
+#----------------------------------
+[pg/Python]
+library name = plpython.so
+
+# if <procedural language library check> is set to "no"
+# you need to set this to an explicit path valid for the
+# remote server
+library dir = 
+
+call handler = $call handler$
+CREATE FUNCTION plpython_call_handler () RETURNS OPAQUE AS '%s' LANGUAGE 'C';
+$call handler$
+
+language activation = $language activation$
+CREATE TRUSTED PROCEDURAL LANGUAGE 'plpython' HANDLER plpython_call_handler;
+$language activation$
+
+#----------------------------------

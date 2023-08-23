@@ -1,0 +1,23 @@
+# GNUmed config file mapping mimetypes to filename extensions
+# -------------------------------------------------------------
+# This file can live in either or both of
+#
+# /etc/gnumed/
+#	for system wide configuration
+# ~/.gnumed/
+#	 for user specific configuration
+#
+# see also: https://www.gnumed.de/bin/view/Gnumed/ConfigFiles
+#
+# -------------------------------------------------------------
+
+
+[extensions]
+
+# - the option should be a mime type
+# - the value should be the corresponding filename
+#   extension without a leading "."
+image/x-bmp = bmp
+
+
+# -------------------------------------------------------------

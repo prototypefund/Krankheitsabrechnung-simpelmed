@@ -1,0 +1,21 @@
+#====================================================
+# GNUmed client desktop entry specification
+#
+# license: GPL v2 or later
+#
+# gnumed_client rather than gnumed-client for
+# improved appstream compatibility
+#
+#====================================================
+
+[Desktop Entry]
+Type=Application
+Name=GNUmed EMR
+GenericName=Electronic Medical Record
+Comment=An Electronic Medical Record for community care
+Comment[de]=Digitale Patientenakte für Arztpraxen
+Icon=gm_icon-serpent_and_gnu
+Exec=/usr/bin/gnumed
+Terminal=false
+Categories=Office;MedicalSoftware;
+Keywords=PHR;PMR;EHR;PMS;Patient Record;Medical Record;Patient Chart;Practice Management System;Medical Practice;Surgery;

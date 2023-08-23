@@ -1,0 +1,2904 @@
+*****************************************************************
+# client
+*****************************************************************
+
+------------------------------------------------
+# rel-1-9-maint
+------------------------------------------------
+
+	1.9.0
+
+NEW: tool: generate_man_page
+NEW: placeholder: $yes_no$
+NEW: lists: persistent item selection across sorts/reloads
+NEW: lists: Drag&Drop support
+NEW: paperwork: write non-templated letter w/ LibreOffice
+NEW: export area: join items into one PDF
+NEW: debug: database owner connection test menu item
+NEW: login: focus previously used praxis branch
+NEW: file describer: include pdffonts
+NEW: export area: escrow passphrases used during file export
+NEW: tool: get_object_passphrases
+
+IMPROVED: GUI: show current patient in window titles
+IMPROVED: placeholder: $current_provider_name$
+IMPROVED: forms: LaTeX: 5 instead of 3 placeholder parsing passes
+IMPROVED: forms: LaTeX template templates
+IMPROVED: hooks: example script template
+IMPROVED: startup: git branch detection
+IMPROVED: bills: invoice ID locking
+IMPROVED: M/VCF: add nominatim URL to patient/praxis MECARD/vCard
+IMPROVED: files: format conversion improvements
+IMPROVED: DB: replace "IN"/"NOT IN" for psycopg3
+IMPROVED: DB: converge localhost/domain socket profiles
+IMPROVED: export area: support D&D of items as files
+IMPROVED: search: use clin.v_narrative4search again
+IMPROVED: test results: multi-test plotting [thanks brulefa]
+IMPROVED: code: configuration handling
+IMPROVED: DB: more tolerant rollback() [thanks lothar]
+IMPROVED: DB: fingerprinter
+IMPROVED: DICOM: dicomization
+IMPROVED: DB: settings logging
+IMPROVED: login: DB sanity checking
+
+FIX: CLI: --wxp= not needed anymore
+FIX: CLI: --ui= not needed anymore
+FIX: documentation: links (wiki -> static pages)
+FIX: date/time: formatting intervals medically
+FIX: Py3.13: will remove mailcap module
+
+------------------------------------------------
+# rel-1-8-maint
+------------------------------------------------
+
+	1.8.15
+
+IMPROVED: person search: query speed
+
+	1.8.14
+
+FIX: plugins: exception on raising configured but unloaded plugin
+
+IMPROVED: SOAP: on patient change ask if unsaved SOAP [thanks Marc]
+IMPROVED: DB: setup connections for auto_explain in --debug mode
+
+	1.8.13
+
+FIX: billing: exception on saving bill w/o address [thanks M.Schmid]
+
+	1.8.12
+
+FIX: waiting list: exception on removing entry [thanks Marc]
+
+	1.8.11
+
+FIX: SOAP: exception on splitter sash setting [thanks Marc]
+
+IMPROVED: add --special commandline option
+
+	1.8.10
+
+FIX: bills: exception on saving invoice PDF [thanks Aimee]
+FIX: orgs: deleting org unit used by external care [thanks Aimee]
+FIX: forms: managing addresses from letter receiver selection [thanks Aimee]
+FIX: episode PRW: only search matches if patient is set [thanks Marc]
+
+	1.8.9
+
+FIX: mime handling: py3 adjustments in file magic [thanks Andreas]
+FIX: bills: exception on generating invoice PDF [thanks l-ray]
+FIX: about: exception in about dialog [thanks aimee]
+
+	1.8.8
+
+IMPROVED: PACS: better image/image buttons placement
+
+FIX: py3.10+ *requires* ints for rescaling images [thanks henrique]
+FIX: patient tags: do not crash when rescaling image fails [thanks henrique]
+FIX: fix a number of errors found by pyflakes3
+FIX: lists: no more wx.LIST_HITTEST_ONITEMRIGHT in wxPython 4.2 [thanks jonas]
+FIX: date/time input: exception on entering "0"
+
+	1.8.7
+
+FIX: export area: dumping encrypted/PDFed image to disk
+FIX: top panel: heart rate display
+FIX: paperwork: recalls list LaTeX template
+
+	1.8.6
+
+FIX: unlocking encounters (missing import)
+FIX: row locking code
+FIX: metadata: screenshots URL in appdata.xml
+FIX: GUI: screenshot function [thanks The-o]
+FIX: medical interval formatting [thanks brulefa]
+FIX: date/time input: time parsing
+FIX: date/time input: function key to weekday mapping
+FIX: encounters: do not crash if current encounter is deleted
+FIX: paperwork: fix emr_journal placeholder LaTeX escaping [thanks Marc]
+
+IMPROVED: desktop entry file [thanks freddii]
+IMPROVED: patient switch: encounter checking
+IMPROVED: pat overview: problems display
+IMPROVED: DB: connection loss detection
+IMPROVED: measurement EA: previous result formatting
+IMPROVED: DB: login problem logging
+IMPROVED: top pane: show age of results in tooltip
+IMPROVED: paperwork: LaTeX formatting of text
+IMPROVED: EMR: extend search to select demographics [thanks brulefa]
+IMPROVED: startup: bash code [thanks shellcheck]
+
+	1.8.5
+
+FIX: image conversion w/o target extension [thanks ...]
+FIX: SVG icon [thanks freddii]
+FIX: lab: tab "most-recent": [x]ing "show missing" throws exception
+FIX: log: exception on inaccessible attributes
+
+NEW: add CoVid-2019 vaccines
+
+	1.8.4
+
+IMPROVED: exceptions: always include exception/traceback in mail
+IMPROVED: PACS: robustify DICOM upload
+
+FIX: placeholders: exception on parsing some option styles
+FIX: address: nominatim.openstreetmap.org API has changed
+FIX: documents: properly wipe details display between patients
+
+	1.8.3
+
+NEW: tool: fingerprint_db
+
+IMPROVED: forms: log pdflatex version
+
+FIX: meds: drug data source selection [thanks bganglia892]
+FIX: meds: ADR URL configuration [thanks bganglia892]
+FIX: vaccs: ADR URL configuration [thanks bganglia892]
+FIX: tests: LOINC import fixup [thanks bganglia892]
+FIX: db: whitespace in connection parameters [thanks kikiruz]
+FIX: startup: startup without console fails [thanks Marc]
+FIX: top panel: incorrect age-at-birthday display
+FIX: i18n: locale activation
+
+	1.8.2
+
+FIX: dicom: exception on uploading malformed DCM to Orthanc
+FIX: dicom: exception on failing to download a DCM from Orthanc
+FIX: MacOSX: exception on wx.EndBusyCursor w/o wx.BeginBusyCursor [thanks Alex]
+FIX: database: fix connection pooling [thanks various]
+
+IMPROVED: lab: by-day display functionality
+IMPROVED: emr: tree: more informative display
+IMPROVED: main menu: put <export area> under <paperwork>
+IMPROVED: PACS: display RequestingOrg
+IMPROVED: bootstrap: password input [thanks bganglia892]
+IMPROVED: wxPython: robustify on force-ASSERT devel builds [thanks bganglia892]
+IMPROVED: startup: logging of execution environment
+IMPROVED: shutdown: one more code path for exception handling abort
+
+	1.8.1
+
+NEW: tool: read_all_rows_of_table
+
+FIX: bills: failure to generate bill PDFs [thanks Marc]
+FIX: bills: failure to edit bill item date [thanks Marc]
+FIX: bills: failure to edit billable [thanks Marc]
+FIX: export area: fails to load when gm-burn.sh not found [thanks Marc]
+FIX: demographics: failure to edit type of address [thanks Marc]
+FIX: forms: failure to archive generated forms [thanks Marc]
+FIX: demographics: faulty display of patient addresses [thanks Marc]
+
+	1.8.0
+
+NEW: port to wxPython 4 (wxPhoenix)
+NEW: port to Python 3
+NEW: port bootstrapper to Python 3
+NEW: EMR tree: toggle episode status from context menu
+NEW: EMR tree: show/edit clinical items from below encounters
+NEW: ReST formatting in $free_text::::$ placeholder
+NEW: hook "after_waiting_list_modified"
+NEW: test results tab showing most-recent in test panel
+NEW: local documents cache
+NEW: systemd-tmpfiles config file
+NEW: emailing of export area content as encrypted zip file
+NEW: local directory entries in export area
+NEW: $praxis_scan2pay$ support
+NEW: $bill_scan2pay$ support
+NEW: status bar history/visual bell
+NEW: dicomize images/PDF into DICOM study
+NEW: [Abort] client from exception dialog
+NEW: edit clinical item from EMR list journal
+NEW: dist: add PortableApp XML skeleton
+NEW: placeholder: $most_recent_test_results$
+NEW: tool: check_mimetypes_in_archive
+
+IMPROVED: symbolic link creation on Windows
+IMPROVED: Orthanc connection handling
+IMPROVED: DICOM plugin UI
+IMPROVED: EMR export as TimeLine
+IMPROVED: captions of all list and edit area dialogs
+IMPROVED: test type edit area workflow
+IMPROVED: CLI EMR export tool
+IMPROVED: form disposal dialog
+IMPROVED: date/timestamp picker functionality
+IMPROVED: better duplicate person detection
+IMPROVED: document tree details view usage
+IMPROVED: test results panels links w/ documents
+IMPROVED: console encoding errors behaviour [thanks INADA Naoki]
+IMPROVED: ADR URL handling
+IMPROVED: age sort mode in document tree
+IMPROVED: age/DOB tooltip
+IMPROVED: data revisions display
+IMPROVED: EMR list journal formatting
+IMPROVED: lab/plotting: support better gnuplot scripts
+
+FIX: [Save] functionality of Export Area
+FIX: document tree sorting / document insertion
+FIX: inability to delete inbox message w/o receiver
+FIX: "lastname, firstname" based patient search under Python 3
+FIX: billing: invoice ID generation [thanks Marc]
+FIX: export area: saving document part entries
+FIX: lab: grid display row tooltips
+FIX: lists: context menu CSV export
+FIX: EMR/tree: selection of pseudo issue node
+FIX: documents/new: error handling of unreadable parts
+FIX: PG access: rewrite connection pool
+FIX: y2038 exception in DST detection
+
+------------------------------------------------
+# rel-1-7-patches
+------------------------------------------------
+
+	1.7.10
+
+FIX: bootstrapper: require python 2 [thanks Rogerio]
+FIX: logger: overzealous obscurement [thanks pi]
+FIX: lab results EA: improve prev result display
+
+NEW: paperwork: template: most recent lab
+
+	1.7.9
+
+FIX: billing: invoice ID generation [thanks Marc]
+FIX: dist: GNUmed Manual d/l URL
+FIX: template: letter w/ & w/o Dx's
+FIX: paperwork: letter receiver dlg address selection
+FIX: EMR/tree: exception on loading visual progress notes
+
+	1.7.8
+
+FIX: billing: invoice ID template configuration [thanks Marc]
+FIX: config: top pane lab panel setting [thanks Jelle Mous]
+FIX: searching across active EMR [thanks Eberhard]
+
+	1.7.7
+
+FIX: EMR/tree: exception on showing visual progress note
+FIX: lab/result EA: exception when no previous result available
+FIX: meds/substance EA: exception when no LOINC selected
+FIX: data/ATC: fix reference data import
+FIX: meds/dose EA: exception on saving
+FIX: meds/product EA: exception on creating new product
+FIX: dist: fix appdata.xml [thanks Andreas]
+
+NEW: configurable invoice ID template [thanks Marc]
+
+	1.7.6
+
+FIX: application metadata files
+FIX: searching across all EMRs
+FIX: constrain document PRW to current patient
+FIX: lab/table: exception on double-clicking empty cell in row w/o meta test type
+FIX: lab/result EA: failure to show test type on edit
+
+NEW: stub out $praxis_scan2pay$
+
+	1.7.5
+
+FIX: exception on following vaccs reminder from provider inbox
+
+	1.7.4
+
+NEW: placeholders now nest with $2<>2$ $3<>3$ rather than $<<>>$ $<<<>>>$
+
+NEW: placeholder $<patient_mcf>$
+NEW: placeholder $<praxis_mcf>$
+NEW: placehodler $<qrcode>$
+NEW: placeholder $<if_debugging>$
+NEW: LaTeX letter template example
+
+FIX: map None to '' in address parts placeholder
+FIX: export area export-to-media
+FIX: $<vaccination_history::%(l10n_indications)s::>$ field
+FIX: vaccine creation
+FIX: error in closing expired episodes
+FIX: date formatting in document tree
+
+IMPROVED: AppStream and desktop metadata
+IMPROVED: add "preset" option to $<free_text>$ placeholder
+IMPROVED: include MCF in export area metadata
+IMPROVED: Begleitbrief template
+
+	1.7.3
+
+FIX: failure to merge patients under some conditions [thanks Marc]
+FIX: exception on creating person duplicates
+
+IMPROVED: robustify tarballing script against network flukes
+
+	1.7.2
+
+FIX: GTK3 related size adjustments for PatientOverview/SimpleSoap plugins
+FIX: GTK3 related bitmap adjustments
+FIX: [Save] functionality of Export Area
+FIX: placeholders $current_provider_[title/firstnames/lastnames]$
+FIX: receiver selection address list setup
+FIX: exception on creation of duplicate patient [thanks Marc]
+
+	1.7.1
+
+NEW: add bash completion script
+
+IMPROVED: make DWV optional
+IMPROVED: prerequisites check tool
+IMPROVED: update timeline code to 1.17.0 release
+
+	1.7.0
+
+NEW: link document to procedure
+NEW: link document to hospital stay
+NEW: support receiver on documents
+NEW: support inactivity of external care entries
+NEW: DICOM image preview in PACS plugin
+NEW: placeholder <$current_provider_name$>
+NEW: placeholder <$current_provider_title$>
+NEW: placeholder <$current_provider_firstnames$>
+NEW: placeholder <$current_provider_lastnames$>
+NEW: placeholder $<diagnoses>$
+NEW: switch substance intakes to drug components only
+NEW: monitor test results relevant to intakes
+NEW: add a database sanity check tool
+NEW: add a EMR structure export tool
+NEW: more options for putting formatted EMR into export area
+NEW: measurements sorted by problem
+NEW: verify DICOM data integrity in Orthanc server
+NEW: clinical hint about missing LOINCs
+
+IMPROVED: EMR journal layout/retrieval speed
+IMPROVED: patient overview usability
+IMPROVED: document tree details view
+IMPROVED: LaTeX formatting of current medications (port from 1.6 branch)
+IMPROVED: early-connect error decoding
+IMPROVED: fairly-recent encounter continuation logic
+IMPROGED: handling of empty-encounter cleanup
+IMPROVED: non-blocking update check
+IMPROVED: non-blocking file description retrieval
+IMPROVED: patient merging
+IMPROVED: email sending framework
+IMPROVED: export area workflow
+IMPROVED: test results usability
+IMPROVED: vaccine/vaccination handling
+IMPROVED: test panels now LOINC based
+IMPROVED: patient media creation
+IMPROVED: use new timeline upstream
+IMPROVED: Spanish translation [thanks Uwe]
+IMPROVED: long QT syndrome hyperlink updated
+IMPROVED: age/DOB tooltip in top panel
+IMPROVED: measurements: access related docs from list-by-day
+IMPROVED: patient studies download from PACS
+IMPROVED: provider inbox layout
+
+------------------------------------------------
+# rel-1-6-patches
+------------------------------------------------
+
+	1.6.16
+
+IMPROVED: visual progress note editing workflow
+
+	1.6.15
+
+FIX: exception on tooltipping patient overview inbox item
+FIX: exception in cursor/connection state logging w/ older psycopg2's
+FIX: exception on import error inside portable app
+
+IMPROVED: use Dicom[RequestingPhysician] if available
+IMPROVED: user visible rendering of raw DICOM strings
+IMPROVED: baptize SCRAM for PG passwords in settings check
+
+	1.6.14
+
+FIX: exception when having issues with calculating eGFR in medication plugin
+FIX: exception on disabling identity [thanks Marc]
+FIX: exception on adding archived documents to export area
+FIX: Orthanc DICOM patient ID modification
+FIX: faulty file drop target declarations
+
+IMPROVED: saving of export area items
+IMPROVED: patient display in provider inbox
+IMPROVED: copy document to export area from document plugin
+IMPROVED: Orthanc modification dialog title
+IMPROVED: imported documents deletion confirmation
+IMPROVED: patient media metadata
+
+	1.6.13
+
+FIX: editing of drug products
+FIX: formatting of intervals with seconds [thanks Rickard]
+FIX: robustify backend listener against change notification trigger errors
+FIX: backport once-only detection of unicode char selector
+FIX: improper handling of notebook page change events
+FIX: error handling on uploading DICOM to Orthanc
+
+IMPROVED: more fully prevent logfile based password leaks
+IMPROVED: add listing of latest vaccination per indication
+IMPROVED: export area change listening and sortability
+IMPROVED: episode edit area behaviour
+IMPROVED: add measurement by clicking empty cell in grid
+
+NEW: add Constans algorithm for upper extremity DVT
+
+	1.6.12
+
+FIX: patient merging [thanks Marc]
+
+	1.6.11
+
+IMPROVED: edit area refresh on first setting data
+IMPROVED: DB link error logging
+IMPROVED: suppressed hints display in patient overview
+IMPROVED: sorting of Hx items in patient overview
+IMPROVED: use of pdfinfo in gm-describe_file
+
+FIX: stall of gm-create_datamatrix in swap storm
+FIX: BMP creation without substance intakes
+FIX: missing quotes in BMP datafile [thanks Moritz]
+FIX: exception on double-clicking document tree label node
+FIX: exception on switching to drug database frontend [thanks a sk_SK]
+FIX: exception on saving hospital stay [thanks a sk_SK]
+FIX: exception on checking for upgrade [thanks Philipp]
+FIX: force soap cat to lower case on creating progress notes
+
+	1.6.10
+
+FIX: more faults with dynamic hint detection
+FIX: exception on verifying substance intake EA
+FIX: failure to download studies from early Orthanc versions
+FIX: failure to create BMP when no allergy check date available
+
+IMPROVED: LaTeX formatting of current medications
+
+NEW: placeholders $<bill_adr_*>$ for accessing the address of a bill
+NEW: --wxp=2|3 command line option
+
+	1.6.9
+
+FIX: faulty detection of dynamic hint applicability
+FIX: exception on Orthanc port out of bounds
+FIX: setting address from list in receiver selection widget
+FIX: no EMR user interaction when updating active encounter display
+FIX: faulty by-day measurements display after patient change
+
+IMPROVED: start-end formatting of substance intake
+IMPROVED: select unicode character from SOAP STC context menu
+IMPROVED: edit test results by context menu from lists
+IMPROVED: AMTS data file generation (v2 -> v2.3)
+IMPROVED: color of focussed line in STC-based SOAP editor
+IMPROVED: information in Hx box of patient overview plugin
+
+NEW: placeholder $<if_not_empty>$
+
+	1.6.8
+
+FIX: remove dynamic hint lacking evidence of clinical relevance
+FIX: off-by-one calculation of substance intake end date
+FIX: faulty use of $<gender_mapper>$ in Begleitbrief template
+FIX: fix EMR access deadlock in encounter display widget [thanks Marc]
+FIX: exception on non-ASCII VCF data
+FIX: exception displaying birthday/age of patient w/ estimated DOB
+FIX: list sorting by column header click
+
+IMPROVED: document tree orgs sort mode tooltips
+IMPROVED: file description shell script
+IMPROVED: less in-your-face default list tooltip
+IMPROVED: update AMTS Medikationsplan to 2.3
+IMPROVED: log file placement
+IMPROVED: form template EA information
+IMPROVED: logging of EMR access locking
+IMPROVED: EMR journal: show applicable dynamic hints
+IMRPOVED: ES translation [thanks Uwe]
+IMPROVED: show comm channels of org units in receiver selection
+IMPROVED: show doc sources as receiver selection candidates
+IMPROVED: letter receiver selection widget layout
+IMPROVED: logging of patient change encounter editing
+
+NEW: placeholder $ph_cfg::encoding::$
+NEW: blanko AMTS Medikationsplan ~2.3
+
+	1.6.7
+
+FIX: constrain hospital stay PRW to current patient
+FIX: smoking status detection in dynamic hints
+FIX: GKV checkup auto hint
+FIX: tetanus shot auto hint
+FIX: substance intake discontinuation reason field behaviour
+FIX: exception in clinical calculator with pre-birth test results
+
+IMPROVED: file viewer detection on Windows [thanks John]
+IMPROVED: DICOM studies/series display
+IMPROVED: ZIP-with-DICOMDIR support
+IMPROVED: browse index.html after saving/burning from export area
+IMPROVED: substance abuse management workflow
+IMPROVED: check for tools im gm-describe_file
+IMPROVED: substance intake start/end formatting
+
+NEW: a few hints from the German Choosing Wisely initiative
+NEW: CD/DVD sleeve LaTeX template
+
+	1.6.6
+
+FIX: error when running gm-import_incoming as root
+FIX: failure to show entries with soap_cat=NULL in EMR list journal
+FIX: copy-pasto 'nicotine' -> 'ethanol'
+
+IMPROVED: clear metadata panel after importing new document
+IMRPOVED: enable editing of document source org
+IMPROVED: list context menu layout
+IMPROVED: handling of Windows locale names like Hungarian_Hungary [thanks Attila]
+IMPROVED: AppData file
+IMRPOVED: OOo/LO/SO detection [thanks John]
+IMRPOVED: tree display of documents
+
+NEW: calculate distance of patient address to your praxis
+
+	1.6.5
+
+IMPROVED: list context menu: operate on _selected_ rows
+
+	1.6.4
+
+FIX: EMR journal exporter on Windows [thanks Marc]
+
+IMPROVED: by-org sort mode in document tree
+IMPROVED: file describer script
+IMPROVED: STIKO tetanus auto hint
+IMPROVED: ES translation [thanks Uwe]
+
+NEW: gm-import_incoming script for external use
+
+	1.6.3
+
+FIX: exception on creating invoice from bill [thanks Marc]
+FIX: faulty assumption on what %()s keys must exist in translations
+FIX: exception in expando SOAP editor when lines need wrapping [thanks Marc]
+FIX: exception on saving progress note under new episode [thanks Marc]
+FIX: exception on deleting list items [thanks Marc]
+FIX: exception on building list context menu [thanks Marc]
+FIX: exception in measurements widget on client idling w/o patient [thanks Marc]
+
+IMPROVED: add httplib2 to check-prerequisites.py [thanks Marc]
+IMPROVED: single-line formatting of addresses
+IMPROVED: enhance list context menu to selected rows
+
+	1.6.2
+
+FIX: exception create consumable substance by ATC
+FIX: exception on showing files of new document
+FIX: exception on saving new document
+FIX: exception on saving substance abuse entry
+FIX: exception on attempting to apply sorting outside list column
+
+	1.6.1
+
+FIX: gm-describe_file missing in tarball
+
+IMPROVED: manpages for gm-create_dicomdir/gm-create_datamatrix
+
+	1.6.0
+
+NEW: plugin: list based EMR journal
+NEW: plugin: limited PACS access (Orthanc DICOM server)
+NEW: text editor like SOAP editor (STC based)
+NEW: first cut at German AMTS medication plan
+NEW: always display select measurements in top panel
+NEW: copy-to-clipboard list content via popup menu
+NEW: region support for placeholder output
+NEW: ellipsis support for placeholder output
+NEW: placeholder $range_of$
+NEW: placeholder $ph_cfg$
+NEW: placeholder $current_meds_AMTS$
+NEW: placeholder $praxis_vcf$
+NEW: placeholder <form_version_internal>
+NEW: placeholder <form_last_modified>
+NEW: placeholder $url_escape$
+NEW: add appdata.xml
+NEW: show patient address in openstreetmap
+NEW: support for substance abuse status (nicotine, ethanol, other)
+NEW: print EMR from EMR tree
+NEW: search in EMR journal view
+NEW: copy EMR journal to export area
+NEW: tooltip in procedures list
+NEW: browse tmp dir, ~/gnumed/, ~/.gnumed/ from client
+NEW: dynamic hint on outdated / questionable EDC
+NEW: HIT risk assessment algorithm
+
+IMPROVED: substance intake editing workflow
+IMPROVED: shutdown with dangling top level windows
+IMPROVED: list suppressed dynamic hints in patient overview [thanks Jim]
+IMPROVED: top panel active encounter area layout [thanks Jim]
+IMPROVED: measurements plots layout
+IMPROVED: injectable placeholders: support arbitrary names if desired
+IMPROVED: placeholder nesting regexen
+IMPROVED: enable nested placeholders in text engine, too
+IMPROVED: lab_panel.most_recent_results() can now respect meta types
+IMPROVED: ignore_dupes_on_picking seems a better item picker default
+IMPROVED: overall code towards Python 3 compatibility
+IMPROVED: CODE: cIdentity(Tag) -> cPerson(Tag)
+IMPROVED: security of tmp/sandbox dir setup
+IMPROVED: do not auto-plot results from edit area
+IMPROVED: much faster access to latest vaccinations
+IMPROVED: show all selected parts at once in new-document plugin
+IMPROVED: ask whether to create metadata when saving export area documents
+IMPROVED: EMR journal formatting
+IMPROVED: support deleting more than one list item at a time
+IMPROVED: put file from filename in clipboard into export area
+IMPROVED: startup shell script
+IMPROVED: procedure tooltip in patient overview Hx box
+IMPROVED: external care tooltip in patient overview problems box
+IMPROVED: tooltip in external care management list
+IMPROVED: substance intake timeframe formatting
+IMPROVED: layout of measurements plugin
+IMPROVED: properly show visual progress notes for empty issues in EMR tree
+IMPROVED: support for invoking file manager on a directory
+IMPROVED: show admin SOAP in EMR tree at encounter level
+IMPROVED: ACEI/pregnancy dynamic hint
+IMPROVED: data mining SQL now wants $<ID_ACTIVE_PATIENT>$ rather than $<ID_active_patient>$
+IMPROVED: can now delete EDC
+IMPROVED: support documenting which organization a document originated from
+IMPROVED: workflow for disabling an identity
+IMPROVED: EMR Journal formatting of hospital stays
+IMPROVED: new-document workflow
+IMPROVED: German referral letter
+IMPROVED: include clinical reminders with EMR Journal
+
+------------------------------------------------
+# rel-1-5-patches
+------------------------------------------------
+
+	1.5.10
+
+FIX: patient merging, again [thanks Marc]
+
+	1.5.9
+
+FIX: patient merging [thanks Marc]
+
+	1.5.8
+
+FIX: SQL formatting when retrieving clinical narrative [thanks Marc]
+FIX: strange case of "curr_pat is None" in top panel [thanks Marc]
+
+	1.5.7
+
+FIX: one more nonissue-problem tooltip exception in SOAP editor [thanks Marc]
+FIX: encounter change exception on patient change w/ multiple clients [thanks Marc]
+FIX: patient overview tooltip exception on patient change [thanks Marc]
+FIX: mysterious non-problem with missing "Gnumed." in import [thanks Basti]
+FIX: symlink creation on Windows
+
+IMPROVED: logging of payload changes in case of conflict
+IMPROVED: early startup logging
+IMPROVED: show low file location during startup
+IMPROVED: windows startup batch file
+IMPROVED: redirect wxPython log to python logging
+
+	1.5.6
+
+FIX: exception on removing temporary config file [thanks Vaibhav]
+FIX: exception on importing duplicate file into export area
+FIX: exception on merging patients under wxPython 3 [thanks max]
+
+	1.5.5
+
+FIX: exception in emr.get_clin_narrative (encounters is None) [thanks Marc]
+
+NEW: startup notice to ensure users are running Python 2.7
+
+	1.5.4
+
+FIX: LaTeX output of $soap_for_encounter$ [thanks Jim]
+FIX: streamline fairly-recent encounter activation
+FIX: patient instantiation in episode management tooltips
+FIX: street PRW exception on streets w/o postcode
+FIX: exception on moving SOAP between encounters (1.4.15)
+FIX: exception in staff list if there is staff with deleted DB account (1.4.16)
+
+IMPROVED: default consultation report
+IMPROVED: logging of unexpected encounter changes
+IMPROVED: run pdflatex with -recorder so package "currfile" can be used
+
+	1.5.3
+
+FIX: HL7 import [thanks Jim]
+FIX: VCF export with address/phone
+FIX: LinuxMedNews XML export with address/phone
+FIX: wx.HIDE_READONLY is no more
+FIX: wxp2.8 doesn't yet have GetToolTipString()
+FIX: creating dynamic hints [thanks Jim]
+FIX: editing-from-encounter-list w/o encounter selected [thanks Jim]
+FIX: properly LaTeX-escape "\n" into "\\" [thanks Jim]
+
+IMPROVED: do not require simplejson in gmKVK
+IMPROVED: show ext IDs/comm channels in EMR Journal Export
+IMPROVED: provider inbox labels [thanks Jim]
+IMPROVED: most recent test result display in patient overview [thanks Jim]
+IMPROVED: select-day shows results in by-day test results panel [thanks Jim]
+IMPROVED: $<gen_adr_*>$ can now cache several instances [thanks Jim]
+IMPROVED: $<receiver_*>$ can now cache several instances [thanks Jim]
+
+	1.5.1
+
+FIX: include pregnancy widgets with tarball
+FIX: do not require JSON in psycopg2 [thanks Jim]
+
+	1.5.0
+
+NEW: by-day display mode for test results including multi-line ones
+NEW: patient documents export area plugin
+NEW: manage automatic dynamic hints
+NEW: letter receiver placeholders $<receiver_*>$
+NEW: EDC storage/calculator
+NEW: external care documentation
+NEW: print manager
+NEW: external IDs on organizational units
+NEW: better logging of SEGFAULT et alii
+NEW: fully placeholdered general letter template
+NEW: HL7 lab results import
+NEW: Wells Score for pulmonary embolism
+NEW: algorithm for choosing an NSAR
+NEW: bill related reports
+NEW: $<external_care>$ placeholder
+NEW: read German eGK/KVK/PKVK on Windows
+NEW: per-patient suppression of dynamic hints
+NEW: clipboard-based XML-formatted demographics exchange (I.Valdes, LinuxMedNews)
+NEW: enable TLS on sending bug reports
+NEW: sort substance intake by start date [thanks Jim]
+NEW: save report generator results as CSV file
+NEW: vCard import/export (I.Valdes, LinuxMedNews)
+NEW: LQTS clinical probability score
+
+IMPROVED: filter inbox to active patient if called from waiting list [thanks Jim]
+IMPROVED: robustness of patient change event sequence ordering
+IMPROVED: import upstream TimeLine 1.2.3 release
+IMPROVED: encounter editing before patient switch/creation
+IMPROVED: manage episodes from measurements EA [thanks Jim]
+IMPROVED: workflow when entering test result with new type
+IMPROVED: updated to TimeLine 1.3.0 version
+IMPROVED: on list updates scroll to last selected row if possible
+IMPROVED: updated DVT Wells Score
+IMPROVED: enhance dynamic keyword text expansions
+IMPROVED: support test results status / source data
+IMPROVED: link to WHO ATC list from drug/substance EA [thanks Jim]
+IMPROVED: wxPython 3 compatibility
+IMPROVED: "Relevant" messages mode in provider inbox
+IMPROVED: GFR calculations
+IMPROVED: prevent deletion of messages not belonging to current provider
+IMRPOVED: display of medication related lab monitoring
+IMPROVED: exception logging enhancements
+IMPROVED: workflow creating bill w/ respect to VAT [thanks Marc]
+IMRPOVED: workflow finding unreviewed test results [thanks Jim]
+IMPROVED: new-documents virtual inbox message
+
+------------------------------------------------
+# rel-1-4-patches
+------------------------------------------------
+
+	1.4.15
+
+FIX: exception on moving SOAP between encounters
+
+	1.4.14
+
+FIX: exception on right-clicking empty space in problem list [thanks Daniel]
+FIX: exception on deleting address which is use in a bill [thanks Marc]
+FIX: qtdrugs.org is now reg-walled, switch to qtsyndrome.ch
+
+	1.4.13
+
+FIX: attempt to remove all items from a bill [thanks Marc]
+FIX: exception on adding improperly selected bill item [thanks Marc]
+FIX: exception on trying to add duplicate keyword expansion [thanks Marc]
+
+	1.4.12
+
+FIX: failing deletion of bills [thanks Marc]
+
+	1.4.11
+
+FIX: failing Creatinine vs GFR age calculation
+FIX: failure to handle pre-1900's measurements
+
+IMPROVED: date format in bill/bill_item placeholder [thanks Marc]
+IMPROVED: auto-selection of bill receiver address [thanks Marc]
+
+	1.4.10
+
+IMPROVED: labelling of sign vs review in measurements EA [thanks Jim]
+IMPROVED: coloring of abnormals [thanks Jim]
+
+	1.4.9
+
+FIX: bug in current_meds placeholder
+FIX: utterly slow praxis branch PRW [thanks Jim]
+FIX: bug with changing praxis definition
+
+	1.4.8
+
+FIX: exception on showing audit trail [thanks Jim]
+FIX: SOAP->episode misappropriation bug [thanks Jim]
+
+IMPROVED: patient merging dialog [thanks Harald]
+IMPROVED: [SAVE ALL] behaviour in SOAP plugin [thanks Jim]
+
+	1.4.7
+
+FIX: failure to process non-ascii PATH entries looking for binaries [thanks admin-crb]
+FIX: longstanding cryptic age label update bug [thanks MAIN-USER, Sergio]
+
+	1.4.6
+
+FIX: missing qualification of make_pg_exception_fields_unicode() [thanks Khalil]
+FIX: missing method in TimeLine code
+FIX: bug in new-person EA validation code
+FIX: creating dummy identities used faulty gender
+FIX: faulty apparent_age formatting (age between 1-2 month ignored)
+
+IMPROVED: DOB/age display in top panel
+IMPROVED: deal with display of missing gender
+
+	1.4.5
+
+FIX: permissions of ${TMP}/gnumed/ on multiuser systems [thanks Kalle]
+
+IMPROVED: lab results grid tooltips
+IMRPOVED: manage test types from lab results grid
+IMRPOVED: manage aggregates from test types listing
+IMPROVED: temporary directory
+
+	1.4.4
+
+FIX: gracefully recover from invalid URLs [thanks Jim]
+FIX: encounter editing from EMR browser [thanks Jim]
+FIX: faulty date access in test result EA [thanks Jim]
+FIX: a few minor bugs displaying test results
+
+IMPROVED: results formatting in episode synopsis of EMR tree
+IMPROVED: lots of details in the test results grid
+
+	1.4.3
+
+FIX: test results unit PRW SQL
+
+	1.4.2
+
+FIX: mislinked document insert [thanks Marc]
+
+IMPROVED: desktop entry keywords [thanks Andreas]
+IMPROVED: man page typo [thanks Andreas]
+IMPROVED: authentication environment logging
+IMPROVED: patient overview encounters summary [thanks Jim]
+
+	1.4.1
+
+FIX: deleting org units which are in use [thanks Marc]
+
+IMPROVED: account for wx2.9 always being unicode but not saying so
+IMPROVED: font size for some top panel parts on Mac
+IMPROVED: adjustments for wx2.9 and wx on Mac
+
+	1.4.0
+
+NEW: generic search in lists
+NEW: nested placeholders
+NEW: placeholder $<current_meds_for_rx>$
+NEW: list sorting by column header click [thanks J.Luszawski]
+NEW: "Grünes Rezept" for Germany
+NEW: manage your praxis with its branches
+NEW: auto-hint "GVK-GU überfällig"
+NEW: placeholder $<praxis>$
+NEW: placeholder $<praxis_address>$
+NEW: placeholder $<praxis_comm>$
+NEW: dialog for post-processing template-generated documents
+NEW: meta test type editing
+NEW: management of billables
+NEW: turn patient report results into waiting list entries
+NEW: show relevant measurements in current substances list
+NEW: AUDIT alcohol disorder screening
+NEW: print/export of EMR timeline
+NEW: ATRIA OAC bleeding risk score
+NEW: export of individual document parts
+NEW: EMR tree: support showing revisions
+NEW: manual deletion of encounters
+
+IMPROVED: hook nesting/cycling detection
+IMPROVED: document in chart mailing of document parts
+IMPROVED: just set DB lang at startup if missing, do not ask
+IMPROVED: substance intake EA: PRW_aim context dependant on substance
+IMPROVED: encounter EA: improved display of patient context
+IMPROVED: new patient EA: warn on existing external ID
+IMPROVED: new patient EA: warn on existing name + DOB
+IMPROVED: substance PRW: prefer previously used as suggestions
+IMPROVED: report failing auto-hints to the user
+IMPROVED: make <Privacy notice> be category "admin" so they do not delete to soapU
+IMPROVED: measurements workflow adjustments [thanks Jim and Rogerio]
+IMPROVED: enable generic lists" extra buttons to operate on multi-selections
+IMPROVED: access level role names
+IMPROVED: check MD5 sum of newly inserted document objects for extra paranoia
+IMPROVED: current medication list template
+IMPROVED: backup/restore automatically applies DB settings adjustments
+IMPROVED: default episode "administrative" rather than "administration"
+IMPROVED: EMR tree: listing/editing switch button label
+IMPROVED: EMR tree: show journal for unassociated episodes pool
+IMPROVED: EMR tree: keep expansion state across node edits
+IMPROVED: current_meds_tables/*_notes placeholder can now span pages
+IMPROVED: waiting list [thanks Jerzy]
+IMPROVED: streamlined form templates management
+IMPROVED: display of long-text test results
+IMPROVED: improved SOAP selection list
+IMPROVED: more clinically relevant display of substance intake start
+IMPROVED: test results plotting: deal with "<N" and ">N" pseudo-numeric values
+IMPROVED: patient search now supports "LASTNAME, NICKNAME"
+IMPROVED: document tree: keep expansion state across node edits
+
+------------------------------------------------
+# rel-1-3-patches
+------------------------------------------------
+
+	1.3.10 (unreleased)
+
+FIX: exception on moving document parts
+FIX: linking new address to org unit [thanks Marc]
+
+	1.3.9
+
+FIX: health issue EA hang [thanks Jim]
+FIX: exception on creating inbox item type which already exists under different category
+
+IMPROVED: generate PDF from AbiWord generated forms
+
+	1.3.8
+
+FIX: better show all relevant test results in review dialog [thanks Rogerio]
+FIX: failure of <PRW>.SetData(None)
+FIX: multi-use PRW edit font growth
+
+IMPROVED: make timeline end 1 year after end of data
+
+	1.3.7
+
+FIX: exception on substance intake w/o start date [thanks Jim]
+FIX: faulty SQL in lab phrasewheel [thanks Jim]
+FIX: exception on saving modified organization [thanks Jim]
+FIX: validity check on substance discontinuation date [thanks Jim]
+FIX: exception on accessing org unit comm channel comment [thanks Jim]
+FIX: failure to properly delete org *units* [thanks Jim]
+FIX: failure to properly edit substance intakes [thanks Jim]
+
+IMPROVED: show substance intolerances in magenta rather than yellow [thanks Jim]
+
+	1.3.6
+
+FIX: exception on merging patients with identical addresses [thanks Jim]
+FIX: exception on repeatedly updating LOINC [thanks A.Maier]
+FIX: exception on getattr() in braindead-tree-items-data-access workaround [thanks V.Banait]
+FIX: exception on detecting patient ID column in patient listing ctrl [thanks Marc]
+
+IMPROVED: show "U" for soapU data rather than "?" [thanks Jim]
+IMPROVED: print recalls from vaccinations list
+
+	1.3.5
+
+FIX: exception on merging patients with identical external IDs [thanks Jim]
+
+IMPROVED: further clarify license of Timeline icons
+
+	1.3.4
+
+FIX: exception on DDE access to IE when printing
+FIX: exception on timeline display problems
+FIX: exception on logging cIdentity.export_tray [thanks J.Busser]
+FIX: billing EA ignored encounter selection [thanks J.Busser]
+
+IMPROVED: prepare for static placeholder depreciation
+IMPROVED: verbosely format duration in $<current_meds_list>$ [thanks V.Banait]
+IMPROVED: "Cave:" field not red when known to not have allergies
+IMPROVED: several reports on medications taken by patients
+IMPROVED: display of dynamic text expansion fill-in
+IMPROVED: duplicates error message in drug brands EA [thanks V.Banait]
+IMPROVED: also invoke text macros with <CTRL-ALT-T>
+
+	1.3.3
+
+FIX: failure to use active patient on adding waiting list entry [thanks S.Hilbert]
+FIX: failure to print in some Windows installations [thanks V.Banait]
+
+IMPROVED: primitive HL7 formatting
+IMPROVED: added recalls document template
+IMRPOVED: check files for readability before printing
+IMPROVED: sorta workaround infamous TreeCtrl.GetPyData() PyAssertion
+
+	1.3.2
+
+FIX: failure to fully escape % in Xe(La)TeX engine [thanks V.Banait]
+FIX: formatting error in current substance intake list
+FIX: collision of placeholder replacement and text expansion filling
+FIX: exception on substance-discontinued in the future [thanks S.Hilbert]
+FIX: exception on months of different length in timeline [thanks S.Hilbert]
+FIX: faulty use of test results formatting
+FIX: intake EA forgot non-brand preparation [thanks S.Hilbert]
+FIX: re-saving of durations when editing substance intakes [thanks S.Hilbert]
+FIX: unable to save same-day hospital admission/discharge
+
+IMPROVED: record deletion of inbox messages in EMR
+IMPROVED: create recalls from vaccinations manager
+IMPROVED: clean up LaTeX/Xe(La)TeX handling
+IMPROVED: keep a copy of printed current medication lists [thanks Liz]
+IMPROVED: add MELD score [thanks S.Hilbert]
+IMPROVED: include duration with current_meds_table [thanks V.Banait]
+
+	1.3.1
+
+FIX: make gmHL7 import optional [thanks J.Luszawski/A.Tille]
+FIX: exception on showing timeline [thanks S.Hilbert]
+FIX: exception on searching across EMRs [thanks V.Banait]
+FIX: exception on formatting external IDs in overview [thanks S.Hilbert]
+FiX: exception on merging patients with same comm channel [thanks M.Angermann]
+
+IMPROVED: have prerequisite check look for python-hl7 [thanks J.Luszawski]
+IMPROVED: patient overview waiting list hint tooltip [thanks J.Busser]
+
+	1.3.0
+
+NEW: visualize the EMR using TheTimelineProject
+NEW: placeholder $<patient_photo>$
+NEW: DEGAM UTI 2012 guideline
+NEW: status line in each edit area
+NEW: Xe(La)TeX based forms engine
+NEW: plain text based/generic postprocessing forms engine
+NEW: placeholder $<text_snippet>$ operating on keyword expansions
+NEW: encryptable placeholder $<data_snippet>$
+NEW: look for installed plugins list in config files, too
+NEW: medical staff vs non-medical staff permissions handling
+NEW: generic gmTextCtrl supporting keyword expansion macros
+NEW: current substances grid: generate Rx either from DB or from form template
+NEW: GVK-Rezept prescription template (darf in D nicht verwendet werden)
+NEW: revamped measurements handling including test panels
+NEW: placeholder $<soap_by_issue>$, selecting SOAP via issues list
+NEW: placeholder $<soap_by_episode>$, selecting SOAP via episodes list
+NEW: progress notes can now be created from EMR tree
+NEW: score: Bird Criteria for Polymyalgia rheumatica
+NEW: score: prediction of bacterial conjunctivitis
+NEW: placeholder $<documents>$, include/export documents
+NEW: list placeholders from within client
+NEW: show (e)GFR in substance intake EA
+NEW: placeholder $<test_results>$, selecting test results from list
+NEW: Epworth Sleepiness Scale
+NEW: placeholder $<reminders>$ for messages with due date
+
+IMPROVED: document tree: better labels, tooltips added
+IMPROVED: measurement EA: show most recent value of test type
+IMPROVED: measurement EA: plot adjacent results upon saving
+IMPROVED: support a comment on bills
+IMPROVED: EMR tree: load data when expanding nodes
+IMPROVED: vaccinations list: print vaccinations via template
+IMPROVED: better dynamic text expansion dialog
+IMPROVED: drug component PRW: disambiguate which drug will be picked
+IMPROVED: waiting list: filter by active patient
+IMPROVED: report generator: be smarter about patient ID columns
+IMPROVED: patient overview: display last modified of occupation
+IMPROVED: substances grid: show preparation of items
+IMPROVED: placeholder $<current_meds>$ can let user select entries
+IMPROVED: measurements grid labels
+IMPROVED: (Xe)(La)TeX forms engine recursively substitutes placeholders
+IMPROVED: address: street/subunit level comment can now be removed
+IMPROVED: do not loose has_allergy=True on merging patients
+IMPROVED: health issue EA: safer workflow
+IMPROVED: SOAP plugin: improved selection of most-recent information
+IMPROVED: EMR tree browser: display entire EMR as journal
+IMPROVED: placeholder handler: always properly escape data based on target form engine
+IMPROVED: depreciate gmNotebookedProgressNoteInputPlugin from "GNUmed Default" workplace
+IMPROVED: EMR Journal: order grouped by encounter or order by last modified of items
+IMPROVED: SimpleSoap plugin: enable keyword based text expansions
+IMPROVED: patient overview: show comment on contact in tooltip
+IMPROVED: waiting list entry double-click workflow [thanks J.Busser]
+IMPROVED: database translation contribution code
+IMPROVED: login dialog help text [thanks J.Busser]
+IMPROVED: patient searcher logic [thanks J.Busser]
+IMPROVED: non-overdue recalls display in patient overview
+IMPROVED: provider inbox: much improved workflow
+
+------------------------------------------------
+# rel-1-2-patches
+------------------------------------------------
+
+	1.2.9
+
+FIX: protect against unexplained double-fill of provider inbox
+FiX: protect against capitalize('') [thanks Slappinjohn]
+FIX: protect against yet another silly SetItemPyData issue
+
+IMPROVED: non-overdue recalls display in patient overview
+IMPROVED: show comm channel comment in patient overview
+
+	1.2.8
+
+FIX: backport existence check in expando layout handling
+FIX: exception on adding duplicate active name [thanks J.Busser]
+
+IMPROVED: LaTeX -\normalsize SOAPU in formatting encounters [thanks V.Banait]
+IMPROVED: $<progress_notes>$ placeholder: template handling
+IMPROVED: $<emr_journal>$ placeholder: time_range can be any PG interval
+IMPROVED: instrument code to track list widget bug
+
+	1.2.7
+
+FIX: faulty LaTeX escaping of "\" special character [thanks V.Banait]
+FIX: failure to announce auto-picks from PRW dropdowns [thanks J.Busser]
+FIX: sanity check item/data count in lists [thanks J.Busser]
+FIX: possibly faulty tooltips in patient overview meds list
+FIX: ignore exception on backing up log file inside exception handler
+
+	1.2.6
+
+FIX: failure to merge patients with identical names [thanks S.Reus]
+
+IMPROVED: Backport looking at config files when scanning for installed plugins
+
+	1.2.5
+
+FIX: disappearing substances grid when activating another patient [thanks J.Busser]
+FIX: botched due/expiry verification on saving provider inbox message
+
+	1.2.4
+
+FIX: prevent invoices from getting attached to the wrong patient [thanks M.Angermann]
+FIX: robustify EMR tree against corner cases on patient change
+
+IMPROVED: drug component PRW: show external ID of brand if known
+
+	1.2.3
+
+FIX: failure to parse plugin directory with frozen app [thanks S.Hilbert]
+FIX: failure to add >1 branded intake in sequence [thanks V.Banait]
+FIX: exception on saving hospital stay w/o admission date
+FIX: failure to check for message expiry > due [thanks S.Griesfeller]
+
+	1.2.2
+
+IMPROVED: more frequent waiting list updates [thanks J.Busser]
+IMRPOVED: release mail word-smithing
+IMPROVED: disambiguate "problem IS health issue" in SOAP editor [thanks J.Busser]
+IMPROVED: better listing of bills w/o items [thanks J.Busser]
+
+FIX: tooltip of bills w/o items [thanks J.Busser]
+FIX: failure to save .tex bill files
+FIX: faulty encounter matcher SQL [thanks J.Busser]
+FIX: failure to properly modify workplace plugin list [thanks V.Banait]
+
+	1.2.1
+
+IMPROVED: user experience with SimpleNotes plugin [thanks J.Busser]
+IMPROVED: tell when there's no address for billing [thanks S.Hilbert]
+IMPROVED: suggest current user as primary provider on new patients [thanks J.Busser]
+IMPROVED: AutoHotKey script [thanks V.Banait]
+IMPROVED: login dialog size [thanks J.Busser/L.Dodd]
+IMPROVED: show stats cover period in Activity overview plugin sub panel [thanks J.Busser]
+IMPROVED: soft-wrapping SimpleNotes and $<free_text>$ input [thanks J.Busser]
+
+FIX: FreeDiams XML file API
+FIX: exception activating disabled patient from waiting list [thanks B.Uhl]
+FIX: exception on saving allergy without onset date [thanks J.Busser]
+FIX: exception on editing comm channel w/o comment [thanks J.Busser]
+FIX: exception on d-clicking top panel encounter field w/o active patient [thanks J.Busser]
+
+	1.2.0
+
+NEW: staff management: implement deletion
+NEW: top panel: display active encounter area
+NEW: patient overview plugin
+NEW: reports to find recent encounters [thanks J.Busser]
+NEW: marginal support for soapU category
+NEW: placeholders form_name_long/form_name_short/form_version
+NEW: document tree: sort mode "by health issue"
+NEW: SimpleNotes plugin
+NEW: current medication plugin: sort mode "by health issue"
+NEW: AbiWord based document templates
+NEW: document tree: add parts via document context menu
+NEW: document tree: delete/move document parts via part context menu
+NEW: browse reference data sources
+NEW: importer for "Clinica" EMR databases
+NEW: support estimated date of birth
+NEW: placeholder <vaccination_history> and LaTeX form template
+NEW: PDF-Formular "Vorsorgevollmacht" [thanks Bundesministerium f. Justiz]
+NEW: active clinical reminders with due/expiry date
+NEW: basic billing functionality
+NEW: support for locally overriding wxGlade based widgets
+NEW: dynamic clinical hints
+NEW: placeholders <adr_subunit> and <adr_suburb>
+NEW: placeholder <patient_tags>
+NEW: placeholder <PHX>
+NEW: link qtdrugs.org from Medication plugin and substance intake EA
+NEW: CAGE score on screening for risk of alcohol abuse
+NEW: AutoHotKey script on abdominal pain [thanks V.Banait]
+
+IMPROVED: EMR browser: whole-chart synopsis
+IMPROVED: SOAP plugin: encounter field tooltips [thanks J.Busser]
+IMPROVED: SOAP plugin: RFE/AOE fields only
+IMPROVED: demographics: notebook tab order
+IMPROVED: encounter list: [Add] uses configured default encounter type [thanks J.Busser]
+IMPROVED: encounter list: [Start new], [Edit active], show active in red
+IMPROVED: log data pack insertion in the database [thanks J.Busser]
+IMPROVED: top panel: redo in wxGlade
+IMPROVED: comm channels: support a comment [suggested by J.Busser]
+IMPROVED: document input plugin: workflow adjustments
+IMPROVED: signalling of attempt to duplicate drug component intake
+IMPROVED: vaccinations: two-list item picker to pick indications rather than checkbox forest
+IMPROVED: allergy manager workflow [thanks J.Busser]
+IMPROVED: address related placeholders: let user select if no value available for type
+IMPROVED: vaccinations: in EMR root show how long ago it was given
+IMPROVED: waiting list: on activating patient set RFE if empty but waiting list has comment
+IMPROVED: client upgrade check: version comparison glitch [thanks J.Busser]
+IMPROVED: keyword-based text expansion macros: let user fill in values
+IMPROVED: message inbox: include messages *by* the active provider, too
+IMPROVED: FreeDiams interface: support 0.6.0 style XML file API
+IMPROVED: provide md5/sha512 sums for release tarballs [thanks A.Wachtleben]
+IMPROVED: branded drug EA: jump to manage-substances
+IMPROVED: placeholders: current_meds_table/current_meds_notes
+IMPROVED: default medication list template layout
+IMPROVED: substance intake EA usability
+IMPROVED: status line cleanup [thanks J.Busser]
+IMPROVED: document signing display [thanks J.Busser]
+IMPROVED: "latest vaccinations" template
+
+------------------------------------------------
+# rel-1-1-patches
+------------------------------------------------
+
+	1.1.20 (unreleased)
+
+FIX: must be careful about active name when merging patients [thanks S.Reus]
+FIX: exception on parsing "2//" into timestamp suggestion [thanks jesenas]
+
+	1.1.19
+
+FIX: faulty handling of inbox message context PK arrays
+
+	1.1.18
+
+FIX: exception on adding region [thanks U.Koch Kronberg]
+
+	1.1.16
+
+FIX: FreeDiams XML file API access
+
+	1.1.15
+
+FIX: exception on removing components from branded drug [thanks S.Hilbert]
+
+IMPROVED: bring back [OK] button on editing progress notes [thanks J.Busser]
+IMPROVED: patient search trying to pin down merge issue
+
+	1.1.14
+
+FIX: missing pre-save date verification in document properties editor [thanks J.Busser]
+FIX: exception on procedure start > end [thanks J.Busser]
+FIX: corner case of faulty drug database selection [thanks J.Busser]
+
+	1.1.13
+
+FIX: apparent-age calculation bug on Feb 29th if DOB is non-leap year [thanks M.Angermann]
+FIX: cFuzzyTimestampInput.is_valid_timestamp() error seen in encounter EA [thanks J.Busser]
+FIX: Easter Egg Exception
+FIX: [Save under] in SOAP editor would fail [thanks J.Busser]
+
+	1.1.12
+
+FIX: exception with certain invalid placeholders [thanks S.Reus]
+FIX: add missing encoding detection [thanks Andrew]
+FIX: broken health issue creation from its PRW [thanks S.Reus]
+
+IMPROVED: robustify os.startfile() use [thanks S.Hilbert]
+IMPROVED: robustify auto-setting of encounter.last_affirmed
+IMPROVED: robustify validity checks of cFuzzyTimestampInput [thanks S.Reus]
+IMPROVED: overly eager page number collision check [thanks S.Hilbert]
+
+	1.1.11
+
+FIX: proper quoting of "start" args on Windows [thanks S.Hilbert]
+FIX: exception on expando resizing when it holds 0 lines
+FIX: exception on adding a second/third brand [thanks Vaibhav]
+
+IMPROVED: remove unneeded documentation tarball [thanks A.Tille]
+IMPROVED: better index.html in tarballed documentation [thanks A.Tille]
+IMPROVED: ignore wx.Begin/EndBusyCursor refcounting
+IMPROVED: PRWs now know about <ENTER> on Windows [thanks S.Hilbert]
+IMPROVED: grey out arriba menu item if not detected [thanks S.Hilbert]
+IMPROVED: pre-final editing of LaTeX forms [thanks M.Angermann]
+
+	1.1.10
+
+IMPROVED: arriba now at version 2.4.1
+IMPROVED: support non-blocking external apps on Windows [thanks S.Hilbert]
+IMPROVED: offline docs [thanks S.Hilbert]
+IMPROVED: russian translation [thanks YvLy]
+
+FIX: bug in calculating apparent age when patient is born later today
+
+	1.1.9
+
+FIX: completely rip out wx.lib.pubsub use
+
+	1.1.8
+
+FIX: exception on accessing diagnostic certainty phrasewheel [thanks J.Busser]
+FIX: cannot pack with pyInstaller due to pubsub v1 API [thanks S.Hilbert]
+
+IMPROVED: try robustifying wx.lib.pubsub listener facing pyInstaller damage [thanks MM]
+IMPROVED: make opening URLs work better with Python 2.6 [thanks MM]
+IMPROVED: detection of connection loss
+IMPROVED: tarball generation regarding the GNUmed manual
+
+	1.1.7
+
+IMPROVED: warn on saving branded drugs w/o components [thanks vbanait]
+
+FIX: do not check .is_vaccine against None [thanks J.Busser]
+FIX: failure to access drug database on reconfiguration of invalid preselect [thanks J.Busser]
+FIX: inability to edit a drug component intake [thanks S.Hilbert]
+
+	1.1.6
+
+FIX: missing check for substance intake end date in the future [thanks S.Hilbert]
+FIX: faulty search query for persons w/o a title [thanks J.Busser]
+FIX: failure to verify substance intake duration [thanks vbanait]
+
+IMPROVED: description w/ gender formatting [thanks J.Busser/Liz]
+IMPROVED: EMR tree browser: remove redundant gender from root item tooltip
+IMPROVED: demographics: protect against deletion of active name [thanks J.Busser]
+IMPROVED: gracefully fail attempts to duplicate drug component intake [thanks S.Hilbert]
+
+	1.1.5
+
+FIX: properly review partless documents [thanks J.Busser]
+FIX: exception in episode name selection PRW [thanks S.Reus]
+FIX: improper validity check in encounter EA [thanks S.Reus]
+
+IMPROVED: placeholder $<primary_praxis_provider_external_id::type//issuer::length>$
+IMPROVED: robustify browsing URLs against external problems [thanks Sergio]
+
+	1.1.4
+
+FIX: document comment phrasewheel exception [thanks S.Reus]
+FIX: exception in fuzzy timestamp PRW when not actively selecting from dropdown [thanks S.Reus]
+FIX: exception in date input prw when not actively selecting from dropdown [thanks S.Reus]
+FIX: exception on using "n" -> "now" in date input PRW
+FIX: failure to properly propagate changes to the current encounter [thanks J.Busser]
+
+IMPROVED: placeholder $<current_provider_external_id::type//issuer::length>$
+IMPROVED: staff list editor: disable non-functional [Delete] button [thanks J.Busser]
+IMPROVED: episode/issue EA: "Synopsis" field label/tooltip [thanks J.Busser]
+
+	1.1.3
+
+FIX: phrasewheel exception on test types without .code [thanks J.Busser]
+
+	1.1.2
+
+FIX: faulty access to _TCTRL_unit in patient creation widgets [thanks J.Busser]
+
+IMPROVED: confirm removing patients from the waiting list [thanks J.Busser]
+IMPROVED: remove misleading "There are no encounters for this episode." [thanks J.Busser]
+
+	1.1.1
+
+FIX: more robust clock value formatting
+FIX: when configured encounter type not available pick first rather than pk=0 one
+FIX: failure to properly search for "kir;" [thanks J.Busser]
+FIX: faulty use of wxSizer.Detach() [thanks Stepanyuk]
+
+IMPROVED: log gmI18N.get_encoding() result
+IMPROVED: encounter type phrasewheel formatting
+IMPROVED: slightly better wx.EndBusyCursor() placement in exception handler
+IMPROVED: formatting of staff match provider items [thanks J.Busser]
+IMPROVED: by default show inactive substances in grid
+IMPROVED: add improved icon XPM
+
+	1.1.0
+
+NEW: use os.startfile() for printing where available
+NEW: PDF printing via Acrobat Reader/gsprint.exe/os.startfile/IEx/MacPreview
+NEW: use dem.remove_person(integer) DB function from gm-remove_person.sh
+NEW: add man pages for more server-side shell scripts
+NEW: multi-phrase phrasewheel support
+NEW: right-clicking problem in SOAP note plugin shows episode/issue edit area
+NEW: cleanup tmp dir on shutdown if not running with --debug
+NEW: do not import mx.DateTime in gmPG2.py anymore
+NEW: LaTeX template for printing German "GKV-Rezept based" forms [thanks C.Becker]
+NEW: hook "after_code_link_modified"
+NEW: family history handling
+NEW: PDF-form based forms handling via pdftk
+NEW: coding of episodes, issues, RFE/AOE, procedures, family history
+NEW: minimal management of communication channel types
+NEW: support for data packs installable from within the client
+NEW: warn on/inform about access to medical chart of staff member
+NEW: add Ginkgo CADx to list of minimally supported DICOM viewers
+NEW: placeholder $<encounter_list::format template::length>$ to access list of encounters
+NEW: visual progress note creation directly from image capture device
+NEW: 4 new visual progress note templates [thanks J.Busser]
+NEW: implement explicitly creating episodes from EMR tree or menu
+NEW: implement organizations management
+NEW: placeholder $<patient_address::type//formatting template::length>$
+NEW: placeholder $<adr_region::type::length>$
+NEW: placeholder $<adr_country::type::length>$
+NEW: placeholder $<patient_comm::type::length>$
+NEW: placeholder $<external_id::type//issuer::length>$
+NEW: placeholder $<primary_praxis_provider>$
+NEW: report generator placeholder $<ID_active_patient>$
+NEW: bleeding score: HEMORR²HAGES
+NEW: vaccination indication "influenza (H3N2)"
+
+IMPROVED: substance intake EA: one line with tooltip for components info field
+IMPROVED: substance intake EA: field naming and title
+IMPROVED: config file comments
+IMPROVED: context menu titles
+IMPROVED: allergy manager: close button, confirm button naming
+IMPROVED: larger lower border in gnuplot templates so year gets displayed properly
+IMPROVED: detection of external executables
+IMPROVED: default medication list template layout
+IMPROVED: make inbox listen to/reload on doc/doc-review/identity changes
+IMPROVED: typos in patient search field [thanks J.Busser]
+IMPROVED: check for both "lowriter" and "oowriter" when using OOo/LO [thanks Marc]
+IMPROVED: set database options at bootstrap, only check at connection setup
+IMPROVED: fix tab order in SOAP plugin [thanks S.Leibner]
+IMPROVED: EMR tree: disable Journal/Synopsis selection for nodes where it does not apply
+IMPROVED: clarified license to "GPL v2 or later"
+IMPROVED: demographics tooltips: in-database emergency contact, in-praxis primary provider
+IMPROVED: substance intake grid: show advice column
+IMPROVED: document archive: configure UUID generation
+IMPROVED: document archive: new review modes (only if not by responsible/only if none)
+IMPROVED: comm channel type PRW: filter out match candidate dupes [thanks J.Busser]
+IMPROVED: document tree: more informative node formatting
+IMPROVED: prescription: auto-sign if the current provider is the intended reviewer for the patient
+IMPROVED: vaccination list formatting on episodes/encounters
+IMPROVED: faster generation of PDFs from LaTeX templates
+IMPROVED: waiting list: multi-line comment and item-based list tooltip
+IMPROVED: document metadata editing: no more always-on-top, safer parts moving [thanks J.Busser]
+IMRROVED: waiting list: keep selection on item when moving it within the list [thanks J.Busser]
+IMPROVED: inbox: goto-patient as default action if pk_patient is not NULL [thanks J.Busser]
+IMPROVED: DOB related identity handling
+IMPROVED: new patient EA: include in-praxis primary provider [thanks J.Busser]
+IMPROVED: during connect check whether database was properly bootstrapped
+IMPROVED: new patient EA: include address type selection
+IMPROVED: behaviour of [kidney] button in substance intake grid
+IMPROVED: new patient EA: saner address search / address fields interaction
+
+------------------------------------------------
+# rel-0-9-patches
+------------------------------------------------
+
+	0.9.12
+
+FIX: exception with INN based FreeDiams interaction check
+
+	0.9.11
+
+IMPROVED: add SQL reports to find duplicate streets/urbs/regions
+
+	0.9.10
+
+FIX: include latest GPL v2.0 license text from FSF [thanks Ankur]
+FIX: gracefully handle invalid DOB (future, DOB > DOD) [thanks Wim]
+
+IMPROVED: substance intake table: "amount per unit" = "Strength", not "Dose" [thanks J.Busser]
+
+	0.9.9
+
+FIX: be ever more careful on list ctrl item tooltip generation [thanks Marc]
+FIX: add two more snippets pulled from the web re tree sorting insanity
+
+	0.9.8
+
+FIX: exception on trying to create Gelbe Liste/MMI version file [thanks ALI from Lebanon]
+FIX: exceptions on various TWAIN error states [thanks ALI from Lebanon]
+FIX: failure to save leftmost notelet editor on [Save all] button [thanks J.Busser]
+FIX: exception on not selecting an encounter for [Save under] action [thanks J.Busser]
+FIX: improper scaling of "width < height" images (visual progress notes)
+FIX: exception on wx.TreeCtrl.GetPyItemData() w/o *explicit* wx.TR_SINGLE style
+FIX: improper sizing of SOAP expandos on Windows (#646240) [thanks S.Hilbert]
+FIX: exception on getting list item tooltip if no data available [thanks J.Busser]
+FIX: exception on selecting bytea columns in report generator [thanks J.Busser]
+
+IMPROVED: also try %d/%m/%Y when parsing dates [thanks J.Busser]
+
+	0.9.7
+
+FIX: exception on creating allergy entry from non-brand substance intake [thanks J.Busser]
+FIX: exception on creating measurement type without LOINC [thanks J.Busser]
+FIX: exception with displaying list item tooltips [thanks Marc]
+FIX: faulty pt_BR translation ("issue name" -> "issue_name") [thanks Rogerio]
+FIX: fix DOB to be dated back one day sometimes [thanks S.Reus]
+
+IMPROVED: better protect against translation errors
+
+	0.9.6
+
+FIX: need to clear "Recent notes" sizer label between patients [thanks J.Busser]
+FIX: exception on <DrugATC/> being returned from FreeDIAMS but empty [thanks ll]
+FIX: exception (off-by-one) when splitting "incompletely" defined placeholders [thanks Marc]
+FIX: exception when DOB=NULL when re-confirming old encounter [thanks J.Busser]
+
+IMPROVED: enable detaching episodes from issues [thanks J.Busser]
+
+	0.9.5
+
+FIX: exception on trying to use Wine version of GL/MMI under Windows [thanks S.Hilbert]
+FIX: adjust default Windows path to FreeDiams executable [thanks S.Hilbert]
+FIX: exception on trying to put patient on same drug twice [thanks J.Busser]
+FIX: Windows can't check hook script for -rw------- with os.stat() [thanks LuisCapriles]
+FIX: exception on DOB input because .strptime() returns TZ naive dates [thanks J.Busser]
+FIX: exceptions on entering large integers into DOB field
+
+IMPROVED: logging of hook script permissions [thanks L.Capriles]
+
+	0.9.4
+
+FIX: gm-remove_person.sh did not properly delete persons [thanks J.Busser]
+FIX: enable running arriba w/o an active patient
+FIX: cEpisode.get_narrative() ignored <soap_cats> argument
+FIX: wrapper around Python's deficient strftime() [thanks J.Jaarsveld]
+FIX: exception on displaying date deceased if not null [thanks J.Busser]
+FIX: exception on activating non-existent patient from inbox message [thanks Oliver]
+
+IMPROVED: make creating/updating tags a restricted procedure [thanks Rogerio]
+IMPROVED: slightly relax external app exit code check on Windows [thanks vbanait]
+IMPROVED: placeholder "soap_for_encounters" now sorts by SOAP cat rank, then by date [thanks vbanait]
+IMRPOVED: better remove SOAP-less encounters from consultation report output [thanks vbanait]
+IMPROVED: do not try to sign results if none selected
+
+	0.9.3
+
+FIX: wxPython-MacOSX needs yet another way to detach sizer items [thanks J.Busser]
+
+IMPROVED: naming of formatted item view in tree (Details -> Synopsis) [thanks J.Busser]
+IMRPOVED: synopsis formatting of episodes in EMR tree [thanks J.Busser]
+IMPROVED: wording of problem list headers in SOAP plugin [thanks S.Leibner]
+IMRPOVED: synopsis formatting of health issues in EMR tree [thanks J.Busser]
+IMPROVED: problem list formatting in SOAP plugin [thanks J.Busser]
+
+	0.9.2
+
+IMPROVED: German translation [thanks S.Hilbert]
+IMPROVED: units PRW now also pulls from ATC DDD and consumable substances amount [thanks S.Hilbert]
+
+	0.9.1
+
+FIX: wxPython-MSW (wx-assertions-on) cannot detach sizer items as documented [thanks S.Hilbert]
+FIX: adjusted Python interpreter path in check-prerequisites.py [thanks lintian]
+FIX: exception on calling FreeDiams on Windows if not configured [thanks S.Hilbert]
+
+	0.9.0
+
+NEW: use much enhanced, file-based FreeDiams API
+NEW: support primary provider on patients along with configurable fallback
+NEW: support array of contextual FKs per inbox message
+NEW: support dicomscope as DICOM viewer
+NEW: support summary field on health issues and episodes
+NEW: translate database strings from within client and contribute translations
+NEW: simplistic coding systems browser
+NEW: cloning of workplaces
+NEW: hook "post_person_creation"
+NEW: placeholder: "emr_journal::soap//%(narrative)s//255//tex::9999"
+NEW: LaTeX template: chronological EMR journal
+NEW: placeholder: "free_text::tex//<purpose>::9999"
+NEW: LaTeX template: generic free-text medical statement (English and German)
+NEW: full manual management of substances/drug components/branded drugs
+NEW: implement our own date picker
+NEW: implement searchable tags with image/name/comment on patients
+NEW: Greek translation
+NEW: log failed gm-dbo database access in database during restricted procedures
+NEW: change gm-dbo password from client
+NEW: implement leaving a message for oneself/other providers
+NEW: Gulich Score on GABHS in sore throat
+NEW: implement generic method for downloading data packs
+NEW: placeholder: "soap_for_encounters::soap//<date format>::9999"
+NEW: make client font configurable
+
+IMPROVED: link test results directly to requests for them
+IMPROVED: much better EMR tree root node tooltip
+IMPROVED: improved adding of vaccinations
+IMPROVED: now listing episodes/health issues at time of creation in EMR journal
+IMPROVED: Boesner score now has internationally usable name: "Marburg CHD score"
+IMPROVED: much better integration of visual progress notes
+IMPROVED: procedures now support a duration and an "ongoing" state
+IMPROVED: adjust to modified API of MMI/Gelbe Liste
+IMPROVED: master data management interface
+IMPROVED: fix "Current Substance Intake" edit area usability glitches (schedule, substance, preparation)
+IMPROVED: much saner "deletion of substance intake entry" workflow
+IMPROVED: logically cleaner substance intake handling
+IMPROVED: find gm-print_doc in git tree, too
+IMPROVED: relax URL sanity checks since Web 2.0 confuses all but the most sophisticated browsers
+IMPROVED: default server profile names in gnumed.conf example
+IMPROVED: alpha-sort list of master data lists as per mailing list
+IMPROVED: external patient sources now generically import external IDs/comm channels/addresses
+IMPROVED: fix detection of existing patient when loading from external source
+IMPROVED: workplace plugin configuration using item picker
+IMPROVED: in phrasewheel support dynamic part of tooltip based on selected item data
+IMPROVED: location PRW in procedure EA: re-use hospitals from hospital stays
+IMPROVED: support arriba 2.2.2 and its new file-based API
+IMPROVED: substance intake grid: display unapproved by default
+IMPROVED: default temporary directory now /tmp/gnumed/gm-<unique ID>/ per GNUmed instance
+IMPROVED: menu structure creation such that accelerator keys work more reliably
+IMPROVED: EMR tree can now display selective chronological journal on issues and episodes
+IMPROVED: existing translations
+IMPROVED: make showing audit trail a restricted procedure
+IMPROVED: enable exporting of in-database form template
+IMPROVED: show RFE/AOE in "recent notes" display in SOAP plugin
+IMPROVED: much saner workflow when creating allergy entry from substance intake
+IMPROVED: configurably auto-open editors for all open, recently worked-on problems when activating a patient
+IMPROVED: SOAP plugin: [Save under] saves notelet under selectable rather than current encounter
+IMPROVED: enable moving documents between encounters, mainly useful for visual progress notes
+IMPROVED: do not at all use wx.DatePickerCtrl as it breaks on some locales (en_IN) [thanks vbanait]
+IMPROVED: management of configuration items
+
+------------------------------------------------
+# rel-0-8-patches
+------------------------------------------------
+
+	0.8.8
+
+FIX: failure to show patient image if created in a month with a name containing non-ASCII characters
+FIX: fix sorting of EMR tree dummy health issue node [thanks S.Hilbert]
+FIX: no more getStrAllTopics() in newer wx.lib.pubsubs
+
+	0.8.7
+
+FIX: incompatible transport formatting of bytea between pre-9.0 libpq and 9.0+ PG server [thanks D.Varrazzo]
+FIX: exception on adding a diagnostic org (path lab)
+FIX: pointed everything in this branch to publicdb.gnumed.de
+FIX: exception on pressing [As planned] in substance intake EA [thanks dj-marauder@web.de]
+
+	0.8.6
+
+FIX: strftime() cannot take unicode argument when refreshing waiting list [thanks JB]
+FIX: constrain hospital stay PRW to current patient in procedure EA
+FIX: faulty medically sound formatting of apparent age when between 1 and 2 years of age [thanks Wildfang]
+FIX: insufficient check of start/end field value when editing encounter details [thanks S.Reus]
+
+
+	0.8.5
+
+FIX: PostgreSQL 9.0 does not need "regex_flavor" anymore
+FIX: exception after adding patient to waiting list [thanks JB]
+FIX: properly refresh encounter list after editing one [thanks JB]
+FIX: rectify confusing message when deleting meds [thanks JB]
+FIX: properly set PYTHONPATH [thanks Debian Squeeze]
+
+	0.8.4
+
+FIX: exception on trying to create hospital stay w/o episode [thanks devm]
+FIX: exception on calculate_apparent_age(start=March 31st, end=February): invalid day for month [thanks S.Reus]
+
+	0.8.3
+
+FIX: missing gmHooks import when _on_soap_modified is invoked
+FIX: exception due to faulty SQL in branded drug phrasewheel match provider
+FIX: faulty German translation of (meningococcus) "A" to (meningococcus) "D"
+FIX: subtle bug with validating date_deceased preventing demographics editing
+
+	0.8.2
+
+FIX: assertion on Windows when creating timestamps piecemeal in new-patient
+FIX: exception on wrapping long entry in auto-expanding SOAP note field
+
+	0.8.1
+
+FIX: exception when "DejaVu Sans" not found on Windows
+
+	0.8.0
+
+NEW: Add button to lookup drug on www.dosing.de to current substances plugin.
+NEW: hook: "after_soap_modified"
+NEW: placeholder: "current_meds_table::latex"
+NEW: placeholder: "current_meds_notes::latex"
+NEW: placeholder: "lab_table::latex"
+NEW: placeholder: "latest_vaccs_table::latex"
+NEW: score: Rome diagnostic criteria on obstipation
+NEW: score: Cincinatti Stroke Scale (F.A.S.T.)
+NEW: score: bacterial UTI algorithm
+NEW: score: coronary artery disease in primary care
+NEW: score: ABCDEF & Glasgow-7-points for identifying atypical moles
+NEW: report: patients taking drug X
+NEW: graphing of ranges of measurements (user-defined gnuplot scripts)
+NEW: support emergency contact
+NEW: support comment directly on identity
+NEW: Add button to report ADR from within current substances plugin.
+NEW: list view of database audit trail
+NEW: management of vaccinations and vaccines
+NEW: templates for writing a plugin [thanks S.Hilbert]
+NEW: on Windows try to switch to "DejaVu Sans" font for improved unicode display
+NEW: demonstrable path to get up and running on Macintosh [thanks J.Busser]
+NEW: useful error dialog when database connection lost
+NEW: email log file on demand from menu
+NEW: support Canadian MSVA format as external patient source
+
+IMPROVED: GNUmed can now import the ARRIBA result as a document
+IMPROVED: rename client/locale/ to client/po/ and adjust to that
+IMPROVED: when enabling --debug during unhandled exception try harder to log the exception in question
+IMPROVED: more robust acquiring of data from image sources
+IMPROVED: more medically-sound interval formatting
+IMPROVED: another, more expected, way of calculating patient age
+IMPROVED: edit non-name identity parts *directly* in demographics plugin (no popup needed)
+IMPROVED: show date-generated in patient picture tooltip
+IMPROVED: much better icon [thanks J.Jaarsveld]
+IMPROVED: show comment/emergency contact in patient search control tooltip
+IMPROVED: re-add encounters to auditing
+IMPROVED: show loinc info for test in test results EA
+IMPROVED: much smarter result units phrasewheel
+IMPROVED: DOB validity check when creating new person
+IMPROVED: better layout of configuration listing
+IMPROVED: medication formatting
+IMPROVED: current medication patient handout [thanks C.Hilbert]
+IMPROVED: pre-filter form template selection list based on purpose of showing
+IMPROVED: default config file for running from tarball
+IMPROVED: better support FreeDiams (0.4.2 now in Debian)
+IMPROVED: EMR tree root note context menu
+IMPROVED: generic lists can now have 3 extra buttons
+IMPROVED: use substance rather than brand as allergene when creating allergy from substance intake entry
+
+------------------------------------------------
+# rel-0-7-patches
+------------------------------------------------
+
+	0.7.11
+
+FIX: pointed everything to publicdb.gnumed.de
+FIX: refuse to connect to salaam.homeunix*
+
+	0.7.10
+
+FIX: exception on trying to create hospital stay w/o episode [thanks devm]
+
+	0.7.9
+
+FIX: when creating allergy from substance intake entry second try would overwrite first try if same drug brand
+FIX: assertion on Windows when creating timestamps piecemeal in new-patient
+FIX: exception on wrapping long entry in auto-expanding SOAP note field
+
+	0.7.8
+
+FIX: exception on substance listing because ref.v_substance_in_brand does not have external_code_type_brand
+FIX: exception when printing shutdown message and debugging enabled by previous exception but no log window
+FIX: exception when shutting down backend listener because connection can already be closed
+
+	0.7.7
+
+FIX: DOB could become today in certain corner cases when creating new person [thanks S.Reus]
+FIX: check_drug_interactions() failed with FreeDIAMS [thanks J.Busser]
+FIX: be more careful around changing CWD when creating document from LaTeX [thanks S.Hilbert]
+FIX: exception when save-all'ing multiple notelets [thanks S.Reus, J.Busser]
+FIX: exception when saving medication where is_long_term is true [thanks J.Busser]
+
+	0.7.6
+
+FIX: faulty variable access when detecting OOo UNO bridge [thanks S.Hilbert]
+FIX: fail on "allergy_state" placeholder when date-last-checked not available [thanks Marc]
+FIX: fail to properly log non-ascii PostgreSQL messages on ASCII configured Pythons [thanks E.Kuznetsov]
+FIX: faulty access to PG connection filedescriptor when polling for notifications [thanks J.Busser]
+FIX: exception when aborting person creation while adding new staff [thanks Manuel]
+FIX: def_country undefined when def_region not set
+
+	0.7.5
+
+FIX: cannot reach some parts of the expanding SOAP control when typing "too much" [thanks J.Jaarsveld] (lp #583019)
+FIX: Windows cannot differentiate os.system() exit status [thanks Panos]
+
+	0.7.4
+
+FIX: exception when not selecting an episode but pressing [OK] after printing a letter
+FIX: exception when template for medication list is not suitable [thanks wilfried.muenster]
+FIX: exception when retrieving DDD for ATC in meds grid tooltip on less capable PG versions
+FIX: exception on some data mining query types
+
+	0.7.3
+
+IMPROVED: more robust acquiring of data from image sources
+FIX: fail gracefully if cannot read MMI/Gelbe Liste data version file [thanks doogie]
+FIX: faulty field access ['country'] when setting default country [thanks papis]
+FIX: missing "s" after "%" in Italian translation [thanks papis]
+FIX: missing "," in German translation
+FIX: exception on mogrifying xsanerc file if no EOL seen [thanks S.Reus]
+FIX: non-fatal exception on setting active patient from gmCurrentPatient instance [thanks rafmav]
+
+	0.7.2
+
+FIX: don't use --override-schema-check in tarballed gm-from-vcs.sh [thanks to J.Jaarsveld]
+FIX: actually fail DB connect if we detect secondary problems with database [thanks to J.Jaarsveld]
+FIX: don't fail in create_new_person when called from unsuccessful search [thanks to S.Reus]
+FIX: don't fail when writing letter from template for which there's no engine [thanks Marc]
+FIX: don't fail displaying if laterality of issue happens to be u'' [thanks S.Reus]
+
+improved: better detection of unconfigured visual progress notes editor [thanks Marc]
+IMPROVED: better Python UNO OOo bridge detection [thanks Petr Mladek]
+
+	0.7.1
+
+FIX: exception when signalling invalid -conf-file=... value [thanks to S.Reus]
+FIX: some missing .decode()s on .strftime() [thanks to uy2qw from Ukraine]
+FIX: gnumed.py moved, thus .local_base_dir different, hence .system_app_data_dir incorrect [thanks to S.Reus]
+
+improved: removed spurious printk() when switching encounters
+
+	0.7.0
+
+- new: manage diagnostic orgs
+- new: manage date of death per patient
+- new: manage discontinuation of substance intake
+- new: turn substance intake entry into allergy
+- new: hooks
+	- after_substance_intake_modified
+	- hook after_test_result_modified
+- new: visual progress notes
+- new: initial support for FreeDiams drug database frontend including install helper
+- new: commandline option --ui=<web/wxp> with rudimentary CherryPy frontend
+- new: show list of all configuration settings
+- new: configurable web search for test type from test result edit area
+- new: systemwide/user-level optional shutdown scripts invoked from /usr/bin/gnumed
+- new: Centor/McIsaac-Score as keyword expansions
+- new: man pages for backup scripts
+- new: partial Catalan translation
+
+- improved: login dialag:
+	- hint about local DB on failure
+	- do not show password ;-)
+- improved: show allergies in substance intake edit area
+- improved: warn on creating database users with empty passwords
+- improved: default region/country for new-person creation
+- improved: show lab name/contact details in measurement tooltip
+- improved: always use new person creation rather than old
+- improved: placeholders:
+	- name::*::*
+- improved: various typos
+- improved: do not fail if unable to show part when adding documents
+- improved: cleaner/faster display of documents in tree, and sorted, eventually !
+- improved: ARRIBA is now v2.0.4
+- improved: using Git for SCM now
+- improved: gnumed.py now directly under client/
+- improved: startup size will never go beyond screen size/below 100x100 pixel
+- improved: Dutch translation
+- improved: use per-engine wildcards on form template selection
+
+------------------------------------------------
+# rel-0-6-patches
+------------------------------------------------
+
+	0.6.4
+
+FIX: properly deal with persons w/o a DOB in even more places
+
+	0.6.3
+
+FIX: faulty tooltip on EMR tree items w/ no data to display
+FIX: exception on reusing person ID type w/o issuer
+FIX: fail gracefully if cannot read MMI/Gelbe Liste data version file [thanks doogie]
+FIX: properly deal with persons w/o a DOB in more places [thanks "user"]
+
+	0.6.2
+
+FIX: properly attribute James Busser, MD
+FIX: do not fail on attempt to <delete> when no allergy entry selected
+FIX: do not fail on tooltipping empty results/meds grids
+FIX: fail less haphazardly on invalid dates in wx -> py conversion
+
+	0.6.1
+
+FIX: WRONG most-recent result displayed in measurement type tooltip
+FIX: missing .GetValue() on abnormality indicator PRW on updating a test result
+FIX: exception on problem with any placeholder rather than continuing with a notice
+FIX: work around one more bogus PyDeadObjectError exception
+FIX: re-add pt_BR translation to release tarball
+FIX: missing dependencies/faulty paths in gm-install_client_locally.sh
+FIX: exception on adding health issue from GUI
+FIX: several typos
+
+	0.6.0
+
+- can promote an episode to being a health issue
+- can add home phone/external ID to newly created patient directly
+- can track diagnostic certainty classification (ABCD) on episodes and issues
+- can track procedures performed on a patient
+- can do end user friendly free-text search across all EMRs
+- can move all progress notes of a pre-selected list of encounters to another episode
+- can manage provinces
+- can manage substance intake
+- can print medication list
+- can print LaTeX as well as OOo letters
+	- referral letter template contributed by Rogerio Luz and James Busser
+- can interface with German "MMI/Gelbe Liste" external drug database
+	- show info on drug/substance by PZN / name
+	- show interactions
+	- import drugs/substances
+- can display UI in Polish and others (partially)
+- can include potential problems in problem list of soap plugin
+- can remove DOB from person
+
+- improved (more) placeholders
+	- gender to re placement mapper
+	- medication list
+	- allergies list
+	- problem list
+- improved inbox
+
+- improved tarballs: include schema/API docs, better names
+- improved import path detection
+
+------------------------------------------------
+# rel-0-5-patches
+------------------------------------------------
+
+	0.5.1 -> 0.5.2
+
+FIX: obsolete LogException in gmMimeLib.py
+FIX: failure on adding patient to waiting list with no patient active
+FIX: wx.K_* must be wx.WXK_*
+NEW: better default size of encounter details editor
+
+	0.5.0 -> 0.5.1
+
+FIX: be more careful when deleting measurement types - they could be in use
+FIX: faulty access to "pk" column after creating measurement type from phrasewheel
+FIX: missing "import os" in measurement widgets code
+FIX: improved starting of new encounter from SOAP widget
+
+NEW: install ARRIBA jar into /usr/local/bin
+NEW: man page for gm-install_arriba
+
+	0.5.0
+
+- can track hospital stays
+- can group health issues by arbitrary grouping tag
+- can display/edit *all* encounters of a patient in a list
+- can move individual soap rows between encounters
+- can delete progress notes
+- can delete workplaces from GUI
+- can show measurements encyclopedia from grid
+- can manage measurement types
+- can list meta measurement types
+- can start external MI/stroke risk assessment calculator
+- can install ARRIBA MI/stroke risk assessment calculator
+- can download and import LOINC data
+- can import ATC data
+- can disconnect from database welcome message dialog
+- can handle persons without DOB
+- can display deceased person's age properly
+- can remove persons from the database
+
+- new/simpler placeholder style for OOo documents
+- protection against %s-count mismatch in _()
+- improved display of measurement types in grid
+- improved sending of bug reports (log = attachment)
+- improved new-patient dialog
+- improved sorting of documents in formatted episode summary
+- improved "About Database"/startup banner
+- improved episode formatting
+
+- has some revision info in EMR Journal view
+- has built-in fallback workplace for problem situations
+
+------------------------------------------------
+# rel-0-4-patches
+------------------------------------------------
+
+	0.4.6 -> 0.4.7
+
+FIX: faulty get_selected_cells() in measurement grid
+FIX: failed to properly check problem field in measurements edit area
+FIX: missing ) on setting document type translation
+
+	0.4.5 -> 0.4.6
+
+FIX: missing space in update-available message
+FIX: search_for_document by type ID: fk_type must be pk_type
+
+	0.4.4 -> 0.4.5
+
+FIX: _log.panic hiccuping on .conf files with malformed lists, should be _log.critical
+FIX: on Python 2.6 __new__ doesn't like extra parameters anymore
+
+	0.4.3 -> 0.4.4
+
+FIX: re-enable path sanity check that fell off when fixing Windows
+FIX: properly backpatch "properly find last-but-one encounter for an episode or issue"
+NEW: make recent notes in SOAP plugin copy-able for pasting
+
+	0.4.2 -> 0.4.3
+
+NEW: enable removing RFE/AOE by emptying the encounter edit area field
+FIX: properly format encounter times in tooltip in tree browser
+FIX: properly find last-but-one encounter for an episode or issue
+
+	0.4.1 -> 0.4.2
+
+FIX: add comment/example on adjusting PYTHONPATH if needed
+
+	0.4.0 -> 0.4.1
+
+FIX: properly handle unmappable time zones
+FIX: look for system wide app data in "C:\Dokumente und Einstellungen\All Users\Anwendungsdaten\gnumed"
+
+	0.4.0
+
+- can show log file from client
+- can merge patients
+- can edit existing progress notes
+- can access text expansion macros by start-of-keyword
+
+- has new hook "after_new_doc_created"
+- has minimum HIPAA compliance
+- has waiting list
+- has random access to plugins
+- has screenshots on Linux include window decoration
+- has local "installer" for tarball
+
+------------------------------------------------
+# rel-0-3-patches
+------------------------------------------------
+
+	0.3.12 -> 0.3.13
+
+FIX: properly handle unmappable time zones
+
+	0.3.11 -> 0.3.12
+
+FIX: failure to properly render test tooltips in unicode
+
+	0.3.10 -> 0.3.11
+
+FIX: failure to properly format() test results for display
+
+	0.3.9 -> 0.3.10
+
+FIX: failure to delete comm channel
+
+	0.3.8 -> 0.3.9
+
+NEW: better honour post-patient-activation-plugin
+FIX: setting database language more than once
+FIX: faulty logic in XML-RPC port detection
+
+	0.3.7 -> 0.3.8
+
+FIX: missing gmI18N import in gmEMRStructItems
+FIX: missing import of wx._core.PyDeadObjectError in gmDispatcher
+
+	0.3.6 -> 0.3.7
+
+FIX: if a writable --conf-file was used the ignore language mismatch wasn't found
+FIX: do not use dummy name record anymore, fixes name deletion
+FIX: missing cfg = ... when exporting doc to disk
+FIX: tame overzealous validation code so adding external ID types on the fly becomes possible again
+FIX: do not announce new version twice in upgrade-availability message
+FIX: fix misguided wording in upgrade-availability message
+NEW: improve bug reporting for launchpad
+NEW: confirmation dialog before deleting document from tree context menu
+NEW: allow editing part comment in document part details dialog
+
+	0.3.5 -> 0.3.6
+
+FIX: exception on non-ascii time zone name on Windows
+
+	0.3.5 -> 0.3.6
+
+FIX: exception on missing .helpdesk when no backend profiles found
+FIX: exception on empty DOB in new patient wizard
+
+	0.3.4 -> 0.3.5
+
+FIX: reversed logic when detecting new versions
+FIX: further SQL fixes to language setting issue
+
+	0.3.3 -> 0.3.4
+
+NEW: fixup SQL script for language setting issue
+
+	0.3.2 -> 0.3.3
+
+FIX: crash on Windows on bootstrapping on asking password with prompt containing "%s"
+FIX: crash on trying to import document part due to readonly connection
+FIX: crash on failure to set database language
+FIX: crash on DOB "too early" for platform :-(
+FIX: crash on very early failure when instantiating a cStaff object
+FIX: crash on catching PyDeadObjectError which must be wx._core.PyDeadObjectError
+FIX: crash on auto-setting encounter type for document-import-only encounters
+FIX: failure to remember ignored database language mismatch
+FIX: failure to one-step bootstrap databases when the authentication group was missing
+
+NEW: improved EMR stats display: make clear that of total known problems only relevant ones are listed
+NEW: improved EMR stats display: say "encounters" where "visits" was misleading
+
+	0.3.1 -> 0.3.2
+
+FIX: crash on loading external patients if several config files define PRACSOFT source
+FIX: crash on not finding any "previously used accounts" in config files
+FIX: crash on accessing review status in document
+FIX: crash when phrasewheel *thinks* there is a dropdown and receives <enter>
+FIX: crash on __call__ing PyDeadObjects from dispatcher
+
+NEW: fix encoding of gmAbout.py so contributors have proper umlauts
+NEW: do not at all handle DEL/BS in ResizingSTC to avoid weird cursor behaviour reported by user
+NEW: annotate emailed bug reports to somewhat help Launchpad
+
+	0.3.0 -> 0.3.1
+
+FIX: crash on creating patient letter due to local variable "desktop" typo
+FIX: faulty handling of candidate paths in /usr/bin/gnumed
+FIX: crash when explicitly setting up dummy file source (file=None in add_file_source)
+FIX: error on finding profiles list in several sources - need to flatten option value
+FIX: properly set source order and return policy on retrieving backend profile data
+FIX: crash on double-clicking empty cell in test results grid
+FIX: crash on double-clicking test result with non-NULL val_normal/target_min/max in results grid
+FIX: crash on select-all-unsigned due to cell data beings lists now
+FIX: crash on Windows' inability to properly do nothing when there's nothing to be done
+FIX: crash on narrative update signal caught in EMR tree before tree populated
+
+NEW: detect "no config file at all" and fail on that
+NEW: actually act on not finding gnumed.py in /usr/bin/gnumed
+
+------------------------------------------------
+# rel-0-2-8-patches
+------------------------------------------------
+
+	0.2.8.11 -> 0.2.8.12
+
+FIX: exception on empty DOB in new patient wizard
+
+	0.2.8.10 -> 0.2.8.11
+
+FIX: crash on Windows on bootstrapping on asking password with prompt containing "%s"
+
+FIX: crash on trying to import document part due to readonly connection
+FIX: crash due to "desk" -> "desktop" typo in gmForms.py
+
+	0.2.8.9 -> 0.2.8.10
+
+FIX: crash on HELP pressed in login window in non-english locale
+FIX: crash on MacOSX due to <title> not having a default in OnSetTitle() in Manual HtmlWindow
+FIX: crash on MacOSX due to missing .vals on Snellen Config Dialog
+NEW: improved detection of writable user prefs file
+NEW: improved wording on not finding a user prefs file
+NEW: improved German
+
+	0.2.8.8 -> 0.2.8.9
+
+FIX: crash on non-existing state or country when adding new patient
+
+	0.2.8.7 -> 0.2.8.8
+
+FIX: crash on invalid input on tabbing out of year_noted in health issue edit area
+FIX: crash on invalid input on tabbing out of age_noted in health issue edit area
+FIX: crash on MacOSX on cancelling selecting patients from a list (busy cursor refcounting)
+NEW: properly stat() hook script on Windows
+
+	0.2.8.6 -> 0.2.8.7
+
+FIX: crash on editing occupation
+NEW: better detect missing TWAIN *and* XSane
+NEW: Schriftkram -> Schriftverkehr
+
+	0.2.8.5 -> 0.2.8.6
+
+FIX: brown paper bag: uninitialized variable self.user_prefs_cfg_file
+
+	0.2.8.4 -> 0.2.8.5
+
+FIX: crash on adding new workplace
+FIX: crash on --conf-file not writable for user prefs (live-cd)
+FIX: crash on changing type on address due to missing s in %(type)s
+
+	0.2.8.3 -> 0.2.8.4
+
+FIX: crash (sometimes) on opening progress notes editor
+FIX: crash on dragging documents onto part list box
+NEW: Encoding deprecated in desktop files
+NEW: work around python logging module bug on Windows
+NEW: crash less often on faulty address data
+
+	0.2.8.2 -> 0.2.8.3
+
+FIX: crash on not being able to open korganizer2gnumed.csv file
+FIX: crash on saving progress note from single editor for new episode
+FIX: MacOSX: crash on Move*InTabOrder() across sizers in allergy manager
+FIX: crash on trying to edit workplace w/o plugins configured already
+FIX: crash on faulty profile name in preferences
+NEW: on startup create ~/.gnumed/ if necessary
+
+	0.2.8.1 -> 0.2.8.2
+
+FIX: crash on writing OOo letter (.desk -> .desktop)
+FIX: crash on faulty references to 'first'/'last' instead of 'firstnames'/'lastnames'
+FIX: crash on non-existent IFAP transfer directory
+FIX: crash on configuring IFAP startup command ('workpace' typo)
+FIX: crash on use of wxDebug window after application shutdown
+
+	0.2.8.0 -> 0.2.8.1
+
+FIX: crash on setting Windows SetFocus() on dialogs in gm_show_*()
+FIX: crash on passing identity to cDTO_Person.import_extra_data()
+FIX: failure on PG server version checking on MacOSX (bootstrapper)
+FIX: crash on MacOSX after clicking OK in Snellen config dialog
+FIX: crash on missing slave personality
+NEW: do not crash on not being able to write to the config file
+NEW: touch user config file so it exists when needed
+
+------------------------------------------------
+# rel-0-2-7-patches
+------------------------------------------------
+
+	0.2.7.1 -> 0.2.7.2
+
+FIX: failure on setting db logon message to ''
+FIX: work around PG 8.1 lower('Ö') = '' !
+NEW: give OOo a bit more time to startup
+
+	0.2.7.0 -> 0.2.7.1
+
+FIX: failure to save new episode w/o rfe/aoe because episode name is empty
+FIX: faulty path for user-local startup script
+FIX: crash on right-clicking empty provider inbox
+FIX: crash on right-clicking notebook tabs
+FIX: crash on shutdown
+FIX: failure to detect succeeding connection to enslaved client
+FIX: faulty variable access resulting in match_type not being displayed on patient searches
+FIX: remove only older-than-a-week empty encounters such that encounters open
+     on other machines are not deleted from under them
+FIX: missing cast to ::text in dem.date_trunc_utc() calls
+
+*****************************************************************
+# database
+*****************************************************************
+
+------------------------------------------------
+# gnumed_v23
+------------------------------------------------
+
+NEW: add list position to export items
+NEW: add intake regimen support
+NEW: bootstrapper: auto-fix collations as needed
+
+IMPROVED: bootstrap script permissions warning
+IMRPOVED: clin.v_narrative4search: add some demographics (port from 1.8.6)
+
+FIX: PG14 does not support IS OF anymore, use pg_typeof()
+
+------------------------------------------------
+# gnumed_v22
+------------------------------------------------
+
+	22.25
+
+IMPROVED: identity/names: indices
+
+	22.24
+
+IMPROVED: blobs: indices [thanks Marc]
+
+FIX: waiting list: failure in function moving entries
+
+	22.19
+
+FIX: bootstrapper: no more IS OF, use pg_typeof in v2->v3 transition [thanks Lennart]
+FIX: bootstrapper: CHAR -> TEXT cast in v19+ schema hashing on recent PGs
+
+	22.18
+
+IMPROVED: bootstrapper: schema "public" permissions and ownership as per PG 15
+IMPROVED: backup: avoid unnecessary recompression
+
+FIX: bootstrapper: schema hash function in v19+ databases
+
+	22.17
+
+FIX: CREATE FUNCTION ... RETURNS OPAQUE -> TRIGGER [thanks SantyCW@es_AR]
+
+	22.16
+
+IMPROVED: bootstrapper: check disk space
+
+FIX: check encounter lock in clin.remove_old_empty_encounters()
+
+	22.15
+
+FIX: message inbox view
+
+	22.14
+
+FIX: bootstrapper exception calling capture_conn_state()
+
+	22.13
+
+IMPROVED: bootstrapper logging
+
+	22.12
+
+IMPROVED: robustify backup script
+
+	22.11
+
+FIX: i18n.set_curr/force_curr_lang(), again [thanks lucian]
+
+	22.10
+
+IMPROVED: database fixup script
+
+	22.9
+
+FIX: clin.v_candidate_diagnoses: missing coalesce()
+
+	22.8
+
+FIX: i18n.set_curr/force_curr_lang() [thanks Marc]
+
+	22.7
+
+IMPROVED: lab results plotting scripts for gnuplot
+IMPROVED: bills tables grants for invoice ID generation
+
+NEW: multi-results plotting script for gnuplot
+
+	22.6
+
+FIX: properly include fixups in v21-v22 upgrade
+
+IMPROVED: database backup script
+
+	22.4
+
+FIX: LaTeX-Template for Begleitbrief
+FIX: 2nd/3rd level placeholders in LaTeX templates
+
+	22.2
+
+FIX: dem.staff plausibility check [thanks Marc]
+FIX: LaTeX-Template for Begleitbrief
+
+	22.1
+
+IMPROVED: concurrency robustness of backup/restore scripts
+
+	22.0
+
+NEW: revalidate constraints during database upgrade
+NEW: deprecate gm-backup_* in favor of gm-backup
+NEW: deprecate gm-restore_* in favor of gm-restore
+
+IMPROVED: staging._journal_without_suppressed_hints -> clin._v_emr_journal_without_suppressed_hints
+IMPROVED: safer backup scripts
+IMPROVED: don't fail clin.remove_old_empty_encounters() but return FALSE on <2 encounters
+IMPROVED: substance abuse entries can have arbitrary .discontinued
+IMPROVED: rework vaccine/vaccination tables/views
+IMPROVED: turn unique identity assertion into deferred constraint trigger
+IMPROVED: allow empty and comment lines in schema change file list definitions
+IMPROVED: bootstrapper error logging
+IMPROVED: revive pg_upgrade helper
+
+FIX: constrain clin.clin_root_item.soap_cat CHECK to lower case
+
+------------------------------------------------
+# gnumed_v21
+------------------------------------------------
+
+	21.16
+
+FIX: typo in fingerprint script man page [thanks Debian]
+FIX: failure to recreate functions changing return type on upgrade
+
+	21.15
+
+FIX: handle SQL_INHERITANCE in a way compatible with PG10
+FIX: untyped UNIONs not tolerated by PG10 anymore
+FIX: RETURNS UNKNOWN functions not tolerated by PG10 anymore
+
+IMPROVED: script to adjust db settings
+
+	21.12
+
+IMPROVED: logging on dem.identity/dem.names uniqueness violation
+
+FIX: remove no longer needed public.array_agg
+
+	21.11
+
+IMPROVED: backup scripts error checking
+
+FIX: serialization failures due to table mod announcement triggers
+FIX: reset upper case soap cats to lower case
+
+	21.10
+
+FIX: clin.get_hints_for_patient()
+
+	21.3
+
+FIX: GRANTs on demographics views [thanks Marc]
+
+	21.2
+
+NEW: implement commenting out of plausibility checks
+
+IMPROVED: run all plausibility checks even if any fail
+IMPROVED: more resilience against malformed plausibility checks
+
+FIX: inaccurate dem.v_staff plausibility check [thanks Marc]
+
+	21.0
+
+NEW: require PG 9.2 because of pg_trigger_depth()
+
+NEW: dem.v_basic_person -> dem.v_active_persons
+NEW: prevent deletion of staff records that are in use
+NEW: smoking support in clin.patient
+NEW: constraints on audit trail to be in the past
+NEW: check for track_commit_timestamp on PG > 9.5
+NEW: chunked md5() for large objects
+NEW: backup/restore scripts based on directory format
+
+IMPROVED: database restore default configuration
+IMPROVED: more resilient backups
+IMPROVED: all input files now utf8 (io.open() Py3 preps)
+IMPROVED: dem.state -> dem.region
+IMPROVED: dem.region.id -> dem.region.pk
+IMPROVED: dem.urb.id_state -> dem.urb.fk_region
+
+FIX: pg_trgm placement and use
+FIX: trigger on clin.procedure normalizing .is_ongoing
+
+------------------------------------------------
+# gnumed_v20
+------------------------------------------------
+
+	20.11
+
+FIX: better REINDEXing before upgrade [thanks Jim]
+FIX: clin.procedure.is_ongoing=FALSE IF clin.procedure.clin_end < now() [thanks pg_upgrade]
+
+	20.10
+
+FIX: pg_trgm placement and use
+FIX: clin.substance_intake.fk_episode SET NOT NULL
+
+	20.3
+
+FIX: setting FK to clin.test_org on dangling test types, really, this time
+
+	20.2
+
+FIX: setting of FK to clin.test_org on dangling test types
+
+	20.1
+
+IMPROVED: database restore script [thanks Jim]
+
+	20.0
+
+IMPROVED: set clin.encounter.fk_location NOT NULL
+IMPROVED: set clin.test_type.fk_test_org NOT NULL
+IMPROVED: get rid of old-style schema notification
+IMPROVED: database docs now per schema
+IMRPOVED: auto-generation of episode/encounter FK sanity check triggers
+IMPROVED: clin.test_type.conversion_unit -> *.reference_unit
+
+NEW: clin.external_care
+NEW: clin.patient
+NEW: bootstrapper now REINDEXes after upgrade
+
+------------------------------------------------
+# gnumed_v19
+------------------------------------------------
+
+	19.16
+
+FIX: pg_trgm placement and use
+
+	19.11
+
+IMPROVED: sorting of bill item PKs in bills view [thanks Marc]
+
+	19.10
+
+FIX: overly eager INNER JOIN of dem.v_praxis_branch
+FIX: overly eager INNER JOINs of dem.v_orgs/dem.v_org_units [thanks Jim]
+FIX: do not reuse tx after failure of "ignore_checksum_failure" on PG < 9.3
+
+IMPROVED: more robust pg_trgm installation
+
+	19.9
+
+IMPROVED: add some indices to dem.org(_unit)
+IMPROVED: faster view for praxis branches
+IMPROVED: add pg_trgm extension
+IMPROVED: speed of dem.v_org_units
+
+	19.5
+
+FIX: gm-adjust_db_settings.sh to work from non-CWD [thanks Marc]
+
+	19.3
+
+FIX: typo in clin.procedure.fk_org_unit normalizer
+
+IMPROVED: various database object comments
+
+	19.2
+
+IMPROVED: normalization of (clin.procedure/clin.hospital_stay).fk_org_unit
+
+	19.1
+
+FIX: dem.lnk_org_unit2ext_id.fk_org_unit definition
+FIX: make dem.org unique on description
+FIX: normalization of (clin.procedure/clin.hospital_stay).fk_org_unit
+
+IMPROVED: require existence of at least one org unit in v18
+IMPROVED: clin.v_pat_encounters wants coalesce() around praxis location
+
+	19.0
+
+Requires PostgreSQL 9.1 !
+
+FIX: disable faulty clin-encounter.sql in v4 -> v5
+
+NEW: view changes for Jerzy's plugins
+NEW: support data checksums with PG 9.3
+
+IMPROVED: much simplified table mod announcement signal
+IMPROVED: include FKs in schema version check
+IMPROVED: remove .ddd/.unit from ref.atc
+IMPROVED: EMR entry on deleting a document
+
+------------------------------------------------
+# gnumed_v18
+------------------------------------------------
+
+	18.8
+
+FIX: typo in clin.trf_notify_reviewer_of_review_change()
+FIX: ensure FKs on .fk_encounter/.fk_episode on clin.clin_root_item children
+
+	18.6
+
+FIX: clin_root_item_soap_cat check needs dropping
+
+	18.4
+
+FIX: missing constraint clin.encounter.started <= clin.encounter.last_affirmed
+
+	18.3
+
+FIX: faulty bill.trf_prevent_empty_bills [thanks S.Urbanek]
+
+	18.2
+
+FIX: fake .due_/.expiry_date must be TIMESTAMP WITH TIME ZONE (not DATE)
+FIX: faultily quoted DB translations/translation exporter
+FIX: adjust dynamic text expansions to new HINT detection format
+
+IMPROVED: French DB translations
+
+	18.1
+
+FIX: gm-doctors must be member of gm-public
+FIX: exception dumping schema revision history of early DB versions [thanks Š.Laczi]
+
+IMPROVED: bootstrapper now checks gm.schema_revision AND public.gm_schema_revision
+
+	18.0
+
+IMRPOVED: add missing PKs to cfg.cfg_* tables for Bucardo use [thanks Marc]
+IMPROVED: include PK columns in schema version check
+
+------------------------------------------------
+# gnumed_v17
+------------------------------------------------
+
+	17.10
+
+FIX: old installs may have clin_root_item_soap_cat which needs dropping
+
+	17.9
+
+FIX: senior installations might have clin_narrative_soap_cat_check [thanks M.Angermann]
+
+	17.6
+
+FIX: very senior installations might have duplicate blobs.doc_obj.fk_doc FK defs
+
+IMPROVED: extend range of guard against all-zero substance amount fractions
+
+	17.4
+
+FIX: add report to find wrongly assigned invoices [thanks M.Angermann]
+FIX: add trigger to prevent linking of invoices and bills of different patients
+FIX: guard against all-zero fractions on consumable substance amounts [thanks J.Busser]
+
+	17.2
+
+FIX: incorrect auditing setup of ref.billable [thanks J.Busser]
+
+IMPROVED: prevent bills w/o items [thanks J.Busser]
+IMPROVED: warn on upgrade if target DB exists [thanks V.Banait]
+
+	17.1
+
+FIX: insufficient waiting time formatting [thanks J.Busser]
+
+	17.0
+
+NEW: allow "*u*nspecified" in clin.clin_root_item/clin_narrative/soap_cat_ranks.soap_cat
+NEW: i18n.untranslate()
+
+IMPROVED: await <ENTER> before "exit 1" in bootstrap shell scripts [thanks Andreas]
+IMRPOVED: gm.log_script_insertion() now logs script name in gm.access_log
+IMPROVED: prevent active name from being deleted/deactivated at DB level
+IMPROVED: constraints on i18n.translations
+
+------------------------------------------------
+# gnumed_v16
+------------------------------------------------
+
+	16.20
+
+FIX: very senior installations might have duplicate blobs.doc_obj.fk_doc FK defs
+
+	16.17
+
+FIX: insufficient waiting time formatting [thanks J.Busser]
+
+	16.11
+
+IMPROVED: add Russian DB string translations [thanks anon]
+
+	16.6
+
+FIX: remove faulty i18n-fixup ("generic" tx target doesn't work as expected) [thanks J.Busser]
+
+IMPROVED: robustify log directory setting in bootstrapper scripts [thanks S.Hilbert]
+
+	16.5
+
+FIX: inability to store document descriptions > 1/3 of a PG buffer page [thanks J.Busser]
+
+	16.4
+
+IMPROVED: make i18n._() check language "generic" before returning untranslated string
+
+	16.3
+
+FIX: failure to create gm-staff group role when bootstrapping in a virgin PostgreSQL [thanks Debian]
+
+IMPROVED: robustify GNUmed related PostgreSQL roles management
+
+	16.2
+
+FIX: properly export GM_LOG_BASE in scripts [thanks Debian]
+
+	16.1
+
+FIX: add back clin.v_narrative4search [thanks J.Busser]
+FIX: remove stray ";" from org contact numbers report SQL [thanks J.Busser]
+
+IMPROVED: do not log now-invalid RCS metadata anymore during bootstrapping
+IMPROVED: docs for Debian's pg_upgrade helper script
+
+	16.0
+
+IMPROVED: backup script and config file comments [thanks J.Busser]
+IMPROVED: restore script: properly set data file permissions [thanks S.Reus]
+IMPROVED: restore script: use "-o pipefail" to detect complex pipe failures
+IMPROVED: database fingerprinter can now dump schema structure, too
+IMPROVED: restore script: make sure <postgres> can access work dir sub dir
+
+NEW: clin.remove_old_empty_encounters()
+NEW: dem.remove_person(integer)
+NEW: several medication related data packs [thanks J.Busser]
+NEW: add database schema fingerprint logs to server files
+
+------------------------------------------------
+# gnumed_v15
+------------------------------------------------
+
+	15.12
+
+FIX: clin.trf_sanity_check_enc_vs_issue_on_epi() [thanks S.Reus]
+
+	15.11
+
+FIX: trf_do_not_substance_if_taken_by_patient() on ref.consumable_substance
+
+	15.10
+
+FIX: cannot restore --single-transaction because CREATE DATABASE does not transact [thanks S.Reus]
+
+IMPROVED: better commenting of informative messages in -roles.sql
+
+	15.5
+
+FIX: faulty quoting in database backup scripts using "su -c" [thanks Marc]
+
+
+	15.4
+
+IMPROVED: add list of consumable substances [thanks vbanait]
+
+	15.2
+
+FIX: unjudicious use of "set -e" creates more problems than it solves
+
+	15.1
+
+IMPROVED: upgrader now checks whether template database exists [thanks A.Tille]
+IMPROVED: upgrader now fails when backup before upgrade fails [thanks A.Tille]
+
+	15.0
+
+NEW: script to fingerprint GNUmed databases
+NEW: script to dump schema and roles for database debugging
+
+IMPROVED: bootstrapper now detects commented out authentication directive [thanks Vid]
+
+FIX: quoting in script to set gm-dbo password [thanks vbanait@gmail.com]
+
+------------------------------------------------
+# gnumed_v14
+------------------------------------------------
+
+	14.4 -> 14.5
+
+FIX: no more regex_flavor in PostgreSQL 9.0 (gm-adjust_db_settings)
+IMPROVED: gm-restore_database
+
+	14.3 -> 14.4
+
+FIX: bootstrapping: properly drop constraints on gm.notifying_tables during v9 -> v10
+
+	14.2 -> 14.3
+
+FIX: check for vaccination dupes looking at all patients rather than the relevant one only
+
+	14.0 -> 14.1
+
+NEW: auto-include fixups for missing array functionality on PG 8.3, needed for conversion to v14
+
+	14.0
+
+NEW: gm-set_gm-dbo_passowrd
+
+FIX: during upgrade nullify empty clin.health_issue.laterality
+FIX: properly use pg_dump: no more -d DATABASE [thanks S.Hilbert]
+
+IMPROVED: bootstrapper now better detects utf8 ctype
+IMPROVED: boostrap-latest: check for any previous version since all of them would be dropped [thanks S.Hilbert]
+IMPROVED: try to make su compatible with both MacOSX and Linux
+
+------------------------------------------------
+# gnumed_v13
+------------------------------------------------
+
+	13.7 -> 13.11
+
+FIX: PG 9.0 uses different constraint name on gm.notifying_tables
+
+	13.6 -> 13.7
+
+NEW: improved detection of unicode support in server encoding
+NEW: work around os.getcwd() permission problem on Mac
+FIX: even more robust gmPsql.py unicode logging [thanks E.Kuznetsov]
+
+	13.5 -> 13.6
+
+FIX: SQL: v9 -> v10 drop on view missed "view" keyword [thanks E.Kuznetsov]
+FIX: SQL: v9 -> v10 translation INSERT missed ";" [thanks E.Kuznetsov]
+FIX: more robust gmPsql.py unicode logging [thanks E.Kuznetsov]
+
+	13.0 -> 13.5
+
+NEW: translate some Dutch demographics
+FIX: Windows bootstrapping batch file
+FIX: teleport gmPsql.py logging into the wonderful world of unicode [thanks Dmitry]
+
+------------------------------------------------
+# gnumed_v12
+------------------------------------------------
+
+NEW: bootstrapper: soft-sanity check pg_hba.conf for authentication directive and give advice if not found
+
+------------------------------------------------
+# gnumed_v11
+------------------------------------------------
+
+	11.0 -> 11.1
+
+FIX: SQL: add missing view clin.v_narrative4search
+
+------------------------------------------------
+# gnumed_v10
+------------------------------------------------
+
+	10.7 -> 10.8
+
+FIX: SQL: review invalidation trigger on result change
+
+	10.6 -> 10.7
+
+No changes.
+
+	10.5 -> 10.6
+
+No changes.
+
+	10.4 -> 10.5
+
+FIX: SQL: dem.identity.dob trigger indiscriminately applied UTC to all incoming DOBs
+
+	10.3 -> 10.4
+
+FIX: SQL: delete_document: .date is now .clin_when
+NEW: bootstrapper: add commented out password option for postgres for Windows guidance
+NEW: maintenance: DB backup script checks for DB existence
+NEW: maintenance: do not run DB backup script if DB name set empty
+
+	10.2 -> 10.3
+
+FIX: maintenance: make DB backup script actually do something
+
+	10.1 -> 10.2
+
+FIX: SQL: clin.v_pat_allergy_state_journal missed data due to unintended use of coalesce()
+FIX: SQL: fix sync of clin.allergy_state with clin.allergy on saving the first allergy for a patient
+
+	10.0 -> 10.1
+
+NEW: bootstrapper: do not ask for gm-dbo pwd if the user exists
+NEW: bootstrapper: ensure gm-dbo has createdb createrole
+
+------------------------------------------------
+# gnumed_v9
+------------------------------------------------
+
+	9.1 -> 9.2
+
+FIX: SQL: fix delete_document(): explicitly delete document parts
+NEW: bootstrapper: do not assume '' as password if none supplied and not interactive
+NEW: bootstrapper: accept UTF8, too, not just UTF-8
+
+	9.0 -> 9.1
+
+FIX: SQL: failure to properly handle i18n in the backend: fixup SQL script
+FIX: SQL: very old databases had $1 instead of "reviewed_test_results_fk_reviewed_row_fkey"
+
+------------------------------------------------
+# gnumed_v8
+------------------------------------------------
+
+FIX: failure to drop old check constraints with 8.1 names in clin.soap_cat_ranks
+FIX: failure to delete document if seq_idx is NULL
+FIX: exception on lang being null in i18n.upd_tx
+FIX: exception in trigger function on deleting allergy
+
+------------------------------------------------
+# gnumed_v7
+------------------------------------------------
+
+FIX: remove begin/commit from SQL scripts to allow bootstrapping v2-v3 to work
+FIX: failure to import data set upgrade scripts on Windows
+NEW: actually expect target version v7
+NEW: be permissive about missing "data import scripts" option

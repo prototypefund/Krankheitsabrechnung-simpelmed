@@ -1,0 +1,22 @@
+#!/bin/sh
+
+BAK_BASE=~/".gnumed/backup"
+#------------------------------------------------------------------
+
+mkdir -p ${BAK_BASE}/vcs-mirror
+
+cd ${BAK_BASE}/vcs-mirror
+
+if [ -d gnumed ]; then
+	cd gnumed
+	git pull -v
+	cd ..
+else
+	#git clone git://gitorious.org/gnumed/gnumed.git
+	git clone https://github.com/ncqgm/gnumed.git
+fi
+
+date > timestamp.txt
+
+cd ..
+tar -czf gm-vcs-mirror-day_`date +%u`.tgz vcs-mirror

@@ -1,0 +1,67 @@
+#!/bin/bash
+
+#==================================================
+# This shell script is intended to be placed in
+# /usr/bin/ and should be run to start a GNUmed
+# client.
+#
+# license: GPL v2 or later
+# Karsten Hilbert, Sebastian Hilbert, Andreas Tille
+#--------------------------------------------------
+
+# for debugging this script
+# set -x
+
+OPTIONS=$@
+
+
+# The system-wide configuration file for backend profiles.
+SYSCONF="/etc/gnumed/gnumed-client.conf"
+if [ ! -e ${SYSCONF} ] ; then
+	echo "Global config file ${SYSCONF} missing."
+	exit 1
+fi
+
+
+# packages which install the GNUmed python modules into a path not
+# already accessible for imports via sys.path (say, /usr/share/gnumed/)
+# may need to adjust PYTHONPATH appropriately here
+#export PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}/usr/share/gnumed/:/usr/share/gnumed/Gnumed/"
+
+
+# packages which install the GNUmed helper scripts into a
+# path not already accessible via PATH (say, /usr/share/gnumed/bin)
+# may need to adjust PATH appropriately here
+#export PATH="${PATH}:/usr/share/gnumed/bin"
+
+
+# source systemwide startup extension shell script if it exists
+if [ -r /etc/gnumed/gnumed-startup-local.sh ] ; then
+	. /etc/gnumed/gnumed-startup-local.sh
+fi
+
+
+# source local startup extension shell script if it exists
+if [ -r ${HOME}/.gnumed/scripts/gnumed-startup-local.sh ] ; then
+	. ${HOME}/.gnumed/scripts/gnumed-startup-local.sh
+fi
+
+
+# now run the client
+export PYTHONIOENCODING=utf-8:surrogateescape
+python3 -m Gnumed.gnumed ${OPTIONS}
+
+
+# source systemwide shutdown extension shell script if it exists
+if [ -r /etc/gnumed/gnumed-shutdown-local.sh ] ; then
+	. /etc/gnumed/gnumed-shutdown-local.sh
+fi
+
+
+# source local shutdown extension shell script if it exists
+if [ -r ${HOME}/.gnumed/scripts/gnumed-shutdown-local.sh ] ; then
+	. ${HOME}/.gnumed/scripts/gnumed-shutdown-local.sh
+fi
+
+
+#==================================================

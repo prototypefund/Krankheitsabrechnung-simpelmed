@@ -1,0 +1,138 @@
+#!/bin/sh
+
+# ===========================================================
+# Print documents via system tools.
+#
+# The GNUmed client expects to be able to run this command
+# in a systemwide way, ie. it needs to be accessible in the
+# executable $PATH (such that "which gm-print_doc" gives a
+# useful answer). There can be several copies per system in
+# which way users can override a system default script with
+# their own.
+#
+# Typical locations for this script would be
+#
+#	/usr/bin/
+#	/usr/local/bin/
+#	~/bin/
+#
+# See
+#
+#	client/pycommon/gmPrinting.py::known_printjob_types
+#
+# for a list of print job type tags.
+#
+# ===========================================================
+
+TYPE="$1"			# this is a tag as to what type of print job this is
+shift 1
+FILES="$@"			# this is / those are the file(s) to print
+
+
+# detect printer manager
+CALL_PRINTER_MANAGER=""
+
+# kprinter4 ?
+#if [ "${CALL_PRINTER_MANAGER}" = "" ]; then
+#	A=`which kprinter4`
+#	if [ $? = 0 ]; then
+#		A=`which pdf2ps`
+#		if [ $? = 0 ]; then
+#			OLD_CWD=`pwd`
+#			# convert PDF to PS
+#			PS_FILES=""
+#			for PDF_FILE in ${FILES} ; do
+#				PDF_DIR=`dirname ${PDF_FILE}`
+#				cd ${PDF_DIR}
+#				pdf2ps ${PDF_FILE} ${PDF_FILE}.ps
+#				PS_FILES="${PS_FILES} ${PDF_FILE}.ps"
+#			done
+#			cd ${OLD_CWD}
+#			CALL_PRINTER_MANAGER="kprinter4 -t GNUmed ${PS_FILES}"
+#		fi
+#	fi
+#fi
+
+# gtklp ?
+if [ "${CALL_PRINTER_MANAGER}" = "" ]; then
+	A=`which gtklp`
+	if [ $? = 0 ]; then
+		CALL_PRINTER_MANAGER="gtklp -i ${FILES}"
+	fi
+fi
+
+# Darwin/MacOSX ?
+if [ "${CALL_PRINTER_MANAGER}" = "" ]; then
+	SYSTEM=`uname -s`
+	if [ ${SYSTEM} = "Darwin" ]; then
+		CALL_PRINTER_MANAGER="open -a Preview ${FILES}"
+		#CALL_PRINTER_MANAGER="open ${FILES}"
+	fi
+fi
+
+# generic badness ?
+if [ "${CALL_PRINTER_MANAGER}" = "" ]; then
+	A=`which acroread`
+	if [ $? = 0 ]; then
+		CALL_PRINTER_MANAGER="acroread ${FILES}"
+	fi
+fi
+
+# nothing found ?
+if [ "${CALL_PRINTER_MANAGER}" = "" ]; then
+	echo ""
+	echo "Cannot find any of kprinter, gtklp, MacOSX/Darwin, or acroread."
+	echo "Cannot print document(s)."
+	echo ""
+	exit 127
+fi
+
+
+# start printing
+if [ "${TYPE}" = "generic_document" ]; then
+	${CALL_PRINTER_MANAGER}
+	exit $?
+fi
+
+
+if [ "${TYPE}" = "medication_list" ]; then
+	${CALL_PRINTER_MANAGER}
+	EXIT_CODE=$?
+	rm -f ${FILES}
+	exit ${EXIT_CODE}
+fi
+
+
+echo ""
+echo "Unknown print job type <${TYPE}>. Cannot print document(s)."
+echo ""
+
+exit 127
+# ===========================================================
+# https://lists.gnu.org/archive/html/gnumed-devel/2010-01/msg00112.html
+#
+# MacOSX:
+#
+# alternate Mac methods to open the PDF in Preview
+# (uncomment one of the following)
+# open -a Preview <filename> or
+# osascript -e 'tell application "Preview" to open ((POSIX file "fullySpecifiedFilenameInQuotes") as text)' 
+#
+# Figured I may as well also capture a link to the following
+# method, in case we should in future (on Macs) pass
+# parameters into an AppleScript:
+#
+# 	https://developer.apple.com/mac/library/qa/qa2001/qa1111.html
+#
+#	https://forums.macosxhints.com/showthread.php?s=&threadid=19736
+#
+#
+# Windows:
+#
+# - freeware 'PrintFile" (as at 2009) supports batch command piping
+# - use "AcroRd32.exe /s /o /h /p $FILES" (requires Acrobat Reader to be installed)
+# - refer to https://www.robvanderwoude.com/printfiles.php#PrintPDF
+# - https://pages.cs.wisc.edu/~ghost/gsview/gsprint.htm
+# - https://stackoverflow.com/questions/4498099/silent-printing-of-a-pdf-in-python
+#
+# ===========================================================

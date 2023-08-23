@@ -1,0 +1,28 @@
+#!/bin/sh
+
+#==============================================================
+# This wrapper is intended to be installed into a systemwide
+# admin-only executable directory such as "/usr/sbin/"
+#
+# It should be run as root and will call the upstream script
+# to actually apply fixes to an existing database.
+#
+# author: Andreas Tille, Karsten Hilbert
+# license: GPL v2 or later
+#
+#==============================================================
+# those probably need some adjustment from package maintainers:
+
+GM_LOG_BASE="/var/log/gnumed/server"
+GM_SERVER_DIR="/var/lib/gnumed/server/bootstrap"
+
+#==============================================================
+# do not run twice
+[ "${FLOCKER}" != "$0" ] && exec env FLOCKER="$0" flock --exclusive --nonblock "$0" "$0" "$@" || :
+
+cd ${GM_SERVER_DIR} || ( echo "=> Cannot change into ${GM_SERVER_DIR}. Aborting." ; exit 1 )
+mkdir -p ${GM_LOG_BASE}
+export GM_LOG_BASE
+./fixup-db.sh "$@"
+
+#==============================================================

@@ -1,0 +1,102 @@
+#------------------------------------------------------------
+#
+# This is a shell fragment sourced by backup shell scripts.
+#
+# Copy this file to /etc/gnumed/gnumed-backup.conf and
+# configure appropriately.
+#
+# If the PostgreSQL users $GM_DBO and/or "postgres" need a
+# password you will have to configure that using a .pgpass
+# file (see the PG manual for how to do that):
+#
+# http://www.postgresql.org/docs/current/static/libpq-pgpass.html
+#------------------------------------------------------------
+
+#------------------------------------------------------------
+# the following need to be changed in most if not all cases
+#------------------------------------------------------------
+
+# options for *taking* backups:
+
+# identify the logical/business-level owner of this
+# GNUmed database instance, such as "ACME GP Office",
+# BUT do not use spaces, rather say: "ACME_GP_Offices"
+INSTANCE_OWNER="GNUmed_Team"
+
+# where to eventually store the backup
+BACKUP_DIR="${HOME}/.gnumed/backup/"
+
+# which database to backup
+GM_DATABASE="database_to_backup__for_example_gnumed_v22"
+
+# user/group the backup is eventually owned by
+BACKUP_OWNER="$USER:$USER"
+
+
+# options for *offsiting* backups:
+
+# this needs to be set to a host you can reach via rsync w/o
+# need for manually entering a password (say, SSH public key
+# authentication)
+OFFSITE_BACKUP_HOST="need to set this"
+
+# this is where you want the backup files to end up
+# on OFFSITE_BACKUP_HOST
+OFFSITE_BACKUP_DIR="need to set this"
+
+# the maximum bandwith, in KBytes/second, to utilize,
+# empty means full speed ahead
+MAX_OFFSITING_BANDWIDTH=""
+
+# how to determine whether or not to transfer a file:
+# yes
+#  - compare files by CRC
+#  - can put quite a bit of load on both machines
+# no
+#  - compare files by timestamp and size
+#  - a lot cheaper CPU-wise but may result
+#    in redundant file transfers
+#
+# default "yes" - better safe than sorry
+OFFSITE_BY_CRC="yes"
+
+#------------------------------------------------------------
+# those need to be changed less likely:
+#------------------------------------------------------------
+
+# which PostgreSQL user to dump as, usually "gm-dbo"
+GM_DBO="gm-dbo"
+
+# if your PostgreSQL server is running on another port
+GM_PORT="5432"
+
+# set this if you want to dump from a remote host
+GM_HOST=""
+
+# file permissions mask to set the backup file to
+BACKUP_MASK="0600"
+
+# whether or not to verify that TAR archive,
+# verification may be very time consuming,
+# empty means: do not verify
+VERIFY_TAR=""
+
+# the compression level to use with bzip2 (1-9) (see: man bzip2)
+COMPRESSION_LEVEL="9"
+
+# set this to an email address which will receive
+# digitally signed replies from the GNotary server
+# notarizing the hash of the backup
+SIG_RECEIVER="$USER@localhost"
+
+# set this to the email address of the GNotary server
+# you want your hashes to be signed by
+GNOTARY_SERVER="gnotary@gnotary.de"
+
+# you will have to set the GNotary TAN here,
+# using "free" works but makes you a Freeloader,
+# as it is mainly intended for testing,
+# setting this to "" effectively disables notarizing
+GNOTARY_TAN="free"
+
+#============================================================

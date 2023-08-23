@@ -1,0 +1,47 @@
+The files and scripts in the bootstrap/ directory are intended for
+bootstrapping a new or upgrading an existing GNUmed database.
+
+The main bootstrapper is bootstrap_gm_db_system.py. It does
+all the heavy lifting including setting up the database,
+making sure users and procedural languages are set up and
+importing the schema definition files.
+
+The bootstrap-latest.sh shell script creates the latest version
+of the GNUmed database from scratch. It DROPS any EXISTING
+gnumed_v* DATABASES along the way.
+
+The upgrade-db.sh script upgrades an existing GNUmed database.
+The original database WILL NOT BE CHANGED in any way. This allows
+for SAFE UPGRADES from one database version to the next. The
+upgrade procedure can be repeated.
+
+The fixup-db.sh script applies fixes to an existing GNUmed
+database. It can be run any number of times. It always
+applies all accumulated fixes for a given database version.
+
+Bootstrapping is a rather complicated affair. Here are some
+prerequisites that need to be matched:
+
+1) The scripts are best run as root.
+
+2) You need to have the procedural language pl/pgsql
+   available (Installed in the Operating System,
+   that is. GNUmed will install it into the
+   database if needed).
+
+3) After bootstrapping you need to add the following
+   lines to your pg_hba.conf file to allow GNUmed
+   users to connect:
+
+# for local connections from the same machine
+local	samerole	+gm-logins							md5
+
+# for remote connections from other machines
+host	samerole	+gm-logins		<IP/NETMASK>		md5
+
+
+
+Enjoy and please do report bugs !
+
+Karsten Hilbert, MD
+GNUmed i18n maintainer

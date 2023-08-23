@@ -1,0 +1,163 @@
+
+General
+-------
+
+- use speaking identifiers as much as possible for self documentation of code
+
+
+Python
+------
+
+classes:
+
+	normal classes:
+		cCamelCase
+
+	singleton classes:
+		gmCamelCase
+
+
+methods, functions:
+
+	- prefer keyword arguments
+	- lower case
+	- snake_style
+
+	def what_this_function_returns(...):
+		assert
+	def what_this_method_returns(self, ...):
+		assert
+
+
+
+constants:
+
+	UPPER_CASE_NAME_SNAKE_STYLE
+
+
+
+
+Python module file layout:
+-------------------------------------------------------------
+# -*- coding: utf-8 -*-
+
+"""docstring
+line 2
+line 3
+"""
+#============================================================
+# SPDX-License-Identifier: GPL-2.0-or-later
+__author__ = "..."
+__license__ = "..."
+
+# standard library imports
+import sys
+
+# 3rd party library imports
+import ...
+
+# setup translation
+if __name__ == '__main__':
+	sys.path.insert(0, '../../')
+	# we are the main script, setup a fake _() for now,
+	# such that it can be used in module level definitions
+	_ = lambda x:x
+else:
+	# we are being imported from elsewhere, say, mypy or some such
+	try:
+		# do we already have _() ?
+		_
+	except NameError:
+		# no, setup i18n handling
+		from Gnumed.pycommon import gmI18N
+		gmI18N.activate_locale()
+		gmI18N.install_domain()
+
+# GNUmed module imports
+from Gnumed.pycommon import ...
+
+# CONSTANTS
+A_FIXED_VALUE = 'abc'
+
+# globals
+_log = logging.getLogger('gm.ABCD')
+#============================================================
+
+... code ...
+
+#============================================================
+# main
+#------------------------------------------------------------
+if __name__ == "__main__":
+
+	if len(sys.argv) < 2:
+		sys.exit()
+
+	if sys.argv[1] != 'test':
+		sys.exit()
+
+	# setup a real translation
+	del _
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
+
+	#--------------------------------------------------------
+	def test1():
+		...
+
+	#--------------------------------------------------------
+	def test2():
+		...
+
+	#--------------------------------------------------------
+	...
+
+	#--------------------------------------------------------
+	#test1()
+	test2()
+	...
+
+#=== snip =========================================================================
+
+
+
+LaTeX:
+
+	use {} after commands to prevent run-in with surrounding text
+
+
+#=== snip =========================================================================
+# SQL
+#==================================================================================
+
+DML
+---
+	use COUNT(*) rather than COUNT(1) or COUNT(some_column) unless you know why
+
+	add identifying "-- this is a comment" comments to SQL being sent to the server
+
+DDL
+---
+	IN / OUT: _variable_name
+	DECLARE: __variable_name
+
+	primary key: .pk
+
+	foreign key in table: .fk_remote_column_name
+
+	foreign key in view: .pk_remote_column_name
+
+	table name: schema.table_name (singular, such that schema.table_name.column_name makes sense)
+
+	view name: schema.v_table_name+s_or_purpose
+
+	use JsonB, not Json, because it will be more strict in sanitizing input
+
+		https://www.postgresql.org/docs/current/datatype-json.html
+
+plpgsql
+-------
+	USING HINT
+	USING ERRCODE
+	USING MESSAGE

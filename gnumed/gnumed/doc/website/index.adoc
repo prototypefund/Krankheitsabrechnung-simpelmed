@@ -1,0 +1,97 @@
+== Welcome to the GNUmed Electronic Medical Record Project
+
+=== Most Recent Downloads
+
+https://www.gnumed.de/downloads/client/1.8/gnumed-client.1.8.15.tgz[Version 1.8.15] (database v22.25) released August 6th 2023
+
+https://github.com/ncqgm/gnumed/blob/master/gnumed/CHANGELOG[What's New] (https://github.com/ncqgm/gnumed/commits/master[commit log]) | https://www.gnumed.de/downloads/[Download Area]
+
+'''
+
+The *GNUmed* project builds a Free, Libre, Open Source *Electronic Medical Record* +
+in multiple languages to assist and improve longitudinal care (specifically in +
+ambulatory settings, i.e. multi-professional practices and clinics). +
+
+It is made available at no charge and is capable of running on GNU/Linux, +
+Windows and Mac OS X. It is developed by a handful of medical doctors and +
+programmers from all over the world.
+
+It can be *useful to* anyone documenting the health of patients including, +
+but not limited to, *doctors, physical therapists, occupational therapists, +
+acupuncturists, nurses, psychologists* ...
+
+link:GNUmedFeatureList.html[Feature List] | link:GNUmedFAQ.html[FAQ]
+
+== For Users
+
+NOTE: Content is being resurrected from the wiki. If you need
+information that is not available send us an inquiry on
+either mailing list.
+
+* link:GNUmedInstallation.html[Installation Guides]
+* link:GNUmedManual.html[Manuals]
+
+* Support
+** https://lists.gnu.org/mailman/listinfo/gnumed-devel[general] mailing list (gnumed-devel@gnu.org)
+** https://lists.gnu.org/mailman/listinfo/gnumed-bugs[bugs] mailing list (gnumed-bugs@gnu.org)
+** https://bugs.launchpad.net/gnumed/+bugs[bug tracker]
+
+Professional support can be arranged by contacting the primary developers.
+
+== For Developers
+
+Everyone is encouraged to contribute to GNUmed.
+
+* https://github.com/ncqgm/gnumed[source code repository]
+* https://bugs.launchpad.net/gnumed/+bugs[bug tracker]
+* https://translations.launchpad.net/gnumed/trunk/+pots/gnumed[translations]
+* link:api/[API] (link:api/generated.txt[generated], link:api/installed.txt[installed])
+* link:schema/release/[database schema]
+* source code health
+** link:code-smell/source-coding_errors.log[code problems (pyflake)]
+** link:code-smell/source-coding_errors-pylint_pycommon.log[code problems (pylint)]
+** link:code-smell/source-coding_errors-pylint_business.log[code problems (pylint)]
+** link:code-smell/source-type_checking.log[type checking]
+** link:code-smell/source-cyclic_complexity.log[cyclic complexity]
+** link:code-smell/source-maintainability.log[maintainability]
+* suggested https://github.com/ncqgm/gnumed/blob/master/gnumed/CODINGSTYLE[coding style]
+
+== For Supporters
+
+* https://www.gnumed.de/downloads/press/[press kits]
+
+== Python 2 (not recommended anymore)
+
+https://www.gnumed.de/downloads/client/1.7/gnumed-client.1.7.9.tgz[Version 1.7.9] (database v22) released Dec 5th 2019
+
+////
+
+== Discover it
+
+//https://www.flickr.com/photos/gnumed/sets/72157623196909218/show/[flickr]
+//src="https://www.gnumed.de/theme/images/slides/scaled/EMRJournal-scaled.png"
+
+Please use the links above to *download and install the client*, be
+aware that the _public_ server is sometimes a little slow -- give it
+about 30s to respond to each screen change or refresh that you make. You
+can of course create your own _local_ server database -- please see the
+_Installation Guides_ above.
+
+== Grow it
+
+* subscribe to the developer
+https://savannah.gnu.org/mail/?group=gnumed[mailing list]
+
+== Get support
+
+The GNUmed project operates
+https://savannah.gnu.org/mail/?group=gnumed[mailing lists] and a
+https://www.vondoczudoc.de[forum] for its users and developers.
+
+== News
+
+https://gnumed.blogspot.com[News]
+
+https://savannah.gnu.org/mail/?group=gnumed[Mailing List]
+
+////
