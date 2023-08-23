@@ -6,6 +6,7 @@ __license__ = "GPL v2"
 
 # std lib
 import sys
+import io
 import datetime as pyDT
 import logging
 
@@ -24,70 +25,15 @@ from Gnumed.business import gmDemographicRecord
 _log = logging.getLogger('gm-vcf')
 
 #============================================================
-def __parse_vcard_adr2dto(vcard, dto):
-	adr = None
-	try:
-		adr = vcard.adr.value
-	except AttributeError:
-		_log.debug('vCard.ADR attribute not available')
-		return None
-
-	if not adr:
-		return None
-
-	region_code = None
-	region = adr.region.strip()
-	if region == '':
-		region = None
-	# deduce country
-	country_code = None
-	country = adr.country.strip()
-	if country == '':
-		country = None
-	if country is None:
-		country_row = gmDemographicRecord.map_urb_zip_region2country(urb = adr.city, zip = adr.code, region = region)
-		if country_row is not None:
-			country = country_row['country']
-			country_code = country_row['code_country']
-	else:
-		country_code = gmDemographicRecord.map_country2code(country = country)
-	if None in [country, country_code]:
-		_log.error('unknown vCard.ADR.country (%s), skipping address', adr.country)
-		return None
-
-	# deduce region
-	if region is None:
-		region_row = gmDemographicRecord.map_urb_zip_country2region(urb = adr.city, zip = adr.code, country_code = country_code)
-		if region_row is not None:
-			region = region_row['region']
-			region_code = region_row['code_region']
-	else:
-		region_code = gmDemographicRecord.map_region2code(region = region, country_code = country_code)
-	if region_code is None:
-		_log.warning('unknown vCard.ADR.region (%s), using default region', adr.region)
-
-	dto.remember_address (
-		number = '?',
-		street = adr.street,
-		urb = adr.city,
-		region_code = region_code,
-		zip = adr.code,
-		country_code = country_code,
-		adr_type = 'home',
-		subunit = None
-	)
-	return dto
-
-#------------------------------------------------------------
 def parse_vcard2dto(vc_text=None, filename=None):
 
 	import vobject
 
 	if vc_text is None:
 		_log.info('trying to parse vCard from [%s]', filename)
-		for encoding in ['utf-8-sig', 'Windows-1252']:
+		for encoding in ['utf8', 'Windows-1252']:
 			try:
-				vcf = open(filename, mode = 'rt', encoding = encoding)
+				vcf = io.open(filename, mode = 'rt', encoding = encoding)
 				vc_text = vcf.read()
 				vcf.close()
 				break
@@ -131,7 +77,7 @@ def parse_vcard2dto(vc_text=None, filename=None):
 	except AttributeError:
 		_log.debug('vCard.TITLE attribute not available')
 	try:
-		gender = vc.gender.value.strip().casefold()
+		gender = vc.gender.value.strip().lower()
 		if gender != '':
 			dto.gender = gender
 	except AttributeError:
@@ -144,7 +90,51 @@ def parse_vcard2dto(vc_text=None, filename=None):
 		_log.debug('vCard.BDAY attribute not available')
 	dto.source = 'vCard %s' % vc.version.value.strip()
 
-	dto = __parse_vcard_adr2dto(vc, dto)
+	adr = None
+	try:
+		adr = vc.adr.value
+	except AttributeError:
+		_log.debug('vCard.ADR attribute not available')
+	if adr is not None:
+		region_code = None
+		region = adr.region.strip()
+		if region == '':
+			region = None
+		# deduce country
+		country_code = None
+		country = adr.country.strip()
+		if country == '':
+			country = None
+		if country is None:
+			country_row = gmDemographicRecord.map_urb_zip_region2country(urb = adr.city, zip = adr.code, region = region)
+			if country_row is not None:
+				country = country_row['country']
+				country_code = country_row['code_country']
+		else:
+			country_code = gmDemographicRecord.map_country2code(country = country)
+		if None in [country, country_code]:
+			_log.error('unknown vCard.ADR.country (%s), skipping address', adr.country)
+		else:
+			# deduce region
+			if region is None:
+				region_row = gmDemographicRecord.map_urb_zip_country2region(urb = adr.city, zip = adr.code, country_code = country_code)
+				if region_row is not None:
+					region = region_row['region']
+					region_code = region_row['code_region']
+			else:
+				region_code = gmDemographicRecord.map_region2code(region = region, country_code = country_code)
+			if region_code is None:
+				_log.warning('unknown vCard.ADR.region (%s), using default region', adr.region)
+			dto.remember_address (
+				number = '?',
+				street = adr.street,
+				urb = adr.city,
+				region_code = region_code,
+				zip = adr.code,
+				country_code = country_code,
+				adr_type = 'home',
+				subunit = None
+			)
 
 	tel = None
 	try:
@@ -153,7 +143,7 @@ def parse_vcard2dto(vc_text=None, filename=None):
 		_log.debug('vCard.TEL attribute not available')
 	if tel is not None:
 		if 'TYPE' in vc.tel.params:
-			channel = (vc.tel.params['TYPE'][0]).casefold()
+			channel = (vc.tel.params['TYPE'][0]).lower()
 			if not channel.endswith('phone'):
 				channel += 'phone'
 		else:
@@ -188,6 +178,8 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	from Gnumed.pycommon import gmLog2
 
 	gmDateTime.init()
 

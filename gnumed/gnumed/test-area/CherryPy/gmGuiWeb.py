@@ -7,7 +7,7 @@ __doc__ = """GNUmed web client launcher.
 # $Id: gnumed.py,v 1.169 2010-01-31 18:20:41 ncq Exp $
 __version__ = "$Revision: 1 $"
 __author__  = "S. Hilbert <Sebastian.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import cherrypy                         # importing the CherryPy server library
 from Cheetah.Template import Template   # importing the Cheetah Template engine
@@ -231,7 +231,7 @@ def __get_backend_profiles():
 			try:
 				profile.port = int(port)
 				if profile.port < 1024:
-					raise ValueError('refusing to use privileged port (< 1024)')
+					raise ValueError('refusing to use priviledged port (< 1024)')
 			except ValueError:
 				_log.warning('invalid port definition: [%s], skipping profile [%s]', port, profile_name)
 				continue
@@ -325,7 +325,7 @@ class cBackendProfile:
 
 def jsonrpchdl():
 	print "before_handler jsonrpc" 
-	# note: whether req.body is a string or file depends on the content-type!
+	# note: wheter req.body is a string or file depends on the content-type!
 	req = cherrypy.request
 	try:
 		size = int(req.headers["Content-Length"])
@@ -435,7 +435,7 @@ class gmApp:
 	# backend is hardcoded for now, make it use drop down list later
         # building the html out of the Cheetah Template
         t = Template( file="CherryPy/templates/index.tmpl"
-            # a dictionary containing values that is going to be inserted in the Template
+            # a dictionnary containing values that is going to be inserted in the Template
             , searchList = {
                 "title" : "Welcome to GNUmed - Login"
                 , "cssFiles" : ["css/ext-all.css", "css/xtheme-gray.css"]

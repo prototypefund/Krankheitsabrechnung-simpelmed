@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""GNUmed AMTS BMP handling widgets."""
+__doc__ = """GNUmed AMTS BMP handling widgets."""
 
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
@@ -8,6 +8,7 @@ __license__ = "GPL v2 or later"
 
 import logging
 import sys
+import os.path
 import typing
 
 
@@ -16,13 +17,16 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
-
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain = 'gnumed')
 from Gnumed.pycommon import gmTools
 
-from Gnumed.business import gmAMTS_BMP
-from Gnumed.business import gmPerson
 
+from Gnumed.business import gmAMTS_BMP
+
+
+from Gnumed.wxpython import gmListWidgets
 from Gnumed.wxpython import gmGuiHelpers
 
 
@@ -30,7 +34,7 @@ _log = logging.getLogger('gm.amts_bmp')
 
 #================================================================
 def import_amts_bmp_for_patient(parent=None, patient=None):
-	# check for xml files in /gnumed and /.local/gnumed
+	# check for xml files in /gnumed and /.gnumed
 	# check xml files for bmp
 	# check bmps for potentially belonging to patient
 	bmp_filename = 'current_pat_bmp.xml'
@@ -45,7 +49,7 @@ def import_amts_bmp(parent=None, bmp_filename:str=None) -> typing.Union[bool, No
 		dlg = wx.FileDialog (
 			parent = parent,
 			message = _('Choose an AMTS BMP medication plan.'),
-			defaultDir = gmTools.gmPaths().user_work_dir,
+			defaultDir = os.path.expanduser(os.path.join('~', 'gnumed')),
 			defaultFile = '',
 			wildcard = "%s (*.xml)|*.xml|%s (*)|*" % (_('BMP files'), _('all files')),
 			style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST

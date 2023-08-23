@@ -1,8 +1,8 @@
-"""GNUmed general tools."""
+__doc__ = """GNUmed general tools."""
 
 #===========================================================================
 __author__ = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 
 # stdlib
@@ -15,15 +15,8 @@ import shlex
 _log = logging.getLogger('gm.shell')
 
 #===========================================================================
-def is_cmd_in_path(cmd:str=None) -> tuple:
-	"""Checks the system environment PATH for _cmd_.
+def is_cmd_in_path(cmd=None):
 
-	Args:
-		cmd: the binary name to check for eXecutability
-
-	Returns:
-		A tuple of (result state, full path to binary if found).
-	"""
 	_log.debug('cmd: [%s]', cmd)
 	dirname = os.path.dirname(cmd)
 	_log.debug('dir: [%s]', dirname)
@@ -39,24 +32,23 @@ def is_cmd_in_path(cmd:str=None) -> tuple:
 		if os.access(candidate, os.X_OK):
 			_log.debug('found [%s]', candidate)
 			return (True, candidate)
+		else:
+			_log.debug('not found: %s', candidate)
 
-		_log.debug('not found: %s', candidate)
 	_log.debug('command not found in PATH')
+
 	return (False, None)
 
 #===========================================================================
-def is_executable_by_wine(cmd:str=None) -> tuple:
-	"""Checks whether _cmd_ is likely executable by Wine.
+def is_executable_by_wine(cmd=None):
 
-	Returns:
-		A tuple of (result state, full path to binary if found).
-	"""
 	if not cmd.startswith('wine'):
 		_log.debug('not a WINE call: %s', cmd)
 		return (False, None)
 
-	unwined_exe_path = cmd[4:].strip().strip('"').strip()
-	exe_path = unwined_exe_path.encode(sys.getfilesystemencoding())
+	exe_path = cmd.encode(sys.getfilesystemencoding())
+
+	exe_path = exe_path[4:].strip().strip('"').strip()
 	# [wine "/standard/unix/path/to/binary.exe"] ?
 	if os.access(exe_path, os.R_OK):
 		_log.debug('WINE call with UNIX path: %s', exe_path)
@@ -74,9 +66,10 @@ def is_executable_by_wine(cmd:str=None) -> tuple:
 		exe_path
 	)
 	_log.debug('converting Windows path to UNIX path: %s' % cmd_line)
+	cmd_line = shlex.split(cmd_line)
 	try:
 		winepath = subprocess.Popen (
-			shlex.split(cmd_line),
+			cmd_line,
 			stdout = subprocess.PIPE,
 			stderr = subprocess.PIPE,
 			universal_newlines = True
@@ -101,26 +94,19 @@ def is_executable_by_wine(cmd:str=None) -> tuple:
 	return (False, None)
 
 #===========================================================================
-def detect_external_binary(binary:str=None) -> tuple:
-	"""Checks whether _binary_ is likely executable.
+def detect_external_binary(binary=None):
+	"""<binary> is the name of the executable with or without .exe/.bat"""
 
-	Will retry on Windows with .exe/.bat appended to the
-	binary name, if necessary.
-
-	Args:
-		binary: the name of the executable with or without .exe/.bat
-
-	Returns:
-		A tuple of (result state, full path to binary).
-	"""
 	_log.debug('searching for [%s]', binary)
+
 	binary = binary.lstrip()
-	# is it already a sufficiently qualified, directly usable, explicit path ?
+
+	# is it a sufficiently qualified, directly usable, explicit path ?
 	if os.access(binary, os.X_OK):
 		_log.debug('found: executable explicit path')
 		return (True, binary)
 
-	# can it be found in the PATH ?
+	# can it be found in PATH ?
 	found, full_path = is_cmd_in_path(cmd = binary)
 	if found:
 		if os.access(full_path, os.X_OK):
@@ -148,20 +134,16 @@ def detect_external_binary(binary:str=None) -> tuple:
 			found_bat_binary, full_path = detect_external_binary(binary = bat_binary)
 			if found_bat_binary:
 				return (True, full_path)
-
 	else:
 		_log.debug('not running under Windows, not testing .exe/.bat')
+
 	return (False, None)
 
 #===========================================================================
-def find_first_binary(binaries:list=None) -> tuple:
-	"""Search OS for the first match from the list of _binaries_.
-
-	Returns:
-		A tuple of (result state, full path to binary found).
-	"""
+def find_first_binary(binaries=None):
 	found = False
 	binary = None
+
 	for cmd in binaries:
 		_log.debug('looking for [%s]', cmd)
 		if cmd is None:
@@ -169,29 +151,31 @@ def find_first_binary(binaries:list=None) -> tuple:
 		found, binary = detect_external_binary(binary = cmd)
 		if found:
 			break
+
 	return (found, binary)
 
 #===========================================================================
-def run_command_in_shell(command:str=None, blocking:bool=False, acceptable_return_codes:list=None) -> bool:
-	"""Run a command in a subshell.
+def run_command_in_shell(command=None, blocking=False, acceptable_return_codes=None):
+	"""Runs a command in a subshell via standard-C system().
 
-	Args:
-		command: shell command to run including command line options
-		blocking: make caller *block* until the shell command exits, will likely only work on UNIX shells where "cmd &" makes sense
-		acceptable_return_codes: list of exit codes considered to signal successful operation, defaults to [0]
-
-	Returns:
-		Actual exit code of running _command_.
+	<command>
+		The shell command to run including command line options.
+	<blocking>
+		This will make the code *block* until the shell command exits.
+		It will likely only work on UNIX shells where "cmd &" makes sense.
 
 	http://stackoverflow.com/questions/35817/how-to-escape-os-system-calls-in-python
 	"""
 	if acceptable_return_codes is None:
 		acceptable_return_codes = [0]
+
 	_log.debug('shell command >>>%s<<<', command)
 	_log.debug('blocking: %s', blocking)
 	_log.debug('acceptable return codes: %s', str(acceptable_return_codes))
+
 	# FIXME: command should be checked for shell exploits
 	command = command.strip()
+
 	if os.name == 'nt':
 		# http://stackoverflow.com/questions/893203/bat-files-nonblocking-run-launch
 		if blocking is False:
@@ -224,11 +208,14 @@ def run_command_in_shell(command:str=None, blocking:bool=False, acceptable_retur
 		elif blocking is False:
 			if not command.strip().endswith('&'):
 				command += ' &'
+
 	_log.info('running shell command >>>%s<<<', command)
 	# FIXME: use subprocess.Popen()
 	ret_val = os.system(command.encode(sys.getfilesystemencoding()))
 	_log.debug('os.system() returned: [%s]', ret_val)
+
 	exited_normally = False
+
 	if not hasattr(os, 'WIFEXITED'):
 		_log.error('platform does not support exit status differentiation')
 		if ret_val in acceptable_return_codes:
@@ -253,24 +240,14 @@ def run_command_in_shell(command:str=None, blocking:bool=False, acceptable_retur
 			_log.debug('TERM signal was: [%s]', os.WTERMSIG(ret_val))
 		except AttributeError:
 			_log.debug('platform does not support os.WTERMSIG()')
+
 	return exited_normally
 
 #===========================================================================
-def run_first_available_in_shell(binaries:list=None, args=None, blocking:bool=False, run_last_one_anyway:bool=False, acceptable_return_codes:list=None) -> bool:
-	"""Run the first command found in a subshell.
+def run_first_available_in_shell(binaries=None, args=None, blocking=False, run_last_one_anyway=False, acceptable_return_codes=None):
 
-	Args:
-		binaries: list of binaries, the first found of which is to be run
-		args: args to pass to the binary being run	(FIXME: this should be per-binary)
-		command: shell command to run including command line options
-		blocking: make caller *block* until the shell command exits, will likely only work on UNIX shells where "cmd &" makes sense
-		run_last_one_anyway: run last binary even if it cannot be found in the OS
-		acceptable_return_codes: list of exit codes considered to signal successful operation, defaults to [0]
-
-	Returns:
-		Actual exit code of running _command_.
-	"""
 	found, binary = find_first_binary(binaries = binaries)
+
 	if not found:
 		_log.warning('cannot find any of: %s', binaries)
 		if run_last_one_anyway:
@@ -282,7 +259,7 @@ def run_first_available_in_shell(binaries:list=None, args=None, blocking:bool=Fa
 	return run_command_in_shell(command = '%s %s' % (binary, args), blocking = blocking, acceptable_return_codes = acceptable_return_codes)
 
 #===========================================================================
-def _log_output(level:int, stdout=None, stderr=None):
+def _log_output(level, stdout=None, stderr=None):
 	lines2log = ['process output:']
 	if stdout is not None:
 		lines2log.extend([ ' STDOUT: %s' % line for line in stdout.split('\n') ])
@@ -291,25 +268,12 @@ def _log_output(level:int, stdout=None, stderr=None):
 	_log.log(level, '\n'.join(lines2log))
 
 #===========================================================================
-def run_process(cmd_line:list=None, timeout:int=None, encoding:str='utf8', input_data=None, acceptable_return_codes:list=None, verbose:bool=False, cwd:str=None) -> tuple:
-	"""Run a subprocess (directly, not via subshell).
-
-	Args:
-		cmd_line: List of [binary to execute, commandline arguments one by one]
-		timeout: seconds until timing out
-		encoding: applicable to input_data if the latter is text
-		input_data: string or bytes to be passed to the subprocess on STDIN
-		acceptable_return_codes: list of exit codes considered to signal successful operation, defaults to [0]
-		verbose: log STDOUT/STDERR or not
-
-	Returns:
-		(success state, exit code, STDOUT)
-	"""
+def run_process(cmd_line=None, timeout=None, encoding='utf8', input_data=None, acceptable_return_codes=None, verbose=False):
 	assert (cmd_line is not None), '<cmd_line> must not be None'
 
 	if acceptable_return_codes is None:
 		acceptable_return_codes = [0]
-	_log.info('running: %s', cmd_line)
+	_log.info('running: %s' % cmd_line)
 	try:
 		if input_data is None:
 			proc_result = subprocess.run (
@@ -319,8 +283,7 @@ def run_process(cmd_line:list=None, timeout:int=None, encoding:str='utf8', input
 				stderr = subprocess.PIPE,
 				timeout = timeout,
 				encoding = encoding,
-				errors = 'replace',
-				cwd = cwd
+				errors = 'replace'
 			)
 		else:
 			proc_result = subprocess.run (
@@ -330,8 +293,7 @@ def run_process(cmd_line:list=None, timeout:int=None, encoding:str='utf8', input
 				stderr = subprocess.PIPE,
 				timeout = timeout,
 				encoding = encoding,
-				errors = 'replace',
-				cwd = cwd
+				errors = 'replace'
 			)
 	except (subprocess.TimeoutExpired, FileNotFoundError):
 		_log.exception('there was a problem running external process')
@@ -368,7 +330,6 @@ if __name__ == '__main__':
 			print("found as:", path)
 		else:
 			print(sys.argv[2], "not found")
-
 	#---------------------------------------------------------
 	def test_run_command_in_shell():
 		print("-------------------------------------")
@@ -379,15 +340,12 @@ if __name__ == '__main__':
 		else:
 			print("-------------------------------------")
 			print("failure, consult log")
-
 	#---------------------------------------------------------
 	def test_is_cmd_in_path():
 		print(is_cmd_in_path(cmd = sys.argv[2]))
-
 	#---------------------------------------------------------
 	def test_is_executable_by_wine():
 		print(is_executable_by_wine(cmd = sys.argv[2]))
-
 	#---------------------------------------------------------
 	#test_run_command_in_shell()
 	#test_detect_external_binary()

@@ -39,7 +39,7 @@ comment on table rules is
 'database of python rules';
 
 comment on column rules.rule is
-'the Python code snippet implementing the rule.';
+'the Python code snippet implmenting the rule.';
 
 create table idx_rule_drug
 (
@@ -66,7 +66,7 @@ create table idx_rule_recall
 
 comment on table idx_rule_recall is '
 a list of rules calling recall (): i.e a list of rules
-suitable from running from a nightly cron task';
+suitable from runing from a nightly cron task';
 
 create function exec (text, integer) returns opaque as 
 '
@@ -176,7 +176,7 @@ create function exec_all () returns opaque as
 -- for this patient
 -- FIXME: optimise by rule-selection depending on the 
 -- table. For example prescribing table: only execute
--- rules referring to those drugs
+-- rules refering to those drugs
 '
 BEGIN
  SELECT exec (rule, NEW.patient_id) FROM rules;

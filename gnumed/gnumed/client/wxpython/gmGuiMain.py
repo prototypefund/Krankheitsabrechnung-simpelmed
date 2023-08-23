@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""GNUmed GUI client.
+__doc__ = """GNUmed GUI client.
 
 This contains the GUI application framework and main window
 of the all signing all dancing GNUmed Python Reference
@@ -13,7 +13,7 @@ copyright: authors
 __author__  = "H. Herb <hherb@gnumed.net>,\
 			   K. Hilbert <Karsten.Hilbert@gmx.net>,\
 			   I. Haywood <i.haywood@ugrad.unimelb.edu.au>"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 # stdlib
 import sys
@@ -31,6 +31,11 @@ import io
 _log = logging.getLogger('gm.main')
 
 
+# GNUmed libs
+from Gnumed.pycommon import gmCfg2
+_cfg = gmCfg2.gmCfgData()
+
+
 # 3rd party libs: wxPython
 try:
 	import wx
@@ -45,19 +50,19 @@ except ImportError:
 # do this check just in case, so we can make sure
 # py2exe and friends include the proper version, too
 version = int('%s%s' % (wx.MAJOR_VERSION, wx.MINOR_VERSION))
-if (version < 40) or ('unicode' not in wx.PlatformInfo):
+if (version < 28) or ('unicode' not in wx.PlatformInfo):
 	print('GNUmed startup: Unsupported wxPython version (%s: %s).' % (wx.VERSION_STRING, wx.PlatformInfo))
-	print('GNUmed startup: wxPython 4.0+ with unicode support is required.')
+	print('GNUmed startup: wxPython 2.8+ with unicode support is required.')
 	print('CRITICAL ERROR: Proper wxPython version not found. Halted.')
-	raise ValueError('wxPython 4.0+ with unicode support not found')
+	raise ValueError('wxPython 2.8+ with unicode support not found')
 
 
-# GNUmed libs
-from Gnumed.pycommon import gmCfgINI
-from Gnumed.pycommon import gmCfgDB
+# more GNUmed libs
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmGuiBroker
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmShellAPI
 from Gnumed.pycommon import gmTools
@@ -68,7 +73,6 @@ from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmNetworkTools
 from Gnumed.pycommon import gmMimeLib
 from Gnumed.pycommon import gmConnectionPool
-from Gnumed.pycommon import gmI18N
 
 from Gnumed.business import gmPerson
 from Gnumed.business import gmClinicalRecord
@@ -87,6 +91,7 @@ from Gnumed.wxpython import gmEMRStructWidgets
 from Gnumed.wxpython import gmPatSearchWidgets
 from Gnumed.wxpython import gmAllergyWidgets
 from Gnumed.wxpython import gmListWidgets
+from Gnumed.wxpython import gmProviderInboxWidgets
 from Gnumed.wxpython import gmCfgWidgets
 from Gnumed.wxpython import gmExceptionHandlingWidgets
 from Gnumed.wxpython import gmNarrativeWorkflows
@@ -99,6 +104,7 @@ from Gnumed.wxpython import gmMeasurementWidgets
 from Gnumed.wxpython import gmFormWidgets
 from Gnumed.wxpython import gmSnellen
 from Gnumed.wxpython import gmVaccWidgets
+from Gnumed.wxpython import gmPersonContactWidgets
 from Gnumed.wxpython import gmI18nWidgets
 from Gnumed.wxpython import gmCodingWidgets
 from Gnumed.wxpython import gmOrganizationWidgets
@@ -124,12 +130,9 @@ from Gnumed.wxpython import gmHospitalStayWidgets
 from Gnumed.wxpython import gmProcedureWidgets
 
 
-_cfg = gmCfgINI.gmCfgData()
 _provider = None
 _scripting_listener = None
 _original_wxEndBusyCursor = None
-if __name__ == '__main__':
-	_ = lambda x:x
 
 #==============================================================================
 class cLog_wx2gm(wx.Log):
@@ -246,27 +249,33 @@ class gmTopLevelFrame(wx.Frame):
 	#----------------------------------------------
 	def __set_GUI_size(self):
 		"""Try to get previous window size from backend."""
-		width = gmCfgDB.get4workplace (
+
+		cfg = gmCfg.cCfgSQL()
+		width = int(cfg.get2 (
 			option = 'main.window.width',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace',
 			default = 800
-		)
-		height = gmCfgDB.get4workplace (
+		))
+		height = int(cfg.get2 (
 			option = 'main.window.height',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace',
 			default = 600
-		)
+		))
 		_log.debug('previous GUI size [%sx%s]', width, height)
-		pos_x = gmCfgDB.get4workplace (
+		pos_x = int(cfg.get2 (
 			option = 'main.window.position.x',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace',
 			default = 0
-		)
-		pos_y = gmCfgDB.get4workplace (
+		))
+		pos_y = int(cfg.get2 (
 			option = 'main.window.position.y',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace',
 			default = 0
-		)
+		))
 		_log.debug('previous GUI position [%s:%s]', pos_x, pos_y)
 
 		curr_disp_width = wx.DisplaySize()[0]
@@ -574,11 +583,11 @@ class gmTopLevelFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.__on_manage_performed_procedures, item)
 		item = menu_emr_manage.Append(-1, _('&Measurements'), _('Manage measurement results for the current patient.'))
 		self.Bind(wx.EVT_MENU, self.__on_manage_measurements, item)
-		item = menu_emr_manage.Append(-1, _('&Vaccinations: by date'), _('Vaccinations ordered by date.'))
+		item = menu_emr_manage.Append(-1, _('&Vaccinations: by shot'), _('Manage vaccinations for the current patient (by shots given).'))
 		self.Bind(wx.EVT_MENU, self.__on_manage_vaccination, item)
-		item = menu_emr_manage.Append(-1, _('&Vaccinations: by indication'), _('Vaccinations ordered by indication, showing all shots.'))
+		item = menu_emr_manage.Append(-1, _('&Vaccinations: by indication'), _('Manage vaccinations for the current patient (by indication).'))
 		self.Bind(wx.EVT_MENU, self.__on_show_all_vaccinations_by_indication, item)
-		item = menu_emr_manage.Append(-1, _('&Vaccinations: latest per indication'), _('Vaccinations ordered by indication, showing latest shot for each.'))
+		item = menu_emr_manage.Append(-1, _('&Vaccinations: latest'), _('List latest vaccinations for the current patient.'))
 		self.Bind(wx.EVT_MENU, self.__on_show_latest_vaccinations, item)
 		item = menu_emr_manage.Append(-1, _('&Family history (FHx)'), _('Manage family history.'))
 		self.Bind(wx.EVT_MENU, self.__on_manage_fhx, item)
@@ -634,10 +643,8 @@ class gmTopLevelFrame(wx.Frame):
 
 		# -- menu "Paperwork" ---------------------
 		menu_paperwork = wx.Menu()
-		item = menu_paperwork.Append(-1, _('&Write letter (template)'), _('Write a template-based letter for the current patient.'))
+		item = menu_paperwork.Append(-1, _('&Write letter'), _('Write a letter for the current patient.'))
 		self.Bind(wx.EVT_MENU, self.__on_new_letter, item)
-		item = menu_paperwork.Append(-1, _('&Write letter (generic)'), _('Write a generic letter for the current patient.'))
-		self.Bind(wx.EVT_MENU, self.__on_new_generic_letter, item)
 		item = menu_paperwork.Append(-1, _('Screenshot -> export area'), _('Put a screenshot into the patient export area.'))
 		self.Bind(wx.EVT_MENU, self.__on_save_screenshot_into_export_area, item)
 		menu_paperwork.AppendSeparator()
@@ -670,6 +677,8 @@ class gmTopLevelFrame(wx.Frame):
 		if viewer == _('no viewer installed'):
 			_log.info('neither of Ginkgo CADx / OsiriX / Aeskulap / AMIDE / DicomScope / xmedcon found, disabling "DICOM viewer" menu item')
 			self.menu_tools.Enable(id = item.Id, enable=False)
+#		self.menu_tools.Append(-1, _("Dermatology"), _("A tool to aid dermatology diagnosis"))
+#		self.Bind(wx.EVT_MENU, self.__dermtool, item)
 		item = self.menu_tools.Append(-1, _('Snellen chart'), _('Display fullscreen snellen chart.'))
 		self.Bind(wx.EVT_MENU, self.__on_snellen, item)
 		item = self.menu_tools.Append(-1, _('MI/stroke risk'), _('Acute coronary syndrome/stroke risk assessment.'))
@@ -742,9 +751,9 @@ class gmTopLevelFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.__on_display_wiki, item)
 		help_menu.Append(-1, _('User manual (www)'), _('Go to the User Manual on the web.'))
 		self.Bind(wx.EVT_MENU, self.__on_display_user_manual_online, item)
-#		item = help_menu.Append(-1, _('Menu reference (www)'), _('View the reference for menu items on the web.'))
-#		self.Bind(wx.EVT_MENU, self.__on_menu_reference, item)
-		item = help_menu.Append(-1, _('Browse work dir'), _('Browse user working directory [%s].') % gmTools.gmPaths().user_work_dir)
+		#item = help_menu.Append(-1, _('Menu reference (www)'), _('View the reference for menu items on the web.'))
+		#self.Bind(wx.EVT_MENU, self.__on_menu_reference, item)
+		item = help_menu.Append(-1, _('Browse work dir'), _('Browse user working directory [%s].') % os.path.join(gmTools.gmPaths().home_dir, 'gnumed'))
 		self.Bind(wx.EVT_MENU, self.__on_browse_work_dir, item)
 
 		menu_debugging = wx.Menu()
@@ -766,7 +775,7 @@ class gmTopLevelFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.__on_email_log_file, item)
 		item = menu_debugging.Append(-1, _('Browse tmp dir'), _('Browse temporary directory [%s].') % gmTools.gmPaths().tmp_dir)
 		self.Bind(wx.EVT_MENU, self.__on_browse_tmp_dir, item)
-		item = menu_debugging.Append(-1, _('Browse internal work dir'), _('Browse internal working directory [%s].') % gmTools.gmPaths().user_appdata_dir)
+		item = menu_debugging.Append(-1, _('Browse internal work dir'), _('Browse internal working directory [%s].') % os.path.join(gmTools.gmPaths().home_dir, '.gnumed'))
 		self.Bind(wx.EVT_MENU, self.__on_browse_internal_work_dir, item)
 		item = menu_debugging.Append(-1, _('Bug tracker'), _('Go to the GNUmed bug tracker on the web.'))
 		self.Bind(wx.EVT_MENU, self.__on_display_bugtracker, item)
@@ -774,8 +783,6 @@ class gmTopLevelFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.__on_unblock_cursor, item)
 		item = menu_debugging.Append(-1, _('pgAdmin III'), _('pgAdmin III: Browse GNUmed database(s) in PostgreSQL server.'))
 		self.Bind(wx.EVT_MENU, self.__on_pgadmin3, item)
-		item = menu_debugging.Append(-1, _('Admin connection'), _('Test connecting to the database as admin.'))
-		self.Bind(wx.EVT_MENU, self.__on_gm_dbo_connection_test, item)
 #		item = menu_debugging.Append(-1, _('Reload hook script'), _('Reload hook script from hard drive.'))
 #		self.Bind(wx.EVT_MENU, self.__on_reload_hook_script, item)
 		if _cfg.get(option = 'debug'):
@@ -787,14 +794,14 @@ class gmTopLevelFrame(wx.Frame):
 			self.Bind(wx.EVT_MENU, self.__on_test_access_violation, item)
 			item = menu_debugging.Append(-1, _('Test access checking'), _('Simulate a failing access check.'))
 			self.Bind(wx.EVT_MENU, self.__on_test_access_checking, item)
+			item = menu_debugging.Append(-1, _('Invoke inspector'), _('Invoke the widget hierarchy inspector (needs wxPython 2.8).'))
+			self.Bind(wx.EVT_MENU, self.__on_invoke_inspector, item)
 			try:
 				import wx.lib.inspection
-				item = menu_debugging.Append(-1, _('Invoke inspector'), _('Invoke the widget hierarchy inspector (needs wxPython 2.8).'))
-				self.Bind(wx.EVT_MENU, self.__on_invoke_inspector, item)
 			except ImportError:
-				#enu_debugging.Enable(item, enable = False)
-				pass
+				menu_debugging.Enable(id = ID, enable = False)
 			try:
+				import faulthandler
 				item = menu_debugging.Append(-1, _('Test fault handler'), _('Simulate a catastrophic fault (SIGSEGV).'))
 				self.Bind(wx.EVT_MENU, self.__on_test_segfault, item)
 			except ImportError:
@@ -812,9 +819,8 @@ class gmTopLevelFrame(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.__on_about_database, item)
 		item = help_menu.Append(-1, _('About contributors'), _('Show GNUmed contributors'))
 		self.Bind(wx.EVT_MENU, self.__on_show_contributors, item)
-#		item = help_menu.Append(-1, _('Git log'), _('Show full git commit log'))
-#		self.Bind(wx.EVT_MENU, self.__on_show_git_log, item)
 		help_menu.AppendSeparator()
+
 		self.mainmenu.Append(help_menu, _("&Help"))
 		# among other things the Manual is added from a plugin
 		self.__gb['main.helpmenu'] = help_menu
@@ -1028,7 +1034,6 @@ class gmTopLevelFrame(wx.Frame):
 	#----------------------------------------------
 	def __on_show_docs(self, evt):
 		gmDispatcher.send(signal='show_document_viewer')
-
 	#----------------------------------------------
 	def __on_new_letter(self, evt):
 		pat = gmPerson.gmCurrentPatient()
@@ -1036,16 +1041,6 @@ class gmTopLevelFrame(wx.Frame):
 			gmDispatcher.send(signal = 'statustext', msg = _('Cannot write letter. No active patient.'), beep = True)
 			return True
 		gmFormWidgets.print_doc_from_template(parent = self)#, keep_a_copy = True)
-
-	#----------------------------------------------
-	def __on_new_generic_letter(self, evt):
-		#return
-		pat = gmPerson.gmCurrentPatient()
-		if not pat.connected:
-			gmDispatcher.send(signal = 'statustext', msg = _('Cannot write letter. No active patient.'), beep = True)
-			return True
-
-		gmFormWidgets.print_generic_document(parent = self)
 
 	#----------------------------------------------
 	def __on_show_placeholders(self, evt):
@@ -1148,10 +1143,6 @@ class gmTopLevelFrame(wx.Frame):
 		)
 		contribs.ShowModal()
 		contribs.DestroyLater()
-
-	#----------------------------------------------
-	def __on_show_git_log(self, event):
-		gmNetworkTools.open_url_in_browser(url = 'https://www.gnumed.de/documentation/code-smell/commits.log')
 
 	#----------------------------------------------
 	# GNUmed menu
@@ -1351,7 +1342,7 @@ class gmTopLevelFrame(wx.Frame):
 		gmCfgWidgets.configure_string_option (
 			message = _(
 				'GNUmed will use this URL to access an encyclopedia of\n'
-				'measurement/lab methods from within the measurements grid.\n'
+				'measurement/lab methods from within the measurments grid.\n'
 				'\n'
 				'You can leave this empty but to set it to a specific\n'
 				'address the URL must be accessible now.'
@@ -1454,16 +1445,20 @@ class gmTopLevelFrame(wx.Frame):
 	# submenu GNUmed / config / ui
 	#----------------------------------------------
 	def __on_configure_startup_plugin(self, evt):
+
+		dbcfg = gmCfg.cCfgSQL()
 		# get list of possible plugins
-		plugin_list = gmTools.coalesce(gmCfgDB.get4user (
+		plugin_list = gmTools.coalesce(dbcfg.get2 (
 			option = 'horstspace.notebook.plugin_load_order',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		), [])
 
 		# get current setting
-		initial_plugin = gmTools.coalesce(gmCfgDB.get4user (
+		initial_plugin = gmTools.coalesce(dbcfg.get2 (
 			option = 'horstspace.plugin_to_raise_after_startup',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		), 'gmEMRBrowserPlugin')
 		try:
 			selections = [plugin_list.index(initial_plugin)]
@@ -1492,12 +1487,11 @@ class gmTopLevelFrame(wx.Frame):
 		if plugin is None:
 			return
 
-		gmCfgDB.set (
+		dbcfg.set (
 			option = 'horstspace.plugin_to_raise_after_startup',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
 			value = plugin
 		)
-
 	#----------------------------------------------
 	# submenu GNUmed / config / ui / patient search
 	#----------------------------------------------
@@ -1602,16 +1596,20 @@ class gmTopLevelFrame(wx.Frame):
 
 	#----------------------------------------------
 	def __on_configure_initial_pat_plugin(self, evt):
+
+		dbcfg = gmCfg.cCfgSQL()
 		# get list of possible plugins
-		plugin_list = gmTools.coalesce(gmCfgDB.get4user (
+		plugin_list = gmTools.coalesce(dbcfg.get2 (
 			option = 'horstspace.notebook.plugin_load_order',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		), [])
 
 		# get current setting
-		initial_plugin = gmTools.coalesce(gmCfgDB.get4user (
+		initial_plugin = gmTools.coalesce(dbcfg.get2 (
 			option = 'patient_search.plugin_to_raise_after_search',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		), 'gmPatientOverviewPlugin')
 		try:
 			selections = [plugin_list.index(initial_plugin)]
@@ -1637,12 +1635,11 @@ class gmTopLevelFrame(wx.Frame):
 		if plugin is None:
 			return
 
-		gmCfgDB.set (
+		dbcfg.set (
 			option = 'patient_search.plugin_to_raise_after_search',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
 			value = plugin
 		)
-
 	#----------------------------------------------
 	# submenu GNUmed / config / billing
 	#----------------------------------------------
@@ -1653,7 +1650,7 @@ class gmTopLevelFrame(wx.Frame):
 		gmBillingWidgets.configure_invoice_template(parent = self, with_vat = True)
 	#----------------------------------------------
 	def __on_configure_billing_catalogs_url(self, evt):
-		german_default = 'https://www.e-bis.de/goae/defaultFrame.htm'
+		german_default = 'http://www.e-bis.de/goae/defaultFrame.htm'
 
 		def is_valid(value):
 			value = value.strip()
@@ -1960,7 +1957,7 @@ class gmTopLevelFrame(wx.Frame):
 				'\n'
 				'The default URL is:\n'
 				'\n'
-				' https://www.gnumed.de/downloads/gnumed-versions.txt\n'
+				' http://www.gnumed.de/downloads/gnumed-versions.txt\n'
 				'\n'
 				'but you can configure any other URL locally. Note\n'
 				'that you must enter the location as a valid URL.\n'
@@ -1969,7 +1966,7 @@ class gmTopLevelFrame(wx.Frame):
 			),
 			option = 'horstspace.update.url',
 			bias = 'workplace',
-			default_value = 'https://www.gnumed.de/downloads/gnumed-versions.txt',
+			default_value = 'http://www.gnumed.de/downloads/gnumed-versions.txt',
 			validator = is_valid
 		)
 	#----------------------------------------------
@@ -2233,16 +2230,19 @@ class gmTopLevelFrame(wx.Frame):
 		part.save()
 	#----------------------------------------------
 	def __on_acs_risk_assessment(self, evt):
-		cmd = gmCfgDB.get4user (
+
+		dbcfg = gmCfg.cCfgSQL()
+		cmd = dbcfg.get2 (
 			option = 'external.tools.acs_risk_calculator_cmd',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		)
 
 		if cmd is None:
 			gmDispatcher.send(signal = 'statustext', msg = _('ACS risk assessment calculator not configured.'), beep = True)
 			return
 
-		cwd = gmTools.gmPaths().user_tmp_dir
+		cwd = os.path.expanduser(os.path.join('~', '.gnumed'))
 		try:
 			subprocess.check_call (
 				args = (cmd,),
@@ -2320,7 +2320,7 @@ class gmTopLevelFrame(wx.Frame):
 	#----------------------------------------------
 	#----------------------------------------------
 	def __on_medical_links(self, evt):
-		gmNetworkTools.open_url_in_browser(url = 'https://www.gnumed.de/bin/view/Gnumed/MedicalContentLinks#AnchorLocaleI%s' % gmI18N.system_locale_level['language'])
+		gmNetworkTools.open_url_in_browser(url = 'http://wiki.gnumed.de/bin/view/Gnumed/MedicalContentLinks#AnchorLocaleI%s' % gmI18N.system_locale_level['language'])
 
 	#----------------------------------------------
 	def __on_jump_to_drug_db(self, evt):
@@ -2331,7 +2331,7 @@ class gmTopLevelFrame(wx.Frame):
 
 	#----------------------------------------------
 	def __on_kompendium_ch(self, evt):
-		gmNetworkTools.open_url_in_browser(url = 'https://www.kompendium.ch')
+		gmNetworkTools.open_url_in_browser(url = 'http://www.kompendium.ch')
 
 	#----------------------------------------------
 	# Office
@@ -2351,7 +2351,7 @@ class gmTopLevelFrame(wx.Frame):
 	# Help / Debugging
 	#----------------------------------------------
 	def __on_save_screenshot(self, evt):
-		title = gmGuiHelpers.undecorate_window_title(self.Title.rstrip())
+		title = gmTools.undecorate_window_title(self.Title.rstrip())
 		png_fname = os.path.join (
 			gmTools.gmPaths().home_dir,
 			'gnumed',
@@ -2371,8 +2371,8 @@ class gmTopLevelFrame(wx.Frame):
 
 	#----------------------------------------------
 	def __on_test_placeholders(self, evt):
-		from Gnumed.wxpython.gmMacro import test_placeholders_interactively
-		test_placeholders_interactively()
+		from Gnumed.wxpython.gmMacro import test_placeholders
+		test_placeholders()
 
 	#----------------------------------------------
 	def __on_test_access_violation(self, evt):
@@ -2383,7 +2383,7 @@ class gmTopLevelFrame(wx.Frame):
 			details = _('This is a deliberate AccessDenied exception thrown to test the handling of access violations by means of a decorator.')
 		)
 	#----------------------------------------------
-	@gmAccessPermissionWidgets.verify_minimum_required_role('admin', activity = _('testing access check for non-existent <admin> role'))
+	@gmAccessPermissionWidgets.verify_minimum_required_role('admin', activity = _('testing access check for non-existant <admin> role'))
 	def __on_test_access_checking(self, evt):
 		raise gmExceptions.AccessDenied (
 			_('[-9999]: <access violation test error>'),
@@ -2400,14 +2400,14 @@ class gmTopLevelFrame(wx.Frame):
 		gmNetworkTools.open_url_in_browser(url = 'https://bugs.launchpad.net/gnumed/')
 	#----------------------------------------------
 	def __on_display_wiki(self, evt):
-		gmNetworkTools.open_url_in_browser(url = 'https://www.gnumed.de/documentation/')
+		gmNetworkTools.open_url_in_browser(url = 'http://wiki.gnumed.de')
 	#----------------------------------------------
 	def __on_display_user_manual_online(self, evt):
 		gmNetworkTools.open_url_in_browser(url = 'https://www.gnumed.de/documentation/GNUmedManual.html')
 
 #	#----------------------------------------------
 #	def __on_menu_reference(self, evt):
-#		gmNetworkTools.open_url_in_browser(url = 'https://www.gnumed.de/bin/view/Gnumed/MenuReference')
+#		gmNetworkTools.open_url_in_browser(url = 'http://wiki.gnumed.de/bin/view/Gnumed/MenuReference')
 
 	#----------------------------------------------
 	def __on_pgadmin3(self, evt):
@@ -2416,16 +2416,6 @@ class gmTopLevelFrame(wx.Frame):
 			gmShellAPI.run_command_in_shell(cmd, blocking = False)
 			return
 		gmDispatcher.send(signal = 'statustext', msg = _('pgAdmin III not found.'), beep = True)
-
-	#----------------------------------------------
-	def __on_gm_dbo_connection_test(self, evt):
-		conn = gmAuthWidgets.get_dbowner_connection (
-			procedure = _('Test for connecting as database admin (owner).'),
-			dbo_account = 'gm-dbo'
-		)
-		if conn is not None:
-			gmGuiHelpers.gm_show_info(_('Successfully connected as database owner.'))
-
 	#----------------------------------------------
 	def __on_reload_hook_script(self, evt):
 		if not gmHooks.import_hook_module(reimport = True):
@@ -2466,7 +2456,7 @@ class gmTopLevelFrame(wx.Frame):
 		name = os.path.basename(gmLog2._logfile_name)
 		name, ext = os.path.splitext(name)
 		new_name = '%s_%s%s' % (name, pyDT.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), ext)
-		new_path = gmTools.gmPaths().user_work_dir
+		new_path = os.path.expanduser(os.path.join('~', 'gnumed'))
 
 		dlg = wx.FileDialog (
 			parent = self,
@@ -2496,11 +2486,11 @@ class gmTopLevelFrame(wx.Frame):
 
 	#----------------------------------------------
 	def __on_browse_work_dir(self, evt):
-		gmMimeLib.call_viewer_on_file(gmTools.gmPaths().user_work_dir, block = False)
+		gmMimeLib.call_viewer_on_file(os.path.join(gmTools.gmPaths().home_dir, 'gnumed'), block = False)
 
 	#----------------------------------------------
 	def __on_browse_internal_work_dir(self, evt):
-		gmMimeLib.call_viewer_on_file(gmTools.gmPaths().user_appdata_dir, block = False)
+		gmMimeLib.call_viewer_on_file(os.path.join(gmTools.gmPaths().home_dir, '.gnumed'), block = False)
 
 	#----------------------------------------------
 	# GNUmed /
@@ -2515,6 +2505,12 @@ class gmTopLevelFrame(wx.Frame):
 		self.DestroyLater()
 		_log.debug('gmTopLevelFrame.OnClose() end')
 		return True
+
+	#----------------------------------------------
+	def __dermtool (self, event):
+		import Gnumed.wxpython.gmDermTool as DT
+		frame = DT.DermToolDialog(None, -1)
+		frame.Show(True)
 
 	#----------------------------------------------
 	def __on_start_new_encounter(self, evt):
@@ -2757,7 +2753,7 @@ class gmTopLevelFrame(wx.Frame):
 #
 #		# get file name
 #		aWildcard = "%s (*.txt)|*.txt|%s (*)|*" % (_("text files"), _("all files"))
-#		aDefDir = gmTools.gmPaths().user_work_dir
+#		aDefDir = os.path.expanduser(os.path.join('~', 'gnumed'))
 #		fname = '%s-%s_%s.txt' % (_('journal_by_last_mod_time'), pat['lastnames'], pat['firstnames'])
 #		dlg = wx.FileDialog (
 #			parent = self,
@@ -2803,7 +2799,7 @@ class gmTopLevelFrame(wx.Frame):
 #			return False
 #		# get file name
 #		aWildcard = "%s (*.txt)|*.txt|%s (*)|*" % (_("text files"), _("all files"))
-#		aDefDir = gmTools.gmPaths().user_work_dir
+#		aDefDir = os.path.expanduser(os.path.join('~', 'gnumed'))
 #		fname = '%s-%s_%s.txt' % (_('emr-journal'), pat['lastnames'], pat['firstnames'])
 #		dlg = wx.FileDialog (
 #			parent = self,
@@ -2935,11 +2931,13 @@ class gmTopLevelFrame(wx.Frame):
 
 	#----------------------------------------------
 	def __on_load_external_patient(self, event):
-		search_immediately = gmCfgDB.get4user (
+		dbcfg = gmCfg.cCfgSQL()
+		search_immediately = bool(dbcfg.get2 (
 			option = 'patient_search.external_sources.immediately_search_if_single_source',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
-			default = False
-		)
+			bias = 'user',
+			default = 0
+		))
 		gmPatSearchWidgets.get_person_from_external_sources(parent = self, search_immediately = search_immediately, activate_immediately = True)
 
 	#----------------------------------------------
@@ -2980,7 +2978,7 @@ class gmTopLevelFrame(wx.Frame):
 			gmDispatcher.send(signal = 'statustext', msg = _('Cannot export patient as GDT. No active patient.'))
 			return False
 		enc = 'cp850'			# FIXME: configurable
-		fname = os.path.join(gmTools.gmPaths().user_work_dir, 'current-patient.gdt')
+		fname = os.path.expanduser(os.path.join('~', 'gnumed', 'current-patient.gdt'))
 		curr_pat.export_as_gdt(filename = fname, encoding = enc)
 		gmDispatcher.send(signal = 'statustext', msg = _('Exported demographics to GDT file [%s].') % fname)
 
@@ -2990,7 +2988,7 @@ class gmTopLevelFrame(wx.Frame):
 		if not curr_pat.connected:
 			gmDispatcher.send(signal = 'statustext', msg = _('Cannot export patient as VCARD. No active patient.'))
 			return False
-		fname = os.path.join(gmTools.gmPaths().user_work_dir, 'current-patient.vcf')
+		fname = os.path.expanduser(os.path.join('~', 'gnumed', 'current-patient.vcf'))
 		curr_pat.export_as_vcard(filename = fname)
 		gmDispatcher.send(signal = 'statustext', msg = _('Exported demographics to VCARD file [%s].') % fname)
 
@@ -3115,23 +3113,24 @@ class gmTopLevelFrame(wx.Frame):
 		curr_pos_x, curr_pos_y = self.GetScreenPosition()
 		_log.info('GUI position at shutdown: [%s:%s]' % (curr_pos_x, curr_pos_y))
 		if 0 not in [curr_width, curr_height]:
+			dbcfg = gmCfg.cCfgSQL()
 			try:
-				gmCfgDB.set (
+				dbcfg.set (
 					option = 'main.window.width',
 					value = curr_width,
 					workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
 				)
-				gmCfgDB.set (
+				dbcfg.set (
 					option = 'main.window.height',
 					value = curr_height,
 					workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
 				)
-				gmCfgDB.set (
+				dbcfg.set (
 					option = 'main.window.position.x',
 					value = curr_pos_x,
 					workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
 				)
-				gmCfgDB.set (
+				dbcfg.set (
 					option = 'main.window.position.y',
 					value = curr_pos_y,
 					workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
@@ -3292,7 +3291,7 @@ class cStatusBar(wx.StatusBar):
 		prev = self.previous_text
 		msg = self.__update_history(text, field)
 		super().PushStatusText(msg, field)
-		self.__initiate_blinking(text, field, prev)
+		self.__initiate_blinking(text, i, prev)
 
 	#----------------------------------------------
 	def set_normal_color(self):
@@ -3450,19 +3449,20 @@ class gmApp(wx.App):
 			return False
 
 		gmExceptionHandlingWidgets.set_sender_email(gmPraxis.gmCurrentPraxisBranch().user_email)
+
 		self.__guibroker = gmGuiBroker.GuiBroker()
 		self.__setup_platform()
+
 		if not self.__establish_backend_connection():
 			return False
-
 		if not self.__verify_db_account():
 			return False
-
 		if not self.__verify_praxis_branch():
 			return False
 
 		self.__check_db_lang()
 		self.__update_workplace_list()
+
 		if not _cfg.get(option = 'skip-update-check'):
 			self.__check_for_updates()
 
@@ -3479,7 +3479,7 @@ class gmApp(wx.App):
 			self.RedirectStdio()
 			self.SetOutputWindowAttributes(title = _('GNUmed stdout/stderr window'))
 			# print this so people know what this window is for
-			# and don't get surprised when it pops up later
+			# and don't get suprised when it pops up later
 			print('---=== GNUmed startup ===---')
 			print(_('redirecting STDOUT/STDERR to this log window'))
 			print('---=== GNUmed startup ===---')
@@ -3578,7 +3578,6 @@ class gmApp(wx.App):
 		self.__guibroker['horstspace.top_panel']._TCTRL_patient_selector.SetFocus()
 		self.user_activity_timer.Start(oneShot = True)
 		gmHooks.run_hook_script(hook = 'startup-after-GUI-init')
-		#log_colors_known2wx()
 
 	#----------------------------------------------
 	def __setup_user_activity_timer(self):
@@ -3607,7 +3606,7 @@ class gmApp(wx.App):
 		# You can bind your app to wx.EVT_ACTIVATE_APP which will fire when your
 		# app gets/looses focus, or you can wx.EVT_ACTIVATE with any of your
 		# toplevel windows and call evt.GetActive() in the handler to see whether
-		# it is gaining or losing focus.
+		# it is gaining or loosing focus.
 		self.Bind(wx.EVT_ACTIVATE_APP, self._on_app_activated)
 
 		self.Bind(wx.EVT_MOUSE_EVENTS, self._on_user_activity)
@@ -3615,11 +3614,14 @@ class gmApp(wx.App):
 
 	#----------------------------------------------
 	def __check_for_updates(self):
-		do_check = gmCfgDB.get4workplace (
+
+		dbcfg = gmCfg.cCfgSQL()
+		do_check = bool(dbcfg.get2 (
 			option = 'horstspace.update.autocheck_at_startup',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace',
 			default = True
-		)
+		))
 		if not do_check:
 			return
 
@@ -3635,7 +3637,6 @@ class gmApp(wx.App):
 			require_version = not override
 		)
 		if connected:
-			gmCfgDB.log_all_options()
 			return True
 
 		_log.warning("Login attempt unsuccessful. Can't run GNUmed without database connection")
@@ -3675,7 +3676,6 @@ class gmApp(wx.App):
 	def __verify_praxis_branch(self):
 
 		if not gmPraxisWidgets.set_active_praxis_branch(no_parent = True):
-			_log.debug('failed to activate branch')
 			return False
 
 		creds = gmConnectionPool.gmConnectionPool().credentials
@@ -3685,18 +3685,20 @@ class gmApp(wx.App):
 			gmTools.coalesce(creds.host, 'localhost')
 		)
 		msg += '\n\n'
+
 		praxis = gmPraxis.gmCurrentPraxisBranch()
 		msg += _('Branch "%s" of praxis "%s"\n') % (
 			praxis['branch'],
 			praxis['praxis']
 		)
 		msg += '\n\n'
+
 		banner = praxis.db_logon_banner
 		if banner.strip() == '':
 			return True
-
 		msg += banner
 		msg += '\n\n'
+
 		dlg = gmGuiHelpers.c2ButtonQuestionDlg (
 			None,		#self.GetTopWindow(),				# freezes
 			-1,
@@ -3710,9 +3712,7 @@ class gmApp(wx.App):
 		log_on = dlg.ShowModal()
 		dlg.DestroyLater()
 		if log_on == wx.ID_YES:
-			_log.debug('returning for logon')
 			return True
-
 		_log.info('user decided to not connect to this database')
 		return False
 
@@ -3723,7 +3723,7 @@ class gmApp(wx.App):
 			return
 
 		prefs_file = _cfg.get(option = 'user_preferences_file')
-		gmCfgINI.set_option_in_INI_file (
+		gmCfg2.set_option_in_INI_file (
 			filename = prefs_file,
 			group = 'profile %s' % _cfg.get(option = 'backend_profile'),
 			option = 'last known workplaces',
@@ -3760,7 +3760,7 @@ class gmApp(wx.App):
 				'Cannot find configuration file in any of:\n'
 				'\n'
 				' %s\n'
-				'You may need to use the command line option\n'
+				'You may need to use the comand line option\n'
 				'\n'
 				'	--conf-file=<FILE>'
 			) % '\n '.join(candidates)
@@ -3929,7 +3929,7 @@ class gmApp(wx.App):
 			if not remember2ignore_this_mismatch:
 				return True
 			_log.info('User did not want to set database locale. Ignoring mismatch next time.')
-			gmCfgINI.set_option_in_INI_file (
+			gmCfg2.set_option_in_INI_file (
 				filename = _cfg.get(option = 'user_preferences_file'),
 				group = 'backend',
 				option = 'ignored mismatching system locale',
@@ -3986,31 +3986,6 @@ def setup_callbacks():
 	gmClinicalRecord.set_delayed_executor(wx.CallAfter)
 
 #==============================================================================
-def log_colors_known2wx():
-	col_db = wx.ColourDatabase()
-	col_names = []
-	for r in range(256):
-		for g in range(256):
-			for b in range(256):
-				wx.Yield()
-				col = wx.Colour(r,g,b)
-				col_name = col_db.FindName(col)
-				if col_name:
-					col_names.append(col_name)
-	_log.debug('enumerated known colors')
-	log_lines = []
-	for col_name in sorted(col_names):
-		wx.Yield()
-		col = col_db.Find(col_name)
-		log_lines.append(f'{col_name:<25} {col.red:<6} {col.green:<6} {col.blue:<6} {col.IsOk()}')
-	_log.log_multiline (
-		level = logging.DEBUG,
-		message = 'RGB colors known by name on this system:',
-		text = '\n'.join(log_lines)
-	)
-	wx.Bell()
-
-#==============================================================================
 def main():
 
 	# make sure signals end up in the main thread,
@@ -4036,6 +4011,8 @@ def main():
 # Main
 #==============================================================================
 if __name__ == '__main__':
+
+	from GNUmed.pycommon import gmI18N
 	gmI18N.activate_locale()
 	gmI18N.install_domain()
 

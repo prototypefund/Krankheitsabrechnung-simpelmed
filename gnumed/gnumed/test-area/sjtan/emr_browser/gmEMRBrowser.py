@@ -24,7 +24,7 @@ class cEMRBrowserPanel(wx.wxPanel, gmRegetMixin.cRegetOnPaintMixin):
 
 	def __init__(self, parent, id):
 		"""
-		Constructs a new instance of EMR browser panel
+		Contructs a new instance of EMR browser panel
 
 		parent - Wx parent widget
 		id - Wx widget id
@@ -183,7 +183,7 @@ class cEMRBrowserPanel(wx.wxPanel, gmRegetMixin.cRegetOnPaintMixin):
 #	def set_patient(self, patient):
 #		"""
 #		Configures EMR browser patient and instantiates exporter.
-#		Appropriate for standalaone use.
+#		Appropiate for standalaone use.
 #		patient - The patient to display EMR for
 #		"""
 #		self.__patient = patient

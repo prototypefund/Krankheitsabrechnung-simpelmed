@@ -1,7 +1,7 @@
-"""GNUmed printing."""
+__doc__ = """GNUmed printing."""
 
 __author__  = "K.Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 # =======================================================================
 import logging
 import sys
@@ -20,13 +20,13 @@ from Gnumed.pycommon import gmLog2
 _log = logging.getLogger('gm.printing')
 
 
-KNOWN_PRINTJOB_TYPES = [
+known_printjob_types = [
 	'medication_list',
 	'generic_document'
 ]
 
 external_print_APIs = [
-	'gm-print_doc',			# locally provided script
+	'gm-print_doc',
 	'os_startfile',			# win, mostly
 	'gsprint',				# win
 	'acrobat_reader',		# win
@@ -38,17 +38,8 @@ external_print_APIs = [
 #=======================================================================
 # internal print API
 #-----------------------------------------------------------------------
-def print_files(filenames:list=None, jobtype:str=None, print_api:str=None, verbose:bool=False) -> bool:
-	"""Print files.
+def print_files(filenames=None, jobtype=None, print_api=None, verbose=False):
 
-	Args:
-		filenames: list of files to print
-		jobtype: type of print job, passed on to print backends
-		print_api: the print backend to use, will try all backends if None or unknown backend
-
-	Returns:
-		status
-	"""
 	_log.debug('printing "%s": %s', jobtype, filenames)
 
 	for fname in filenames:
@@ -58,7 +49,7 @@ def print_files(filenames:list=None, jobtype:str=None, print_api:str=None, verbo
 			_log.exception('cannot open [%s], aborting', fname)
 			return False
 
-	if jobtype not in KNOWN_PRINTJOB_TYPES:
+	if jobtype not in known_printjob_types:
 		print("unregistered print job type <%s>" % jobtype)
 		_log.warning('print job type "%s" not registered', jobtype)
 
@@ -67,34 +58,26 @@ def print_files(filenames:list=None, jobtype:str=None, print_api:str=None, verbo
 
 	if print_api == 'os_startfile':
 		return _print_files_by_os_startfile(filenames = filenames)
-
 	if print_api == 'gm-print_doc':
 		return _print_files_by_shellscript(filenames = filenames, jobtype = jobtype, verbose = verbose)
-
 	if print_api == 'gsprint':
 		return _print_files_by_gsprint_exe(filenames = filenames, verbose = verbose)
-
 	if print_api == 'acrobat_reader':
 		return _print_files_by_acroread_exe(filenames = filenames, verbose = verbose)
-
 	if print_api == 'gtklp':
 		return _print_files_by_gtklp(filenames = filenames, verbose = verbose)
-
 	if print_api == 'Internet_Explorer':
 		return _print_files_by_IE(filenames = filenames)
-
 	if print_api == 'Mac_Preview':
 		return _print_files_by_mac_preview(filenames = filenames, verbose = verbose)
 
-	# not any single print_api explicitely requested, so try all, per-platform
+	# else try all
 	if (sys.platform == 'darwin') or (os.name == 'mac'):
 		if _print_files_by_mac_preview(filenames = filenames, verbose = verbose):
 			return True
-
 	elif os.name == 'posix':
 		if _print_files_by_gtklp(filenames = filenames, verbose = verbose):
 			return True
-
 	elif os.name == 'nt':
 		if _print_files_by_shellscript(filenames = filenames, jobtype = jobtype, verbose = verbose):
 			return True
@@ -108,8 +91,10 @@ def print_files(filenames:list=None, jobtype:str=None, print_api:str=None, verbo
 			return True
 		return False
 
-	# unknown platform, or platform default list failed, so try generic script
-	return _print_files_by_shellscript(filenames = filenames, jobtype = jobtype, verbose = verbose)
+	if _print_files_by_shellscript(filenames = filenames, jobtype = jobtype, verbose = verbose):
+		return True
+
+	return False
 
 #=======================================================================
 # external print APIs
@@ -239,12 +224,11 @@ def _print_files_by_os_startfile(filenames=None):
 		_log.debug('%s -> %s', filename, fname)
 		try:
 			try:
-				os.startfile(fname, 'print')		# pylint: disable=no-member
-			except WindowsError as e:				# pylint: disable=undefined-variable
+				os.startfile(fname, 'print')
+			except WindowsError as e:
 				_log.exception('no <print> action defined for this type of file')
-				if e.winerror == 1155:
-					# try (default) <view> action
-					os.startfile(fname)				# pylint: disable=no-member
+				if e.winerror == 1155:	# try (default) <view> action
+					os.startfile(fname)
 		except Exception:
 			_log.exception('os.startfile() failed')
 			gmLog2.log_stack_trace()
@@ -264,13 +248,7 @@ def _print_files_by_shellscript(filenames=None, jobtype=None, verbose=False):
 	cmd_line.extend(filenames)
 	success, returncode, stdout = gmShellAPI.run_process(cmd_line = cmd_line, verbose = verbose)
 	if not success:
-		_log.debug('gm-print_doc(.bat) arguments: "DOCUMENT_TYPE LIST-OF-FILES-TO-PRINT"')
-		_log.debug('gm-print_doc(.bat): call printing app, perhaps based on DOCUMENT_TYPE, and pass in LIST-OF-FILES-TO-PRINT')
-		_log.debug('gm-print_doc(.bat): return 0 on success')
-		_log.debug('gm-print_doc(.bat): DOCUMENT_TYPE - can be used to decide which way to process a particular print job (Example: medication_list)')
-		_log.debug('gm-print_doc(.bat): LIST-OF-FILES-TO-PRINT - can be of any mimetype so the script needs to be able to process them, typically PDF though')
 		return False
-
 	return True
 
 #=======================================================================
@@ -284,6 +262,7 @@ if __name__ == '__main__':
 	if sys.argv[1] != 'test':
 		sys.exit()
 
+	from Gnumed.pycommon import gmLog2
 	from Gnumed.pycommon import gmI18N
 	gmI18N.activate_locale()
 	gmI18N.install_domain()

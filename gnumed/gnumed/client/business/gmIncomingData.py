@@ -90,7 +90,7 @@ class cIncomingData(gmBusinessDBObject.cBusinessDBObject):
 			tmp += ' dob=%s' % gmDateTime.pydt_strftime(self._payload[self._idx['dob']], '%Y %b %d')
 		return tmp
 
-	patient_identification = property(_format_patient_identification)
+	patient_identification = property(_format_patient_identification, lambda x:x)
 
 	#--------------------------------------------------------
 	def update_data_from_file(self, fname=None):
@@ -169,9 +169,8 @@ def create_incoming_data(data_type, filename):
 	incoming = cIncomingData(aPK_obj = pk)
 	if not incoming.update_data_from_file(fname = filename):
 		_log.debug('cannot update newly created incoming_data record from file, deleting stub')
-		delete_incoming_data(pk_incoming_data = pk)
+		delete_incoming_data(incoming_data = pk)
 		return None
-
 	return incoming
 
 #------------------------------------------------------------
@@ -191,6 +190,8 @@ if __name__ == "__main__":
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	from Gnumed.pycommon import gmLog2
 
 	gmDateTime.init()
 	gmTools.gmPaths()

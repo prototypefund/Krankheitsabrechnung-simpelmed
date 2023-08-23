@@ -13,7 +13,6 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmDateTime
@@ -61,7 +60,7 @@ def _display_clinical_reminders():
 			exp,
 			gmTools.coalesce(msg['comment'], '', '\n%s\n'),
 			gmTools.coalesce(msg['data'], '', '\n%s\n'),
-			pat.description_gender,
+			pat['description_gender'],
 			msg['modified_by']
 		)
 		gmGuiHelpers.gm_show_warning (
@@ -218,7 +217,7 @@ class cDynamicHintDlg(wxgDynamicHintDlg.wxgDynamicHintDlg):
 	def _get_rationale(self):
 		return self._TCTRL_rationale.GetValue().strip()
 
-	rationale = property(_get_rationale)
+	rationale = property(_get_rationale, lambda x:x)
 
 	#------------------------------------------------------------
 	# internal helpers
@@ -715,6 +714,9 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain = 'gnumed')
 
 #	def test_message_inbox():
 #		app = wx.PyWidgetTester(size = (800, 600))

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""GNUmed internetworking tools."""
+__doc__ = """GNUmed internetworking tools."""
 
 #===========================================================================
 __author__ = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 # std libs
 import sys
@@ -20,11 +20,10 @@ import io
 # GNUmed libs
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmShellAPI
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmMimeLib
 
 
@@ -33,27 +32,22 @@ _log = logging.getLogger('gm.net')
 #===========================================================================
 # browser access
 #---------------------------------------------------------------------------
-def open_url_in_browser(url:str, new:int=2, autoraise:bool=True, *args, **kwargs) -> bool:
-	"""Open an URL in a browser.
-
-	Args:
-		url: URL to open
-		new: whether to open a new browser, a new tab in a running browser, or a tab OR a browser
-	"""
+def open_url_in_browser(url, new=2, autoraise=True, *args, **kwargs):
+	# url, new=0, autoraise=True
 	# new=2: open new tab if possible
 	try:
-		webbrowser.open(url, new = new, autoraise = autoraise)
+		webbrowser.open(url, new = new, autoraise = autoraise, **kwargs)
 	except (webbrowser.Error, OSError, UnicodeEncodeError):
 		_log.exception('error calling browser with url=%s', url)
 		return False
-
 	return True
-
-#---------------------------------------------------------------------------
+#===========================================================================
 def download_file(url, filename=None, suffix=None):
+
 	if filename is None:
 		filename = gmTools.get_unique_filename(prefix = 'gm-dl-', suffix = suffix)
 	_log.debug('downloading [%s] into [%s]', url, filename)
+
 	try:
 		dl_name, headers = urllib.request.urlretrieve(url, filename)
 	except (ValueError, OSError, IOError):
@@ -63,49 +57,6 @@ def download_file(url, filename=None, suffix=None):
 
 	_log.debug('%s' % headers)
 	return dl_name
-
-#---------------------------------------------------------------------------
-def mirror_url(url:str, base_dir:str=None, verbose:bool=False) -> str:
-	"""Mirror the web*page* at _url_, non-recursively.
-
-	Note: Not for mirroring a *site* (recursively).
-
-	Args:
-		url: the URL to mirror
-		base_dir: where to store the page and its prerequisites, sandbox dir under tmp_dir if None
-	"""
-	assert (url is not None), '<url> must not be None'
-	_log.debug('mirroring: %s', url)
-	if base_dir is None:
-		prefix = url.split('://')[-1]
-		prefix = prefix.strip(':').strip('/').replace('/', '#')
-		prefix = gmTools.fname_sanitize(prefix)
-		base_dir = gmTools.mk_sandbox_dir(prefix = prefix + '-')
-	_log.debug('base dir: %s', base_dir)
-	wget_cmd = [
-		'wget',
-		'--directory-prefix=%s' % base_dir,
-		#'--adjust-extension',
-		'--no-remove-listing',
-		'--timestamping',
-		'--page-requisites',
-		'--continue',
-		'--convert-links',
-		'--user-agent=""',
-		'--execute', 'robots=off',
-		'--wait=1'
-	]
-	if verbose:
-		wget_cmd.append('--debug')
-	wget_cmd.append(url)
-	#wget --output-file=logfile
-	#'<a href="%s">%s</a>' % (url, url),
-	success, ret_code, STDOUT = gmShellAPI.run_process(cmd_line = wget_cmd, timeout = 15, verbose = verbose)
-	if success:
-		return base_dir
-
-	return None
-
 #===========================================================================
 # data pack handling
 #---------------------------------------------------------------------------
@@ -119,7 +70,7 @@ def download_data_pack(pack_url, filename=None, md5_url=None):
 	_log.debug('downloading MD5 from: %s', md5_url)
 	md5_fname = download_file(md5_url, filename = dp_fname + '.md5')
 
-	md5_file = open(md5_fname, mode = 'rt', encoding = 'utf-8-sig')
+	md5_file = io.open(md5_fname, mode = 'rt', encoding = 'utf8')
 	md5_expected = md5_file.readline().strip('\n')
 	md5_file.close()
 	_log.debug('expected MD5: %s', md5_expected)
@@ -162,7 +113,37 @@ def install_data_pack(data_pack=None, conn=None):
 
 	_log.error('error installing data pack: %s', data_pack)
 	return False
+#---------------------------------------------------------------------------
+def download_data_pack_old(url, target_dir=None):
 
+	if target_dir is None:
+		target_dir = gmTools.get_unique_filename(prefix = 'gm-dl-')
+
+	_log.debug('downloading [%s]', url)
+	_log.debug('unpacking into [%s]', target_dir)
+
+	gmTools.mkdir(directory = target_dir)
+
+	# FIXME: rewrite to use urllib.request.urlretrieve() and 
+
+	paths = gmTools.gmPaths()
+	local_script = os.path.join(paths.local_base_dir, '..', 'external-tools', 'gm-download_data')
+
+	candidates = ['gm-download_data', 'gm-download_data.bat', local_script, 'gm-download_data.bat']
+	args = ' %s %s' % (url, target_dir)
+
+	success = gmShellAPI.run_first_available_in_shell (
+		binaries = candidates,
+		args = args,
+		blocking = True,
+		run_last_one_anyway = True
+	)
+
+	if success:
+		return True, target_dir
+
+	_log.error('download failed')
+	return False, None
 #===========================================================================
 # client update handling
 #---------------------------------------------------------------------------
@@ -224,7 +205,7 @@ def check_for_update(url=None, current_branch=None, current_version=None, consid
 		_log.debug('<current_version> is None, currency unknown')
 		return (None, None)
 
-	if current_version.casefold() in ['git head', 'head', 'tip', 'dev', 'devel']:
+	if current_version.lower() in ['git head', 'head', 'tip', 'dev', 'devel']:
 		_log.debug('[%s] always considered up to date', current_version)
 		return (False, None)
 
@@ -237,7 +218,7 @@ def check_for_update(url=None, current_branch=None, current_version=None, consid
 
 	_log.debug('retrieving version information from [%s]', url)
 
-	cfg = gmCfgINI.gmCfgData()
+	cfg = gmCfg2.gmCfgData()
 	try:
 		#remote_file.read().decode(resource.headers.get_content_charset())
 		cfg.add_stream_source(source = 'gm-versions', stream = remote_file, encoding = u'utf8')
@@ -345,7 +326,7 @@ def check_for_update(url=None, current_branch=None, current_version=None, consid
 	)
 
 	msg += '\n\n'
-	msg += _('Details are found on <https://www.gnumed.de>.\n')
+	msg += _('Details are found on <http://www.gnumed.de>.\n')
 	msg += '\n'
 	msg += _('Version information loaded from:\n\n %s') % url
 
@@ -534,7 +515,7 @@ if __name__ == '__main__':
 	def test_check_for_update():
 
 		test_data = [
-			('https://www.gnumed.de/downloads/gnumed-versions.txt', None, None, False),
+			('http://www.gnumed.de/downloads/gnumed-versions.txt', None, None, False),
 			('file:///home/ncq/gm-versions.txt', None, None, False),
 			('file:///home/ncq/gm-versions.txt', '0.2', '0.2.8.1', False),
 			('file:///home/ncq/gm-versions.txt', '0.2', '0.2.8.1', True),
@@ -564,15 +545,10 @@ if __name__ == '__main__':
 		open_url_in_browser(sys.argv[2], abc=222)
 
 	#-----------------------------------------------------------------------
-	def test_mirror_url():
-		mirror_url(url = sys.argv[2])
-
-	#-----------------------------------------------------------------------
 	#test_check_for_update()
 	#test_compose_email()
-	#test_send_email()
+	test_send_email()
 	#test_dl_data_pack()
 	#test_browser()
-	test_mirror_url()
 
 #===========================================================================

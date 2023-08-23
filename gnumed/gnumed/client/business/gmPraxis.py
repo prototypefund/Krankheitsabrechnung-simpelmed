@@ -13,11 +13,10 @@ import urllib.parse
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmBorg
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmHooks
 from Gnumed.pycommon import gmBusinessDBObject
 
@@ -25,7 +24,7 @@ from Gnumed.business import gmOrganization
 
 
 _log = logging.getLogger('gm.praxis')
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 #============================================================
 def delete_workplace(workplace=None, delete_config=False, conn=None):
@@ -84,11 +83,7 @@ class cPraxisBranch(gmBusinessDBObject.cBusinessDBObject):
 		'pk_org_unit'
 	]
 	#--------------------------------------------------------
-	def format(self, one_line=False):
-		if one_line:
-			unit = self.org_unit
-			return '%s@%s' % (unit['unit'], unit['organization'])
-
+	def format(self):
 		txt = _('Praxis branch                   #%s\n') % self._payload[self._idx['pk_praxis_branch']]
 		txt += ' '
 		txt += '\n '.join(self.org_unit.format(with_address = True, with_org = True, with_comms = True))
@@ -133,19 +128,19 @@ class cPraxisBranch(gmBusinessDBObject.cBusinessDBObject):
 	def _get_org_unit(self):
 		return gmOrganization.cOrgUnit(aPK_obj = self._payload[self._idx['pk_org_unit']])
 
-	org_unit = property(_get_org_unit)
+	org_unit = property(_get_org_unit, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_org(self):
 		return gmOrganization.cOrg(aPK_obj = self._payload[self._idx['pk_org']])
 
-	organization = property(_get_org)
+	organization = property(_get_org, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_address(self):
 		return self.org_unit.address
 
-	address = property(_get_address)
+	address = property(_get_address, lambda x:x)
 
 #	def _set_address(self, address):
 #		self['pk_address'] = address['pk_address']
@@ -171,8 +166,6 @@ class cPraxisBranch(gmBusinessDBObject.cBusinessDBObject):
 		comms = self.get_comm_channels(comm_medium = 'email')
 		if len(comms) > 0:
 			vcf_fields.append('EMAIL:%(url)s' % comms[0])
-		if adr is not None:
-			vcf_fields.append('URL:%s' % adr.as_map_url)
 		vcf_fields.append('END:VCARD')
 		vcf_fname = gmTools.get_unique_filename (
 			prefix = 'gm-praxis-',
@@ -184,7 +177,7 @@ class cPraxisBranch(gmBusinessDBObject.cBusinessDBObject):
 		vcf_file.close()
 		return vcf_fname
 
-	vcf = property(_get_vcf)
+	vcf = property(_get_vcf, lambda x:x)
 
 	#--------------------------------------------------------
 	def export_as_mecard(self, filename=None):
@@ -220,9 +213,6 @@ class cPraxisBranch(gmBusinessDBObject.cBusinessDBObject):
 		comms = self.get_comm_channels(comm_medium = 'email')
 		if len(comms) > 0:
 			MECARD += 'EMAIL:%(url)s;' % comms[0]
-		if adr is not None:
-			MECARD += 'URL:%s;' % adr.as_map_url
-		MECARD += ';'
 		return MECARD
 
 	MECARD = property(_get_mecard)
@@ -310,8 +300,8 @@ def create_praxis_branches(pk_org_units=None):
 		"""
 		queries.append({'cmd': cmd, 'args': args})
 
-	args = {'fk_units': pk_org_units}
-	cmd = """SELECT * from dem.v_praxis_branches WHERE pk_org_unit = ANY(%(fk_units)s)"""
+	args = {'fk_units': tuple(pk_org_units)}
+	cmd = """SELECT * from dem.v_praxis_branches WHERE pk_org_unit IN %(fk_units)s"""
 	queries.append({'cmd': cmd, 'args': args})
 	rows, idx = gmPG2.run_rw_queries(queries = queries, return_data = True, get_col_idx = True)
 	return [ cPraxisBranch(row = {'data': r, 'idx': idx, 'pk_field': 'pk_praxis_branch'}) for r in rows ]
@@ -328,12 +318,14 @@ def delete_praxis_branch(pk_praxis_branch=None):
 
 #------------------------------------------------------------
 def delete_praxis_branches(pk_praxis_branches=None, except_pk_praxis_branches=None):
+
 	if pk_praxis_branches is None:
 		cmd = 'SELECT pk from dem.praxis_branch'
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd}], get_col_idx = False)
 		pks_to_lock = [ r[0] for r in rows ]
 	else:
 		pks_to_lock = pk_praxis_branches[:]
+
 	if except_pk_praxis_branches is not None:
 		for pk in except_pk_praxis_branches:
 			try: pks_to_lock.remove(pk)
@@ -345,16 +337,20 @@ def delete_praxis_branches(pk_praxis_branches=None, except_pk_praxis_branches=No
 
 	args = {}
 	where_parts = []
+
 	if pk_praxis_branches is not None:
-		args['pks'] = pk_praxis_branches
-		where_parts.append('pk = ANY(%(pks)s)')
+		args['pks'] = tuple(pk_praxis_branches)
+		where_parts.append('pk IN %(pks)s')
+
 	if except_pk_praxis_branches is not None:
-		args['except'] = except_pk_praxis_branches
-		where_parts.append('pk <> ALL(%(except)s)')
+		args['except'] = tuple(except_pk_praxis_branches)
+		where_parts.append('pk NOT IN %(except)s')
+
 	if len(where_parts) == 0:
 		cmd = "DELETE FROM dem.praxis_branch"
 	else:
 		cmd = "DELETE FROM dem.praxis_branch WHERE %s" % ' AND '.join(where_parts)
+
 	gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}])
 	for pk in pks_to_lock:
 		unlock_praxis_branch(pk_praxis_branch = pk, exclusive = True)
@@ -472,7 +468,7 @@ where
 		)
 		return rows
 
-	waiting_list_patients = property (_get_waiting_list_patients)
+	waiting_list_patients = property (_get_waiting_list_patients, lambda x:x)
 
 	#--------------------------------------------------------
 	def _set_helpdesk(self, helpdesk):
@@ -559,9 +555,8 @@ where
 		pass
 
 	def _get_workplaces(self):
-		cmd = 'SELECT DISTINCT workplace FROM cfg.cfg_item WHERE workplace IS NOT NULL ORDER BY workplace'
-		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd}])
-		return [ r['workplace'] for r in rows ]
+		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': 'SELECT DISTINCT workplace FROM cfg.cfg_item ORDER BY workplace'}])
+		return [ r[0] for r in rows ]
 
 	workplaces = property(_get_workplaces, _set_workplaces)
 
@@ -582,7 +577,7 @@ where
 
 	def _set_user_email(self, val):
 		prefs_file = _cfg.get(option = 'user_preferences_file')
-		gmCfgINI.set_option_in_INI_file (
+		gmCfg2.set_option_in_INI_file (
 			filename = prefs_file,
 			group = 'preferences',
 			option = 'user email',
@@ -636,22 +631,9 @@ if __name__ == '__main__':
 #		print "regression tests failed"
 #	print "regression tests succeeded"
 
-	gmPG2.request_login_params(setup_pool = True)
-
 	for b in get_praxis_branches():
 		print((b.format()))
 		#print(b.vcf)
-#		print(b.scan2pay_data)
+		print(b.scan2pay_data)
 
-	#--------------------------------------------------------
-	def test_mecard():
-		for b in get_praxis_branches():
-			print(b.MECARD)
-			mcf = b.export_as_mecard()
-			print(mcf)
-			#print(gmTools.create_qrcode(filename = mcf, qr_filename = None, verbose = True)
-			print(gmTools.create_qrcode(text = b.MECARD, qr_filename = None, verbose = True))
-			input()
-
-	#--------------------------------------------------------
-	#test_mecard()
+#============================================================

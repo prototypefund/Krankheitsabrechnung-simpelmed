@@ -21,7 +21,7 @@ import xmlrpc.client
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-from Gnumed.pycommon import gmCfgINI, gmI18N
+from Gnumed.pycommon import gmCfg2, gmI18N
 from Gnumed.wxpython import gmGuiHelpers
 
 
@@ -36,13 +36,13 @@ class cBaseConnector:
 	def connect(self):
 		# connect to GNUmed instance
 		port = _cfg.get(group = 'GNUmed instance', option = 'port', source_order = [('explicit', 'return')])
-		self.__gm_server = xmlrpc.client.ServerProxy('https://localhost:%s' % int(port))
+		self.__gm_server = xmlrpc.client.ServerProxy('http://localhost:%s' % int(port))
 
 		try:
 			_log.info('GNUmed slave XML-RPC server version: %s' % self.__gm_server.version())
 		except socket.error, e:
 			# FIXME: differentiate between already-attached and not-there
-			_log.exception('cannot attach to GNUmed instance at https://localhost:%s: %s' % (port, e))
+			_log.exception('cannot attach to GNUmed instance at http://localhost:%s: %s' % (port, e))
 			# try starting GNUmed
 			# - no use trying to start GNUmed if wx cannot be imported
 			import wx
@@ -83,7 +83,7 @@ class cBaseConnector:
 				_log.info(self.__gm_server.version())
 			except socket.error, e:
 				# FIXME: differentiate between already-attached and not-there
-				_log.exception('cannot attach to GNUmed instance at https://localhost:%s: %s' % (port, e))
+				_log.exception('cannot attach to GNUmed instance at http://localhost:%s: %s' % (port, e))
 				return False
 
 		_log.info('enslaveable GNUmed client found, testing suitability')
@@ -152,7 +152,7 @@ class cBaseConnector:
 #==================================================================
 if __name__ == '__main__':
 
-	_cfg = gmCfgINI.gmCfgData()
+	_cfg = gmCfg2.gmCfgData()
 
 	_cfg.add_cli(long_options = ['text-domain=', 'lang-gettext=', 'conf-file='])
 	td = _cfg.get(option = '--text-domain', source_order = [('cli', 'return')])

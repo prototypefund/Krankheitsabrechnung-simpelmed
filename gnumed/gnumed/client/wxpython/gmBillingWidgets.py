@@ -14,13 +14,13 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmMatchProvider
 from Gnumed.pycommon import gmDispatcher
-from Gnumed.pycommon import gmCfgDB
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmPG2
+from Gnumed.pycommon import gmCfg
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmPrinting
 from Gnumed.pycommon import gmNetworkTools
 
@@ -30,6 +30,7 @@ from Gnumed.business import gmStaff
 from Gnumed.business import gmDocuments
 from Gnumed.business import gmPraxis
 from Gnumed.business import gmForms
+from Gnumed.business import gmDemographicRecord
 
 from Gnumed.wxpython import gmListWidgets
 from Gnumed.wxpython import gmRegetMixin
@@ -104,9 +105,11 @@ def manage_billables(parent=None):
 		return True
 	#------------------------------------------------------------
 	def browse_catalogs(billable):
-		url = gmCfgDB.get4user (
+		dbcfg = gmCfg.cCfgSQL()
+		url = dbcfg.get2 (
 			option = 'external.urls.schedules_of_fees',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user',
 			default = 'http://www.e-bis.de/goae/defaultFrame.htm'
 		)
 		gmNetworkTools.open_url_in_browser(url = url)
@@ -377,7 +380,8 @@ def configure_invoice_template(parent=None, with_vat=True):
 	else:
 		option = 'form_templates.invoice_no_vat'
 
-	gmCfgDB.set (
+	dbcfg = gmCfg.cCfgSQL()
+	dbcfg.set (
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
 		option = option,
 		value = '%s - %s' % (template['name_long'], template['external_version'])
@@ -387,12 +391,13 @@ def configure_invoice_template(parent=None, with_vat=True):
 #----------------------------------------------------------------
 def get_invoice_template(parent=None, with_vat=True):
 
+	dbcfg = gmCfg.cCfgSQL()
 	if with_vat:
 		option = 'form_templates.invoice_with_vat'
 	else:
 		option = 'form_templates.invoice_no_vat'
 
-	template = gmCfgDB.get4user (
+	template = dbcfg.get2 (
 		option = option,
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
 		bias = 'user'
@@ -487,9 +492,11 @@ def create_bill_from_items(bill_items=None):
 
 	# create bill
 	person = gmPerson.cPerson(pk_pat)
-	invoice_id_template = gmCfgDB.get4user (
+	dbcfg = gmCfg.cCfgSQL()
+	invoice_id_template = dbcfg.get2 (
 		option = u'billing.invoice_id_template',
-		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'user'
 	)
 	invoice_id = None
 	max_attempts = 3
@@ -568,7 +575,7 @@ def create_invoice_from_bill(parent = None, bill=None, print_it=False, keep_a_co
 				aMessage = _(
 					'Cannot create invoice from bill.\n'
 					'\n'
-					'The bill does not have a closing date set.'
+					'The bill is not closed.'
 				)
 			)
 			return False
@@ -617,26 +624,16 @@ def create_invoice_from_bill(parent = None, bill=None, print_it=False, keep_a_co
 	except KeyError:
 		_log.exception('cannot instantiate invoice template [%s]', template)
 		gmGuiHelpers.gm_show_error (
-			aMessage = _('Invalid invoice template [%s - %s (%s - Gmd:%s)]') % (
-				template['name_long'],
-				template['external_version'],
-				template['engine'],
-				template['gnumed_revision']
-			),
-			aTitle = _('Creating invoice')
+			aMessage = _('Invalid invoice template [%s - %s (%s)]') % (name, ver, template['engine']),
+			aTitle = _('Showing invoice')
 		)
 		return False
 
 	if not invoice:
 		_log.error('cannot instantiate invoice template [%s]', template)
 		gmGuiHelpers.gm_show_error (
-			aMessage = _('Invalid invoice template [%s - %s (%s - Gmd:%s)]') % (
-				template['name_long'],
-				template['external_version'],
-				template['engine'],
-				template['gnumed_revision']
-			),
-			aTitle = _('Creating invoice')
+			aMessage = _('Invalid invoice template [%s - %s (%s)]') % (name, ver, template['engine']),
+			aTitle = _('Showing invoice')
 		)
 		return False
 
@@ -677,14 +674,14 @@ def create_invoice_from_bill(parent = None, bill=None, print_it=False, keep_a_co
 	if not print_it:
 		return True
 
-	_cfg = gmCfgINI.gmCfgData()
+	_cfg = gmCfg2.gmCfgData()
 	printed = gmPrinting.print_files(filenames = [pdf_name], jobtype = 'invoice', verbose = _cfg.get(option = 'debug'))
 	if not printed:
 		gmGuiHelpers.gm_show_error (
 			aMessage = _('Error printing the invoice.'),
 			aTitle = _('Printing invoice')
 		)
-		return True	# anyway
+		return True
 
 	return True
 

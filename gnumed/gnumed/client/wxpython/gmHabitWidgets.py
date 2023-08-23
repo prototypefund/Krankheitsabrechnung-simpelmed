@@ -12,8 +12,8 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmTools
+from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmDateTime
 
 from Gnumed.business import gmATC
@@ -71,7 +71,7 @@ def manage_substance_abuse(parent=None, patient=None):
 		for i in intakes:
 			items.append ([
 				i['substance'],
-				i.use_type_string,
+				i.harmful_use_type_string,
 				gmDateTime.pydt_strftime(i['last_checked_when'], '%b %Y', none_str = '')
 			])
 		lctrl.set_string_items(items)
@@ -115,7 +115,7 @@ class cSubstanceAbuseEAPnl(wxgSubstanceAbuseEAPnl.wxgSubstanceAbuseEAPnl, gmEdit
 			if data['pk_patient'] != self.__patient.ID:
 				_log.error('intake: %s', data)
 				_log.error('patient: %s', self.__patient)
-				raise ValueError('<intake> does not belong to <patient>')
+				raise ArgumentError('<intake> does not belong to <patient>')
 
 		wxgSubstanceAbuseEAPnl.wxgSubstanceAbuseEAPnl.__init__(self, *args, **kwargs)
 		gmEditArea.cGenericEditAreaMixin.__init__(self)
@@ -175,13 +175,13 @@ class cSubstanceAbuseEAPnl(wxgSubstanceAbuseEAPnl.wxgSubstanceAbuseEAPnl, gmEdit
 		)
 
 		if self._RBTN_nonharmful_use.GetValue() is True:
-			intake['use_type'] = 0
+			intake['harmful_use_type'] = 0
 		elif self._RBTN_harmful_use.GetValue() is True:
-			intake['use_type'] = 1
+			intake['harmful_use_type'] = 1
 		elif self._RBTN_presently_addicted.GetValue() is True:
-			intake['use_type'] = 2
+			intake['harmful_use_type'] = 2
 		elif self._RBTN_previously_addicted.GetValue() is True:
-			intake['use_type'] = 3
+			intake['harmful_use_type'] = 3
 		intake['notes'] = self._TCTRL_comment.GetValue().strip()
 		if self._DPRW_quit_when.is_valid_timestamp(empty_is_valid = False):
 			intake['discontinued'] = self._DPRW_quit_when.date
@@ -195,13 +195,13 @@ class cSubstanceAbuseEAPnl(wxgSubstanceAbuseEAPnl.wxgSubstanceAbuseEAPnl, gmEdit
 	def _save_as_update(self):
 
 		if self._RBTN_nonharmful_use.GetValue() is True:
-			self.data['use_type'] = 0
+			self.data['harmful_use_type'] = 0
 		elif self._RBTN_harmful_use.GetValue() is True:
-			self.data['use_type'] = 1
+			self.data['harmful_use_type'] = 1
 		elif self._RBTN_presently_addicted.GetValue() is True:
-			self.data['use_type'] = 2
+			self.data['harmful_use_type'] = 2
 		elif self._RBTN_previously_addicted.GetValue() is True:
-			self.data['use_type'] = 3
+			self.data['harmful_use_type'] = 3
 		self.data['notes'] = self._TCTRL_comment.GetValue().strip()
 		if self._DPRW_quit_when.is_valid_timestamp(empty_is_valid = False):
 			self.data['discontinued'] = self._DPRW_quit_when.date
@@ -270,22 +270,22 @@ class cSubstanceAbuseEAPnl(wxgSubstanceAbuseEAPnl.wxgSubstanceAbuseEAPnl, gmEdit
 			self._RBTN_other_substance.SetValue(True)
 			self._PRW_substance.SetText(self.data['substance'], self.data['pk_substance'])
 
-		if self.data['use_type'] == 0:			# FIXME: use constant
+		if self.data['harmful_use_type'] == 0:
 			self._RBTN_nonharmful_use.SetValue(True)
 			self._RBTN_harmful_use.SetValue(False)
 			self._RBTN_presently_addicted.SetValue(False)
 			self._RBTN_previously_addicted.SetValue(False)
-		elif self.data['use_type'] == 1:
+		elif self.data['harmful_use_type'] == 1:
 			self._RBTN_nonharmful_use.SetValue(False)
 			self._RBTN_harmful_use.SetValue(True)
 			self._RBTN_presently_addicted.SetValue(False)
 			self._RBTN_previously_addicted.SetValue(False)
-		elif self.data['use_type'] == 2:
+		elif self.data['harmful_use_type'] == 2:
 			self._RBTN_nonharmful_use.SetValue(False)
 			self._RBTN_harmful_use.SetValue(False)
 			self._RBTN_presently_addicted.SetValue(True)
 			self._RBTN_previously_addicted.SetValue(False)
-		elif self.data['use_type'] == 3:
+		elif self.data['harmful_use_type'] == 3:
 			self._RBTN_nonharmful_use.SetValue(False)
 			self._RBTN_harmful_use.SetValue(False)
 			self._RBTN_presently_addicted.SetValue(False)
@@ -317,6 +317,9 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain = 'gnumed')
 
 #	def test_message_inbox():
 #		app = wx.PyWidgetTester(size = (800, 600))

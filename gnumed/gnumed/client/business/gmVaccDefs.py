@@ -21,7 +21,6 @@ if __name__ == '__main__':
 	sys.path.insert(0, '../../')
 from Gnumed.pycommon import gmI18N
 if __name__ == '__main__':
-	_ = lambda x:x
 	gmI18N.activate_locale()
 	gmI18N.install_domain('gnumed')
 
@@ -726,7 +725,7 @@ _GENERIC_VACCINES = {
 		'live': False,
 		'ingredients': ['tetanus', 'diphtheria', 'polio-inact']
 	},
-	'tetanus, Diphtheria, poliomyelitis': {
+	'tetanus, diphtheria, poliomyelitis': {
 		'name': _('generic DTPol vaccine'),
 		'atc': 'J07CA01',
 		'live': False,

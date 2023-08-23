@@ -31,7 +31,8 @@ Client installation:
 
  More information available here:
 
-	https://www.gnumed.de/documentation/GNUmedInstallation.html
+	https://wiki.gnumed.de/bin/view/Gnumed/InstallerGuideHomeShort
+
 
 Database upgrade (existing DB):
 
@@ -58,7 +59,7 @@ Database upgrade (existing DB):
 
  More information on upgrading is found here:
 
-	https://www.gnumed.de/documentation/GNUmedDatabaseUpgrade.html
+	https://wiki.gnumed.de/bin/view/Gnumed/GmManualServerUpgrade
 
 
 Database installation (new DB):
@@ -85,7 +86,7 @@ Database installation (new DB):
 
  More information on installation is found here:
 
-	https://www.gnumed.de/documentation/GNUmedDatabaseInstallation.html
+	https://wiki.gnumed.de/bin/view/Gnumed/GmManualServerInstall
 
 
 Changelog:

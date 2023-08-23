@@ -19,14 +19,15 @@ if __name__ == '__main__':
 
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmI18N
+from Gnumed.pycommon import gmLog2
 
 if __name__ == '__main__':
-	_ = lambda x:x
 	gmI18N.activate_locale()
 	gmI18N.install_domain()
 	gmDateTime.init()
 
 from Gnumed.pycommon import gmTools
+from Gnumed.pycommon import gmBorg
 from Gnumed.business import gmLOINC
 
 
@@ -242,7 +243,7 @@ class cClinicalCalculator(object):
 		]
 		return egfrs
 
-	eGFRs = property(_get_egfrs)
+	eGFRs = property(_get_egfrs, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_egfr(self):
@@ -302,7 +303,7 @@ class cClinicalCalculator(object):
 
 		return MDRD
 
-	eGFR = property(_get_egfr)
+	eGFR = property(_get_egfr, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_gfr_mdrd_short(self):
@@ -385,7 +386,7 @@ class cClinicalCalculator(object):
 			result.warnings.append(_('NOT corrected for non-average body surface (average = 1.73m²)'))
 		else:
 			result.variables['BSA'] = BSA.numeric_value
-			result.numeric_value = result.numeric_value / BSA.numeric_value
+			result_numeric_value = result.numeric_value / BSA.numeric_value
 
 		result.message = _('eGFR(MDRD): %.1f %s (%s) [4-vars, IDMS]') % (
 			result.numeric_value,
@@ -402,7 +403,7 @@ class cClinicalCalculator(object):
 
 		return result
 
-	eGFR_MDRD_short = property(_get_gfr_mdrd_short)
+	eGFR_MDRD_short = property(_get_gfr_mdrd_short, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_gfr_ckd_epi(self):
@@ -501,7 +502,7 @@ class cClinicalCalculator(object):
 
 		return result
 
-	eGFR_CKD_EPI = property(_get_gfr_ckd_epi)
+	eGFR_CKD_EPI = property(_get_gfr_ckd_epi, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_gfr_cockcroft_gault(self):
@@ -609,7 +610,7 @@ class cClinicalCalculator(object):
 
 		return result
 
-	eGFR_Cockcroft_Gault = property(_get_gfr_cockcroft_gault)
+	eGFR_Cockcroft_Gault = property(_get_gfr_cockcroft_gault, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_gfr_schwartz(self):
@@ -717,7 +718,7 @@ class cClinicalCalculator(object):
 
 		return result
 
-	eGFR_Schwartz = property(_get_gfr_schwartz)
+	eGFR_Schwartz = property(_get_gfr_schwartz, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_body_surface_area(self):
@@ -789,7 +790,7 @@ class cClinicalCalculator(object):
 		_log.debug('%s' % result)
 		return result
 
-	body_surface_area = property(_get_body_surface_area)
+	body_surface_area = property(_get_body_surface_area, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_body_mass_index(self):
@@ -875,8 +876,8 @@ class cClinicalCalculator(object):
 		_log.debug('%s' % result)
 		return result
 
-	body_mass_index = property(_get_body_mass_index)
-	bmi = property(_get_body_mass_index)
+	body_mass_index = property(_get_body_mass_index, lambda x:x)
+	bmi = property(_get_body_mass_index, lambda x:x)
 
 	#--------------------------------------------------------
 	# helper functions
@@ -913,11 +914,13 @@ if __name__ == "__main__":
 	if sys.argv[1] != 'test':
 		sys.exit()
 
+	from Gnumed.pycommon import gmLog2
+
 	#-----------------------------------------
 	def test_clin_calc():
 		from Gnumed.business import gmPraxis
 		branches = gmPraxis.get_praxis_branches()
-		gmPraxis.gmCurrentPraxisBranch(branches[0])
+		praxis = gmPraxis.gmCurrentPraxisBranch(branches[0])
 
 		from Gnumed.business.gmPerson import cPatient
 		pat = cPatient(aPK_obj = 201)

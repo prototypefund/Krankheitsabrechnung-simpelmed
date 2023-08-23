@@ -32,8 +32,8 @@ fi
 CONF="--conf-file=gm-from-vcs.conf"
 
 # options useful for development and debugging:
-TS=$(date +%m_%d--%H_%M_%S)
-DEV_OPTS="--log-file=gm-vcs-${TS}--$$.log --override-schema-check --local-import --debug"
+TS=$(date +%m_%d-%H_%M_%S)
+DEV_OPTS="--log-file=gm-vcs-${TS}-$$.log --override-schema-check --local-import --debug"
 #DEV_OPTS="${DEV_OPTS} --tool=check_mimetypes_in_archive"
 #DEV_OPTS="${DEV_OPTS} --tool=check_enc_epi_xref"
 #DEV_OPTS="${DEV_OPTS} --tool=read_all_rows_of_table"
@@ -49,24 +49,19 @@ TARBALL_OPTS="--local-import --debug"
 # eventually run it
 export PYTHONIOENCODING=utf-8:surrogateescape
 # - devel version:
-ACTIVE_BRANCH=$(git branch --show-current)
-RC=$?
 echo "-------------------------------------------------"
-if test ${RC} -eq 0 ; then
-	echo "Running from Git branch: ${ACTIVE_BRANCH}"
-else
-	echo "Cannot detect Git branch. Running from tarball?"
-fi
+echo "Running from Git branch: $(git branch | grep \*)"
 echo "-------------------------------------------------"
 echo "config file: ${CONF}"
-echo "options: ${DEV_OPTS}"
-#python3 gnumed.py ${CONF} ${DEV_OPTS} "$@"
-#python3 gnumed.py ${CONF} ${DEV_OPTS} "$@" |& tee gm-vcs-console_output.log
-python3 gnumed.py ${CONF} ${DEV_OPTS} "$@"
+#echo "options: ${DEV_OPTS}"
+#python3.7 gnumed.py ${CONF} ${DEV_OPTS} "$@"
+#python3.7 gnumed.py ${CONF} ${DEV_OPTS} "$@" |& tee gm-vcs-console_output.log
+#python3.7 gnumed.py ${CONF} ${DEV_OPTS} "$@"
+
 
 # - *released* tarball version:
-#echo "options: ${TARBALL_OPTS}"
-#python3 gnumed.py ${CONF} ${TARBALL_OPTS} "$@"
+echo "options: ${TARBALL_OPTS}"
+python3 gnumed.py ${CONF} ${TARBALL_OPTS} "$@"
 
 # - production version (does not use tarball files !):
 #python3 gnumed.py "$@"

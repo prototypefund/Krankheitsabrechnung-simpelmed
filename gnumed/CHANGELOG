@@ -3,52 +3,7 @@
 *****************************************************************
 
 ------------------------------------------------
-# rel-1-9-maint
-------------------------------------------------
-
-	1.9.0
-
-NEW: tool: generate_man_page
-NEW: placeholder: $yes_no$
-NEW: lists: persistent item selection across sorts/reloads
-NEW: lists: Drag&Drop support
-NEW: paperwork: write non-templated letter w/ LibreOffice
-NEW: export area: join items into one PDF
-NEW: debug: database owner connection test menu item
-NEW: login: focus previously used praxis branch
-NEW: file describer: include pdffonts
-NEW: export area: escrow passphrases used during file export
-NEW: tool: get_object_passphrases
-
-IMPROVED: GUI: show current patient in window titles
-IMPROVED: placeholder: $current_provider_name$
-IMPROVED: forms: LaTeX: 5 instead of 3 placeholder parsing passes
-IMPROVED: forms: LaTeX template templates
-IMPROVED: hooks: example script template
-IMPROVED: startup: git branch detection
-IMPROVED: bills: invoice ID locking
-IMPROVED: M/VCF: add nominatim URL to patient/praxis MECARD/vCard
-IMPROVED: files: format conversion improvements
-IMPROVED: DB: replace "IN"/"NOT IN" for psycopg3
-IMPROVED: DB: converge localhost/domain socket profiles
-IMPROVED: export area: support D&D of items as files
-IMPROVED: search: use clin.v_narrative4search again
-IMPROVED: test results: multi-test plotting [thanks brulefa]
-IMPROVED: code: configuration handling
-IMPROVED: DB: more tolerant rollback() [thanks lothar]
-IMPROVED: DB: fingerprinter
-IMPROVED: DICOM: dicomization
-IMPROVED: DB: settings logging
-IMPROVED: login: DB sanity checking
-
-FIX: CLI: --wxp= not needed anymore
-FIX: CLI: --ui= not needed anymore
-FIX: documentation: links (wiki -> static pages)
-FIX: date/time: formatting intervals medically
-FIX: Py3.13: will remove mailcap module
-
-------------------------------------------------
-# rel-1-8-maint
+# rel-1-8-patches
 ------------------------------------------------
 
 	1.8.15
@@ -1436,7 +1391,7 @@ NEW: add Ginkgo CADx to list of minimally supported DICOM viewers
 NEW: placeholder $<encounter_list::format template::length>$ to access list of encounters
 NEW: visual progress note creation directly from image capture device
 NEW: 4 new visual progress note templates [thanks J.Busser]
-NEW: implement explicitly creating episodes from EMR tree or menu
+NEW: implement explicitely creating episodes from EMR tree or menu
 NEW: implement organizations management
 NEW: placeholder $<patient_address::type//formatting template::length>$
 NEW: placeholder $<adr_region::type::length>$
@@ -1558,7 +1513,7 @@ FIX: enable running arriba w/o an active patient
 FIX: cEpisode.get_narrative() ignored <soap_cats> argument
 FIX: wrapper around Python's deficient strftime() [thanks J.Jaarsveld]
 FIX: exception on displaying date deceased if not null [thanks J.Busser]
-FIX: exception on activating non-existent patient from inbox message [thanks Oliver]
+FIX: exception on activating non-existant patient from inbox message [thanks Oliver]
 
 IMPROVED: make creating/updating tags a restricted procedure [thanks Rogerio]
 IMPROVED: slightly relax external app exit code check on Windows [thanks vbanait]
@@ -2142,7 +2097,7 @@ NEW: annotate emailed bug reports to somewhat help Launchpad
 
 FIX: crash on creating patient letter due to local variable "desktop" typo
 FIX: faulty handling of candidate paths in /usr/bin/gnumed
-FIX: crash when explicitly setting up dummy file source (file=None in add_file_source)
+FIX: crash when explicitely setting up dummy file source (file=None in add_file_source)
 FIX: error on finding profiles list in several sources - need to flatten option value
 FIX: properly set source order and return policy on retrieving backend profile data
 FIX: crash on double-clicking empty cell in test results grid
@@ -2226,7 +2181,7 @@ NEW: on startup create ~/.gnumed/ if necessary
 
 FIX: crash on writing OOo letter (.desk -> .desktop)
 FIX: crash on faulty references to 'first'/'last' instead of 'firstnames'/'lastnames'
-FIX: crash on non-existent IFAP transfer directory
+FIX: crash on non-existant IFAP transfer directory
 FIX: crash on configuring IFAP startup command ('workpace' typo)
 FIX: crash on use of wxDebug window after application shutdown
 
@@ -2266,19 +2221,6 @@ FIX: missing cast to ::text in dem.date_trunc_utc() calls
 *****************************************************************
 # database
 *****************************************************************
-
-------------------------------------------------
-# gnumed_v23
-------------------------------------------------
-
-NEW: add list position to export items
-NEW: add intake regimen support
-NEW: bootstrapper: auto-fix collations as needed
-
-IMPROVED: bootstrap script permissions warning
-IMRPOVED: clin.v_narrative4search: add some demographics (port from 1.8.6)
-
-FIX: PG14 does not support IS OF anymore, use pg_typeof()
 
 ------------------------------------------------
 # gnumed_v22
@@ -2853,7 +2795,7 @@ FIX: SQL: dem.identity.dob trigger indiscriminately applied UTC to all incoming 
 
 FIX: SQL: delete_document: .date is now .clin_when
 NEW: bootstrapper: add commented out password option for postgres for Windows guidance
-NEW: maintenance: DB backup script checks for DB existence
+NEW: maintenance: DB backup script checks for DB existance
 NEW: maintenance: do not run DB backup script if DB name set empty
 
 	10.2 -> 10.3
@@ -2876,7 +2818,7 @@ NEW: bootstrapper: ensure gm-dbo has createdb createrole
 
 	9.1 -> 9.2
 
-FIX: SQL: fix delete_document(): explicitly delete document parts
+FIX: SQL: fix delete_document(): explicitely delete document parts
 NEW: bootstrapper: do not assume '' as password if none supplied and not interactive
 NEW: bootstrapper: accept UTF8, too, not just UTF-8
 

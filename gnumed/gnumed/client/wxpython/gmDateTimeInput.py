@@ -7,25 +7,29 @@ this module.
 """
 #==============================================================================
 __author__  = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__licence__ = "GPL v2 or later (details at https://www.gnu.org)"
+__licence__ = "GPL v2 or later (details at http://www.gnu.org)"
 
-# standard library
-import sys, datetime as pyDT, logging
+# standard libary
+import re, string, sys, time, datetime as pyDT, logging
 
 
 # 3rd party
 import wx
-import wx.adv as wxcal
+try:
+	import wx.calendar as wxcal
+except ImportError:
+	# Phoenix
+	import wx.adv as wxcal
 
 
 # GNUmed specific
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmMatchProvider
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmI18N
 from Gnumed.wxpython import gmPhraseWheel
+from Gnumed.wxpython import gmGuiHelpers
 
 _log = logging.getLogger('gm.ui')
 

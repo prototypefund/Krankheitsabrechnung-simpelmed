@@ -20,7 +20,6 @@ import urllib.parse
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmTools
@@ -593,27 +592,32 @@ class cAddress(gmBusinessDBObject.cBusinessDBObject):
 
 	#--------------------------------------------------------
 	def _get_as_map_url(self):
-		"""Format as an openstreetmap location search URL.
+		"""https://nominatim.openstreetmap.org/ui/search.html?street=...&city=...&country=...&postalcode=...
 
-		Specs:
-			https://nominatim.org/release-docs/develop/api/Search/
+		' ' -> '+'
+		street: street+number
 		"""
 		args = []
 		if self['street']:
-			street_num = self['street'].strip()
-			if self['number']:
-				street_num = street_num + ' ' + self['number'].strip()
-			args.append('street=%s' % urllib.parse.quote_plus(street_num))
+			val = '%s %s' % (self['street'], self['number'])
+			#val = val.strip().replace(' ', '+').encode('utf8')
+			val = val.strip().encode('utf8')
+			args.append('street=%s' % urllib.parse.quote(val))
+		if self['number']:
+			val = self['number'].strip().replace(' ', '+').encode('utf8')
+			args.append('+%s' % urllib.parse.quote(val))
 		if self['urb']:
-			args.append('city=%s' % urllib.parse.quote_plus(self['urb'].strip()))
+			val = self['urb'].strip().replace(' ', '+').encode('utf8')
+			args.append('city=%s' % urllib.parse.quote(val))
 		if self['country']:
-			args.append('country=%s' % urllib.parse.quote_plus(self['country'].strip()))
+			val = self['country'].strip().replace(' ', '+').encode('utf8')
+			args.append('country=%s' % urllib.parse.quote(val))
 		if self['postcode']:
-			args.append('postalcode=%s' % urllib.parse.quote_plus(self['postcode'].strip()))
-		args.append('limit=3')
-		return 'https://nominatim.openstreetmap.org/search?%s' % '&'.join(args)
+			val = self['postcode'].strip().replace(' ', '+').encode('utf8')
+			args.append('postalcode=%s' % urllib.parse.quote(val))
+		return 'https://nominatim.openstreetmap.org/ui/search.html?%s' % '&'.join(args)
 
-	as_map_url = property(_get_as_map_url)
+	as_map_url = property(_get_as_map_url, lambda x:x)
 
 #------------------------------------------------------------
 def address_exists(country_code=None, region_code=None, urb=None, postcode=None, street=None, number=None, subunit=None):
@@ -889,13 +893,13 @@ class cPatientAddress(gmBusinessDBObject.cBusinessDBObject):
 	def _get_address(self):
 		return cAddress(aPK_obj = self._payload[self._idx['pk_address']])
 
-	address = property(_get_address)
+	address = property(_get_address, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_as_map_url(self):
 		return self.address.as_map_url
 
-	as_map_url = property(_get_as_map_url)
+	as_map_url = property(_get_as_map_url, lambda x:x)
 
 #===================================================================
 # communication channels API
@@ -1051,11 +1055,106 @@ def delete_comm_channel_type(pk_channel_type=None):
 #-------------------------------------------------------------------
 
 #==============================================================================
+def get_time_tuple (mx):
+	"""
+	wrap mx.DateTime brokenness
+	Returns 9-tuple for use with pyhon time functions
+	"""
+	return [ int(x) for x in  str(mx).split(' ')[0].split('-') ] + [0,0,0, 0,0,0]
 #----------------------------------------------------------------
+def getAddressTypes():
+	"""Gets a dict matching address types to their ID"""
+	row_list = gmPG.run_ro_query('personalia', "select name, id from dem.address_type")
+	if row_list is None:
+		return {}
+	if len(row_list) == 0:
+		return {}
+	return dict (row_list)
 #----------------------------------------------------------------
+def getMaritalStatusTypes():
+	"""Gets a dictionary matching marital status types to their internal ID"""
+	row_list = gmPG.run_ro_query('personalia', "select name, pk from dem.marital_status")
+	if row_list is None:
+		return {}
+	if len(row_list) == 0:
+		return {}
+	return dict(row_list)
 #------------------------------------------------------------------
+def getRelationshipTypes():
+	"""Gets a dictionary of relationship types to internal id"""
+	row_list = gmPG.run_ro_query('personalia', "select description, id from dem.relation_types")
+	if row_list is None:
+		return None
+	if len (row_list) == 0:
+		return None
+	return dict(row_list)
+
 #----------------------------------------------------------------
+def getUrb (id_urb):
+	cmd = """
+select
+	dem.region.name,
+	dem.urb.postcode
+from
+	dem.urb,
+	dem.region
+where
+	dem.urb.id = %s and
+	dem.urb.fk_region = dem.region.pk"""
+	row_list = gmPG.run_ro_query('personalia', cmd, None, id_urb)
+	if not row_list:
+		return None
+	else:
+		return (row_list[0][0], row_list[0][1])
+
+def getStreet (id_street):
+	cmd = """
+select
+	dem.region.name,
+	coalesce (dem.street.postcode, dem.urb.postcode),
+	dem.urb.name
+from
+	dem.urb,
+	dem.region,
+	dem.street
+where
+	dem.street.id = %s and
+	dem.street.id_urb = dem.urb.id and
+	dem.urb.fk_region = dem.region.pk
+"""
+	row_list = gmPG.run_ro_query('personalia', cmd, None, id_street)
+	if not row_list:
+		return None
+	else:
+		return (row_list[0][0], row_list[0][1], row_list[0][2])
+
+def getCountry (country_code):
+	row_list = gmPG.run_ro_query('personalia', "select name from dem.country where code = %s", None, country_code)
+	if not row_list:
+		return None
+	else:
+		return row_list[0][0]
 #-------------------------------------------------------------------------------
+def get_town_data (town):
+	row_list = gmPG.run_ro_query ('personalia', """
+select
+	dem.urb.postcode,
+	dem.region.code,
+	dem.region.name,
+	dem.country.code,
+	dem.country.name
+from
+	dem.urb,
+	dem.region,
+	dem.country
+where
+	dem.urb.name = %s and
+	dem.urb.fk_region = dem.region.pk and
+	dem.region.country = dem.country.code""", None, town)
+	if not row_list:
+		return (None, None, None, None, None)
+	else:
+		return tuple (row_list[0])
 #============================================================
 # callbacks
 #------------------------------------------------------------

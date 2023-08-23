@@ -2,11 +2,12 @@
 
 #================================================================
 __author__ = 'karsten.hilbert@gmx.net'
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 
 # stdlib
 import sys
+import os
 import fileinput
 import logging
 import io
@@ -20,11 +21,12 @@ import wx
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmMimeLib
 from Gnumed.pycommon import gmTools
+from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmMatchProvider
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmNetworkTools
 from Gnumed.pycommon.gmExceptions import ConstructorError
 
@@ -109,7 +111,7 @@ class cPatientListingCtrl(gmListWidgets.cReportListCtrl):
 			single_selection = True
 		)
 
-	patient_pk_data_key = property(__get_patient_pk_data_key)
+	patient_pk_data_key = property(__get_patient_pk_data_key, lambda x:x)
 	#------------------------------------------------------------
 	# event handling
 	#------------------------------------------------------------
@@ -332,7 +334,7 @@ class cDataMiningPnl(wxgDataMiningPnl.wxgDataMiningPnl):
 	#--------------------------------------------------------
 	def _on_schema_button_pressed(self, evt):
 		# will block when called in text mode (that is, from a terminal, too !)
-		gmNetworkTools.open_url_in_browser(url = 'https://www.gnumed.de/bin/view/Gnumed/DatabaseSchema')
+		gmNetworkTools.open_url_in_browser(url = 'http://wiki.gnumed.de/bin/view/Gnumed/DatabaseSchema')
 	#--------------------------------------------------------
 	def _on_delete_button_pressed(self, evt):
 		report = self._PRW_report_name.GetValue().strip()
@@ -478,7 +480,7 @@ class cDataMiningPnl(wxgDataMiningPnl.wxgDataMiningPnl):
 		dlg = wx.FileDialog (
 			parent = self,
 			message = _("Save SQL report query results as CSV in..."),
-			defaultDir = gmTools.gmPaths().user_work_dir,
+			defaultDir = os.path.abspath(os.path.expanduser(os.path.join('~', 'gnumed'))),
 			defaultFile = 'gm-query_results.csv',
 			wildcard = '%s (*.csv)|*.csv|%s (*)|*' % (_("CSV files"), _("all files")),
 			style = wx.FD_SAVE
@@ -580,7 +582,7 @@ class cDataMiningPnl(wxgDataMiningPnl.wxgDataMiningPnl):
 					column = col_idx,
 					label = label
 				)
-		# must be called explicitly, because string items are set above without calling set_string_items
+		# must be called explicitely, because string items are set above without calling set_string_items
 		self._LCTRL_result._invalidate_sorting_metadata()
 		self._LCTRL_result.set_column_widths()
 		self._LCTRL_result.set_data(data = rows)
@@ -596,7 +598,10 @@ class cDataMiningPnl(wxgDataMiningPnl.wxgDataMiningPnl):
 # main
 #----------------------------------------------------------------
 if __name__ == '__main__':
-	from Gnumed.pycommon import gmDateTime
+	from Gnumed.pycommon import gmI18N, gmDateTime
+
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 	gmDateTime.init()
 
 	#------------------------------------------------------------

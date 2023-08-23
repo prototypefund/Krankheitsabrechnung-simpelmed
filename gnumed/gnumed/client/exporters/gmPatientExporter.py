@@ -1,4 +1,4 @@
-"""GNUmed simple ASCII EMR export tool.
+__doc__ = """GNUmed simple ASCII EMR export tool.
 
 TODO:
 - output modes:
@@ -27,7 +27,9 @@ from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
 
+from Gnumed.business import gmClinicalRecord
 from Gnumed.business import gmAllergy
+from Gnumed.business import gmDemographicRecord
 from Gnumed.business import gmSoapDefs
 
 
@@ -117,7 +119,7 @@ class cEmrExport:
     #--------------------------------------------------------
     def __dump_vacc_table(self, vacc_regimes):
         """
-        Retrieves string containing ASCII vaccination table
+        Retrieves string containg ASCII vaccination table
         """
         emr = self.__patient.emr
         # patient dob
@@ -377,6 +379,7 @@ class cEmrExport:
             txt += self.get_allergy_output(item, left_margin)
 #        elif isinstance(item, gmVaccination.cVaccination):
  #           txt += self.get_vaccination_output(item, left_margin)
+#        elif isinstance(item, gmPathLab.cLabResult):
  #           txt += self.get_lab_result_output(item, left_margin)
   #          self.lab_new_encounter = False
         return txt
@@ -453,6 +456,7 @@ class cEmrExport:
             txt += self.get_allergy_summary(item, left_margin)
 #        elif isinstance(item, gmVaccination.cVaccination):
  #           txt += self.get_vaccination_summary(item, left_margin)
+#        elif isinstance(item, gmPathLab.cLabResult) and \
 #	    True: 
  #           #(item['relevant'] == True or item['abnormal'] == True):
   #          txt += self.get_lab_result_summary(item, left_margin)
@@ -935,7 +939,7 @@ class cEMRJournalExporter:
 		f.write(txt)
 		f.write('=' * (len(txt)-1))
 		f.write('\n')
-		f.write(_('Patient: %s (%s), No: %s\n') % (patient.description, patient['gender'], patient['pk_identity']))
+		f.write(_('Patient: %s (%s), No: %s\n') % (patient['description'], patient['gender'], patient['pk_identity']))
 		f.write(_('Born   : %s, age: %s\n\n') % (
 			patient.get_formatted_dob(format = '%Y %b %d'),
 			patient.get_medical_age()
@@ -973,7 +977,7 @@ class cEMRJournalExporter:
 				gmSoapDefs.soap_cat2l10n[r['soap_cat']],
 				gmTools.u_box_vert_light,
 				gmTools.wrap (
-					text = r['narrative'].replace('\r', '') + ' (%s: %s)' % (_('When'), gmDateTime.pydt_strftime(r['clin_when'], '%Y %b %d %H:%M', none_str = '?')),
+					text = r['narrative'].replace('\r', '') + ' (%s: %s)' % (_('When'), gmDateTime.pydt_strftime(r['clin_when'], '%Y %b %d %H:%M')),
 					width = self.__narrative_wrap_len,
 					subsequent_indent = '%31.31s%1.1s %s ' % (' ', gmSoapDefs.soap_cat2l10n[r['soap_cat']], gmTools.u_box_vert_light)
 				)
@@ -1019,7 +1023,7 @@ class cEMRJournalExporter:
 		target.write('=' * (len(txt)-1))
 		target.write('\n')
 		# demographics
-		target.write(_('Patient: %s (%s), No: %s\n') % (patient.description, patient['gender'], patient['pk_identity']))
+		target.write(_('Patient: %s (%s), No: %s\n') % (patient['description'], patient['gender'], patient['pk_identity']))
 		target.write(_('Born   : %s, age: %s\n\n') % (
 			patient.get_formatted_dob(format = '%Y %b %d'),
 			patient.get_medical_age()

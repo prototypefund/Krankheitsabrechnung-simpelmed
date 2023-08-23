@@ -3,7 +3,7 @@
 
 http://who.no
 
-There is no DDD handling because DDD explicitly
+There is no DDD handling because DDD explicitely
 does not carry clinical meaning.
 """
 #============================================================
@@ -13,6 +13,7 @@ __license__ = "GPL v2 or later"
 import sys
 import io
 import logging
+import csv
 import os.path
 import re as regex
 
@@ -21,11 +22,11 @@ if __name__ == '__main__':
 	sys.path.insert(0, '../../')
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmTools
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 
 
 _log = logging.getLogger('gm.atc')
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 
 ATC_NICOTINE = 'N07BA01'
@@ -86,7 +87,7 @@ def text2atc(text=None, fuzzy=False, link_obj=None):
 			ORDER BY atc_code
 		"""
 	else:
-		args = {'term': text.casefold()}
+		args = {'term': text.lower()}
 		cmd = """
 			SELECT DISTINCT ON (atc_code) *
 			FROM (
@@ -180,7 +181,7 @@ def atc_import(cfg_fname=None, conn=None):
 		_log.debug('ATC data source record created, pk is #%s', data_src_pk)
 
 	# import data
-	csv_file = io.open(data_fname, mode = 'rt', encoding = 'utf-8-sig', errors = 'replace')
+	csv_file = io.open(data_fname, mode = 'rt', encoding = 'utf8', errors = 'replace')
 	atc_reader = gmTools.unicode_csv_reader(csv_file, delimiter = ",", quotechar = '"')
 
 	# clean out staging area
@@ -305,6 +306,7 @@ if __name__ == "__main__":
 	if sys.argv[1] != 'test':
 		sys.exit()
 
+	from Gnumed.pycommon import gmLog2
 	from Gnumed.pycommon import gmI18N
 
 	gmI18N.activate_locale()

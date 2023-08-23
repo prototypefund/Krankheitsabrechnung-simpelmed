@@ -44,22 +44,24 @@ __author__ = "Sebastian Hilbert <Sebastian.Hilbert@gmx.net>"
 __license__ = "GPL"
 
 #================================================================
-import logging
-
+import os.path, sys, logging
 import wx
 
 if __name__ == '__main__':
+	# stdlib
 	import sys
 	sys.path.insert(0, '../../../')
-	_ = lambda x:x
+
 	from Gnumed.pycommon import gmI18N
 	gmI18N.activate_locale()
 	gmI18N.install_domain()
 
-#import the widgets from the file referencing the widgets 
-#for that particular plugin (e.g. ExamplePlugin.
-#If you code your own plugin replace Example by something reflecting
-#what your plugin does. 
+""" import the widgets from the file referencing the widgets 
+for that particualr plugin (e.g. ExamplePlugin.
+If you code your own plugin replace Example by something reflecting
+what your plugin does. 
+"""
+
 from Gnumed.wxpython import gmPlugin, gmExamplePluginWidgets
 
 _log = logging.getLogger('gm.ui')

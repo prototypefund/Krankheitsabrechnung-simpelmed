@@ -1,9 +1,12 @@
-"""GNUmed client internal signal handling.
+__doc__ = """GNUmed client internal signal handling.
 
 # this code has been written by Patrick O'Brien <pobrien@orbtech.com>
 # downloaded from http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/87056
 """
+import types
+import sys
 import weakref
+import traceback
 import logging
 
 
@@ -28,17 +31,17 @@ known_signals = [
 
 _log = logging.getLogger('gm.messaging')
 
-connections:dict[int, dict] = {}
-senders:dict[int, weakref.ref] = {}
+connections = {}
+senders = {}
 
-_boundMethods:weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
+_boundMethods = weakref.WeakKeyDictionary()
 #=====================================================================
 class _Any:
 	pass
 
 Any = _Any()
 
-known_signals.append(Any)		# type: ignore
+known_signals.append(Any)
 
 #=====================================================================
 class DispatcherError(Exception):

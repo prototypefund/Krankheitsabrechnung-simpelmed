@@ -573,11 +573,11 @@ need not do _anything_ (not even import gmI18N) to have _() available
 to them for translating strings. You need to make sure, however, that
 gmI18N is imported in your main module before any of the modules using
 it. In order to resolve circular references involving modules that
-absolutely _have_ to be imported before this module you can explicitly
+absolutely _have_ to be imported before this module you can explicitely
 import gmI18N into them at the very beginning.
 
 The text domain (i.e. the name of the message catalog file) is derived
-from the name of the main executing script unless explicitly given on
+from the name of the main executing script unless explicitely given on
 the command line like this:
  --text-domain=&#60; your text domain &#62;
 This module searches for message catalog files in 3 main locations:
@@ -669,7 +669,7 @@ Usage:
 
 # log levels:
 # lPanic - try to log this before we die
-# lErr   - some error occurred, may be recoverable
+# lErr   - some error occured, may be recoverable
 # lWarn  - something should be done about this though it's not fatal
 # lInfo  - user info like program flow
 # lData  - raw data processed by program
@@ -1083,7 +1083,7 @@ def LoadPlugin (aPackage, plugin_name, guibroker = None, dbbroker = None):
 	- this knows nothing of databases, all it does is load a named plugin
 
 	There will be a general 'gui' directory for large GUI
-	components: prescriptions, etc., then several others for more
+	components: prescritions, etc., then several others for more
 	specific types: export/import filters, crypto algorithms
 	guibroker, dbbroker are broker objects provided
 	defaults are the default set of plugins to be loaded
@@ -1289,7 +1289,7 @@ class DBObject:
 
 
     def SetUpdateQuery(self, query):
-	    Definition of the query necessary to update the associated row.
+	    Definition of the query neccessary to update the associated row.
 	    The string must have a '%(primarykey)s' parameter which is representing the 
 	    primary key attribute of the row to update. All other parameters must
 	    be set in 'dictionary parameter style', that is as '%(dictionary key)s'
@@ -1297,13 +1297,13 @@ class DBObject:
 
 
     def SetDeleteQuery(self, query):
-	    Definition of the query necessary to delete the associated row.
+	    Definition of the query neccessary to delete the associated row.
 	    The string must have a '%(primarykey)s' parameter which is representing the 
 	    primary key attribute of the row to delete
 
 
     def LogError(self, msg, map):
-	    Please replace with gnumed logging functions s.a.p.
+	    Please replace with gnumed logging functins s.a.p.
 
 
     def Select(self, map=None, maxfetch=0, listonly=0):
@@ -1318,20 +1318,20 @@ class DBObject:
 
     def Insert(self, map):
 	    insert a row with attributes as listed in the dictionary 'map'.
-	    Returns the OID is successful, otherwise returns 'None'
+	    Returns the OID is succesful, otherwise returns 'None'
 
 
     def Update(self, map):
 	    update a row with attributes as listed in the dictionary "map".
 	    'map' dictionary  MUST contain the key 'primarykey' with the
-	    value set to the primary key of the row to be updated
+	    value set to the primay key of the row to be updated
 	    Returns 'None' if failed, the primary key if success 
 
 
     def Delete(self, map):
 	    deletes a row as determined by the delete query string.
 	    'map' dictionary  MUST contain the key 'primarykey' with the
-	    value set to the primary key of the row to be deleted
+	    value set to the primay key of the row to be deleted
 	    Returns 'None' if failed, the primary key if success </PRE
 ></FONT
 ></TD

@@ -1,4 +1,4 @@
-"""GNUmed database object business class.
+__doc__ = """GNUmed database object business class.
 
 Overview
 --------
@@ -34,7 +34,7 @@ by a dictionary API, eg:
 	object['field'] = new_value
 
 The field names correspond to the respective column names
-in the "main" source relation. Accessing non-existent field
+in the "main" source relation. Accessing non-existant field
 names will raise an error, so does trying to set fields not
 listed in self.__class__._updatable_fields. To actually
 store updated values in the database one must explicitly
@@ -47,7 +47,7 @@ linked to a clinical narrative entry (eg a diagnosis). Such
 accessors in most cases start with get_*. Related setters
 start with set_*. The values can be accessed via the
 object['field'] syntax, too, but they will be cached
-independently.
+independantly.
 
 Concurrency handling
 --------------------
@@ -81,19 +81,16 @@ episode, encounter).
 
 One can offer all the data to the user:
 
-* self.payload_most_recently_fetched:
+self.payload_most_recently_fetched
+- contains the data at the last successful refetch
 
-  contains the data at the last successful refetch
-
-* self.payload_most_recently_attempted_to_store:
-
-  contains the modified payload just before the last
+self.payload_most_recently_attempted_to_store
+- contains the modified payload just before the last
   failure of save_payload() - IOW what is currently
   in the database
 
-* self._payload:
-
-  contains the currently active payload which may or
+self._payload
+- contains the currently active payload which may or
   may not contain changes
 
 For discussion on this see the thread starting at:
@@ -107,26 +104,21 @@ and here
 
 Problem cases with XMIN:
 
-1) not unlikely:
+1) not unlikely
+- a very old row is read with XMIN
+- vacuum comes along and sets XMIN to FrozenTransactionId
+  - now XMIN changed but the row actually didn't !
+- an update with "... where xmin = old_xmin ..." fails
+  although there is no need to fail
 
-* a very old row is read with XMIN
-* vacuum comes along and sets XMIN to FrozenTransactionId
-
-	* now XMIN changed but the row actually didn't !
-
-* an update with "... where xmin = old_xmin ..." fails although there is no need to fail
-
-2) quite unlikely:
-
-* a row is read with XMIN
-* a long time passes
-* the original XMIN gets frozen to FrozenTransactionId
-* another writer comes along and changes the row
-* incidentally the exact same old row gets the old XMIN *again*
-
-	* now XMIN is (again) the same but the data changed !
-
-* a later update fails to detect the concurrent change !!
+2) quite unlikely
+- a row is read with XMIN
+- a long time passes
+- the original XMIN gets frozen to FrozenTransactionId
+- another writer comes along and changes the row
+- incidentally the exact same old row gets the old XMIN *again*
+  - now XMIN is (again) the same but the data changed !
+- a later update fails to detect the concurrent change !!
 
 TODO:
 The solution is to use our own column for optimistic locking
@@ -138,14 +130,13 @@ __license__ = "GPL v2 or later"
 
 
 import sys
+import inspect
 import logging
 import datetime
-from typing import Union, Any
 
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon.gmDateTime import pydt_strftime
@@ -159,12 +150,54 @@ from Gnumed.pycommon.gmTools import u_left_arrow
 
 _log = logging.getLogger('gm.db')
 
-TypeIntOrDict = Union[int, dict]
-
 #============================================================
-# business object template
-#------------------------------------------------------------
-__TEMPLATE = """
+class cBusinessDBObject(object):
+	"""Represents business objects in the database.
+
+	Rules:
+	- instances ARE ASSUMED TO EXIST in the database
+	- PK construction (aPK_obj): DOES verify its existence on instantiation
+	                             (fetching data fails)
+	- Row construction (row): allowed by using a dict of pairs
+	                               field name: field value (PERFORMANCE improvement)
+	- does NOT verify FK target existence
+	- does NOT create new entries in the database
+	- does NOT lazy-fetch fields on access
+
+	Class scope SQL commands and variables:
+
+	<_cmd_fetch_payload>
+		- must return exactly one row
+		- WHERE clause argument values are expected in
+		  self.pk_obj (taken from __init__(aPK_obj))
+		- must return xmin of all rows that _cmds_store_payload
+		  will be updating, so views must support the xmin columns
+		  of their underlying tables
+
+	<_cmds_store_payload>
+		- one or multiple "update ... set ... where xmin_* = ... and pk* = ..."
+		  statements which actually update the database from the data in self._payload,
+		- the last query must refetch at least the XMIN values needed to detect
+		  concurrent updates, their field names had better be the same as
+		  in _cmd_fetch_payload,
+		- the last query CAN return other fields which is particularly
+		  useful when those other fields are computed in the backend
+		  and may thus change upon save but will not have been set by
+		  the client code explicitely - this is only really of concern
+		  if the saved subclass is to be reused after saving rather
+		  than re-instantiated
+		- when subclasses tend to live a while after save_payload() was
+		  called and they support computed fields (say, _(some_column)
+		  you need to return *all* columns (see cEncounter)
+
+	<_updatable_fields>
+		- a list of fields available for update via object['field']
+
+
+	A template for new child classes:
+
+*********** start of template ***********
+
 #------------------------------------------------------------
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmPG2
@@ -189,7 +222,7 @@ class cXxxXxx(gmBusinessDBObject.cBusinessDBObject):
 		u"" "
 			-- typically the underlying table name
 			UPDATE xxx.xxx SET
-				-- typically "table_col = % (view_col)s"
+				-- typically "table_col = %(view_col)s"
 				xxx = %(xxx)s,
 				xxx = gm.nullify_empty_string(%(xxx)s)
 			WHERE
@@ -207,12 +240,12 @@ class cXxxXxx(gmBusinessDBObject.cBusinessDBObject):
 	]
 	# view columns that can be updated:
 	_updatable_fields = [
-		'xxx',
-		'xxx'
+		u'xxx',
+		u'xxx'
 	]
 	#--------------------------------------------------------
 #	def format(self):
-#		return '%s' % self
+#		return u'%s' % self
 
 #------------------------------------------------------------
 def get_XXX(order_by=None):
@@ -225,20 +258,20 @@ def get_XXX(order_by=None):
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd}], get_col_idx = True)
 	return [ cXxxXxx(row = {'data': r, 'idx': idx, 'pk_field': 'pk_XXX'}) for r in rows ]
 #------------------------------------------------------------
-def create_xxx(xxx1=None, xxx2=None):
+def create_xxx(xxx=None, xxx=None):
 
 	args = {
-		u'xxx1': xxx1,
-		u'xxx2': xxx2
+		u'xxx': xxx,
+		u'xxx': xxx
 	}
 	cmd = u"" "
 		INSERT INTO xxx.xxx (
-			xxx1,
-			xxx2,
+			xxx,
+			xxx,
 			xxx
 		) VALUES (
-			%(xxx1)s,
-			%(xxx2)s,
+			%(xxx)s,
+			%(xxx)s,
 			gm.nullify_empty_string(%(xxx)s)
 		)
 		RETURNING pk
@@ -261,205 +294,118 @@ def delete_xxx(pk_XXX=None):
 #------------------------------------------------------------
 # widget code
 #------------------------------------------------------------
-#def edit_xxx(parent=None, xxx=None, single_entry=False, presets=None):
-#	pass
+def edit_xxx(parent=None, xxx=None, single_entry=False, presets=None):
 
 #------------------------------------------------------------
-#def delete_xxx():
-#	pass
+def delete_xxx()
 
 #------------------------------------------------------------
-#def manage_xxx():
-#	pass
+def manage_xxx()
 
 #------------------------------------------------------------
-# remember to add in clinical item generic workflows and generic clinical item formatting
-"""
+# remember to add in clinical item generic workflows
 
-#============================================================
-class cBusinessDBObject(object):
-	"""Represents business objects in the database.
 
-	Rules:
-		* instances ARE ASSUMED TO EXIST in the database
-		* PK construction (aPK_obj): DOES verify its existence on instantiation (fetching data fails)
-		* Row construction (row): allowed by using a dict of pairs of field name: field value (PERFORMANCE improvement)
-		* does NOT verify FK target existence
-		* does NOT create new entries in the database
-		* does NOT lazy-fetch fields on access
+*********** end of template ***********
 
-	Class scope SQL commands and variables:
-
-	_cmd_fetch_payload:
-
-	* must return exactly one row
-	* WHERE clause argument values are expected in
-	  self.pk_obj (taken from __init__(aPK_obj))
-	* must return xmin of all rows that _cmds_store_payload
-	  will be updating, so views must support the xmin columns
-	  of their underlying tables
-
-	_cmds_store_payload:
-
-	* one or multiple "update ... set ... where xmin_* = ... and pk* = ..."
-	  statements which actually update the database from the data in self._payload,
-	* the last query must refetch at least the XMIN values needed to detect
-	  concurrent updates, their field names had better be the same as
-	  in _cmd_fetch_payload,
-	* the last query CAN return other fields which is particularly
-	  useful when those other fields are computed in the backend
-	  and may thus change upon save but will not have been set by
-	  the client code explicitly - this is only really of concern
-	  if the saved subclass is to be reused after saving rather
-	  than re-instantiated
-	* when subclasses tend to live a while after save_payload() was
-	  called and they support computed fields (say, _(some_column)
-	  you need to return *all* columns (see cEncounter)
-
-	_updatable_fields:
-
-	* a list of fields available for update via object['field']
 	"""
-	_cmd_fetch_payload:str = None
-	_cmds_store_payload:list[str] = None
-	_updatable_fields:list[str] = None
 	#--------------------------------------------------------
-	def __init__(self, aPK_obj:TypeIntOrDict=None, row:gmPG2.dbapi.extras.DictRow=None, link_obj=None):
-		"""Call __init__ from child classes like so:
+	def __init__(self, aPK_obj=None, row=None, link_obj=None):
+		"""Init business object.
 
-			super().__init__(aPK_obj = aPK_obj, row = row, link_obj = link_obj)
+		Call from child classes:
 
-		Args:
-			aPK_obj: retrieve data from backend
-
-			* a simple value
-				the primary key WHERE condition must be a simple column
-			* a dictionary of values
-				the primary key WHERE condition must be a
-				subselect consuming the dict and producing
-				the single-value primary key
-
-			row: must hold the fields
-
-			* idx: a dict mapping field names to position
-			* data: the field values in a list (as returned by cursor.fetchone() in the DB-API)
-			* pk_field: the name of the primary key field
-				OR
-			* pk_obj: a dictionary suitable for passed to cursor.execute
-			    and holding the primary key values, used for composite PKs
-			* for example:
-
-				row = {
-					'data': rows[0],
-					'idx': idx,
-					'pk_field': 'pk_XXX (the PK column name)',
-					'pk_obj': {'pk_col1': pk_col1_val, 'pk_col2': pk_col2_val}
-				}
-				rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
-				objects = [ cChildClass(row = {'data': r, 'idx': idx, 'pk_field': 'the PK column name'}) for r in rows ]
+			super(cChildClass, self).__init__(aPK_obj = aPK_obj, row = row, link_obj = link_obj)
 		"""
-		# initialize those "too early" because sanity checking descendants might
+		# initialize those "too early" because checking descendants might
 		# fail which will then call __str__ in stack trace logging if --debug
 		# was given which in turn needs those instance variables
-		self.pk_obj:TypeIntOrDict = -1
-		self._idx:dict[str, int] = {}
-		self._payload:'gmPG2.dbapi.extras.DictRow' = []	# the cache for backend object values (mainly table fields)
-		self._ext_cache:dict = {}	# the cache for extended method's results
-		self._is_modified:bool = False
-		self.original_payload:list = None
-		# only now check child classes
-		assert self.__class__._cmd_fetch_payload is not None, '<_cmd_fetch_payload> undefined'
-		assert self.__class__._cmds_store_payload is not None, '<_cmds_store_payload> undefined'
-		assert self.__class__._updatable_fields is not None, '<_updatable_fields> undefined'
+		self.pk_obj = '<uninitialized>'
+		self._idx = {}
+		self._payload = []		# the cache for backend object values (mainly table fields)
+		self._ext_cache = {}	# the cache for extended method's results
+		self._is_modified = False
+
+		# sanity check child implementions
+		self.__class__._cmd_fetch_payload
+		self.__class__._cmds_store_payload
+		self.__class__._updatable_fields
 
 		if aPK_obj is not None:
 			self.__init_from_pk(aPK_obj = aPK_obj, link_obj = link_obj)
 		else:
 			self._init_from_row_data(row = row)
+
 		self._is_modified = False
 
 	#--------------------------------------------------------
-	def __init_from_pk(self, aPK_obj:TypeIntOrDict=None, link_obj=None):
+	def __init_from_pk(self, aPK_obj=None, link_obj=None):
 		"""Creates a new clinical item instance by its PK.
 
-		Args:
-			aPK_obj:
-
-			* a simple value -> the primary key WHERE condition must be	a simple column
-			* a dictionary of values -> the primary key WHERE condition must be a
-			    subselect consuming the dict and producing the single-value primary key
+		aPK_obj can be:
+			- a simple value
+			  * the primary key WHERE condition must be
+				a simple column
+			- a dictionary of values
+			  * the primary key WHERE condition must be a
+				subselect consuming the dict and producing
+				the single-value primary key
 		"""
 		self.pk_obj = aPK_obj
-		if self.refetch_payload(link_obj = link_obj):
+		result = self.refetch_payload(link_obj = link_obj)
+		if result is True:
 			self.payload_most_recently_fetched = {}
-			#for field in self._idx:
-			#	self.payload_most_recently_fetched[field] = self._payload[self._idx[field]]
-			for field in self._payload.keys():
-				self.payload_most_recently_fetched[field] = self._payload[field]
-			return
+			for field in self._idx:
+				self.payload_most_recently_fetched[field] = self._payload[self._idx[field]]
+			return True
 
-		raise gmExceptions.ConstructorError("[%s:%s]: error loading instance" % (self.__class__.__name__, self.pk_obj))
+		if result is False:
+			raise gmExceptions.ConstructorError("[%s:%s]: error loading instance" % (self.__class__.__name__, self.pk_obj))
 
 	#--------------------------------------------------------
-	def _init_from_row_data(self, row:gmPG2.dbapi.extras.DictRow=None):
+	def _init_from_row_data(self, row=None):
 		"""Creates a new clinical item instance given its fields.
 
-		Args:
-			row: EITHER {'idx': ..., 'data': ..., 'pk_field': ...}
-
-			* idx: a dict mapping field names to list position inside row['data']
-			* data: the field values in a list (as returned by cursor.fetchone() in the DB-API)
-			* pk_field: the name of the primary key field
-
+		row must be a dict with the fields:
+			- idx: a dict mapping field names to position
+			- data: the field values in a list (as returned by
+			  cursor.fetchone() in the DB-API)
+			- pk_field: the name of the primary key field
 			OR
+			- pk_obj: a dictionary suitable for passed to cursor.execute
+			  and holding the primary key values, used for composite PKs
 
-			* pk_obj: a dictionary suitable for passing to cursor.execute(),
-			  holding the primary key values; used for composite PKs
-
-		Examples:
-
-				rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
-				objects = [ cChildClass(row = {'data': r, 'idx': idx, 'pk_field': 'the PK column name'}) for r in rows ]
-
-		Copy/Paste:
-
-				row = {
-					'data': rows[0],
-					'idx': idx,
-					'pk_field': 'pk_XXX (the PK column name)',
-					'pk_obj': {'pk_col1': pk_col1_val, 'pk_col2': pk_col2_val}
-				}
+		row = {
+			'data': rows[0],
+			'idx': idx,
+			'pk_field': 'pk_XXX (the PK column name)',
+			'pk_obj': {'pk_col1': pk_col1_val, 'pk_col2': pk_col2_val}
+		}
+		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
+		objects = [ cChildClass(row = {'data': r, 'idx': idx, 'pk_field': 'the PK column name'}) for r in rows ]
 		"""
 		assert ('data' in row), "[%s:??]: 'data' missing from <row> argument: %s" % (self.__class__.__name__, row)
+		assert ('idx' in row), "[%s:??]: 'idx' missing from <row> argument: %s" % (self.__class__.__name__, row)
+		assert (len(row['idx']) == len(row['data'])), "[%s:??]: 'idx'<->'data' field count mismatch: %s" % (self.__class__.__name__, row)
 		faulty_pk = (('pk_field' not in row) and ('pk_obj' not in row))
 		assert not faulty_pk, "[%s:??]: either 'pk_field' or 'pk_obj' must exist in <row> argument: %s" % (self.__class__.__name__, row)
 
+		self._idx = row['idx']
 		self._payload = row['data']
-		#self._idx = row['idx']
-		try:
-			#assert ('idx' in row), "[%s:??]: 'idx' missing from <row> argument: %s" % (self.__class__.__name__, row)
-			self._idx = row['idx']
-			assert len(row['idx']) == len(row['data']), "[%s:??]: 'idx'<->'data' field count mismatch: %s" % (self.__class__.__name__, row)
-
-		except KeyError:
-			self._idx = self._payload.keys()
 		if 'pk_field' in row:
-			#self.pk_obj = self._payload[self._idx[row['pk_field']]]
-			self.pk_obj = self._payload[row['pk_field']]
+			self.pk_obj = row['data'][row['idx'][row['pk_field']]]
 		else:
 			self.pk_obj = row['pk_obj']
-		self.payload_most_recently_fetched = {}
-		#for field in self._idx:
-		#	self.payload_most_recently_fetched[field] = self._payload[self._idx[field]]
-		for field in self._payload.keys():
-			self.payload_most_recently_fetched[field] = self._payload[field]
 
-	#--------------------------------------------------------
+		self.payload_most_recently_fetched = {}
+		for field in self._idx:
+			self.payload_most_recently_fetched[field] = self._payload[self._idx[field]]
+
 	#--------------------------------------------------------
 	def __del__(self):
 		if '_is_modified' in self.__dict__:
 			if self._is_modified:
-				_log.critical('[%s:%s]: losing payload changes' % (self.__class__.__name__, self.pk_obj))
+				_log.critical('[%s:%s]: loosing payload changes' % (self.__class__.__name__, self.pk_obj))
 				_log.debug('most recently fetched: %s' % self.payload_most_recently_fetched)
 				_log.debug('modified: %s' % self._payload)
 
@@ -467,107 +413,126 @@ class cBusinessDBObject(object):
 	def __str__(self):
 		lines = []
 		try:
-			#for attr in self._idx:
-			for attr in self._payload.keys():
-				#if self._payload[self._idx[attr]] is None:
-				if self._payload[attr] is None:
+			for attr in self._idx:
+				if self._payload[self._idx[attr]] is None:
 					lines.append('%s: NULL' % attr)
 				else:
-					lines.append('%s [%s]: %s' % (
+					lines.append('%s: %s [%s]' % (
 						attr,
-						#type(self._payload[self._idx[attr]]),
-						type(self._payload[attr]),
-						#self._payload[self._idx[attr]]
-						self._payload[attr]
+						self._payload[self._idx[attr]],
+						type(self._payload[self._idx[attr]])
 					))
-			return '[%s:%s] %s:\n%s' % (
-				self.__class__.__name__,
-				self.pk_obj,
-				self._is_modified,
-				'\n'.join(lines)
-			)
-
+			return '[%s:%s]:\n%s' % (self.__class__.__name__, self.pk_obj, '\n'.join(lines))
 		except Exception:
-			return '[%s @ %s], cannot show payload and primary key, nascent ?' % (self.__class__.__name__, id(self))
+			return 'likely nascent [%s @ %s], cannot show payload and primary key' %(self.__class__.__name__, id(self))
 
 	#--------------------------------------------------------
 	def __getitem__(self, attribute):
-		#return self._payload[self._idx[attribute]]
-		return self._payload[attribute]
+		# use try: except KeyError: as it is faster and we want this as fast as possible
+
+		# 1) backend payload cache
+		try:
+			return self._payload[self._idx[attribute]]
+		except KeyError:
+			pass
+
+		# 2) extension method results ...
+		getter = getattr(self, 'get_%s' % attribute, None)
+		if not callable(getter):
+			_log.warning('[%s]: no attribute [%s]' % (self.__class__.__name__, attribute))
+			_log.warning('[%s]: valid attributes: %s', self.__class__.__name__, list(self._idx))
+			_log.warning('[%s]: no getter method [get_%s]' % (self.__class__.__name__, attribute))
+			methods = [ m for m in inspect.getmembers(self, inspect.ismethod) if m[0].startswith('get_') ]
+			_log.warning('[%s]: valid getter methods: %s' % (self.__class__.__name__, str(methods)))
+			raise KeyError('[%s]: cannot read from key [%s]' % (self.__class__.__name__, attribute))
+
+		self._ext_cache[attribute] = getter()
+		return self._ext_cache[attribute]
 
 	#--------------------------------------------------------
 	def __setitem__(self, attribute, value):
-		assert attribute in self.__class__._updatable_fields, '[%s]: field <%s> not declared updatable' % (self.__class__.__name__, attribute)
 
-		try:
-			#if self._payload[self._idx[attribute]] == value:
-			if self._payload[attribute] == value:
+		# 1) backend payload cache
+		if attribute in self.__class__._updatable_fields:
+			try:
+				if self._payload[self._idx[attribute]] != value:
+					self._payload[self._idx[attribute]] = value
+					self._is_modified = True
+				return
+			except KeyError:
+				_log.warning('[%s]: cannot set attribute <%s> despite marked settable' % (self.__class__.__name__, attribute))
+				_log.warning('[%s]: supposedly settable attributes: %s' % (self.__class__.__name__, str(self.__class__._updatable_fields)))
+				raise KeyError('[%s]: cannot write to key [%s]' % (self.__class__.__name__, attribute))
+
+		# 2) setters providing extensions
+		if hasattr(self, 'set_%s' % attribute):
+			setter = getattr(self, "set_%s" % attribute)
+			if not callable(setter):
+				raise AttributeError('[%s] setter [set_%s] not callable' % (self.__class__.__name__, attribute))
+			try:
+				del self._ext_cache[attribute]
+			except KeyError:
+				pass
+			if type(value) == tuple:
+				if setter(*value):
+					self._is_modified = True
+					return
+				raise AttributeError('[%s]: setter [%s] failed for [%s]' % (self.__class__.__name__, setter, value))
+			if setter(value):
+				self._is_modified = True
 				return
 
-		except KeyError:
-			_log.exception('[%s]: cannot set attribute <%s>', self.__class__.__name__, attribute)
-			_log.debug('[%s]: settable attributes: %s', self.__class__.__name__, str(self.__class__._updatable_fields))
-			raise KeyError('[%s]: cannot set [%s]' % (self.__class__.__name__, attribute))
-
-		#self._payload[self._idx[attribute]] = value
-		self._payload[attribute] = value
-		self._is_modified = True
+		# 3) don't know what to do with <attribute>
+		_log.error('[%s]: cannot find attribute <%s> or setter method [set_%s]' % (self.__class__.__name__, attribute, attribute))
+		_log.warning('[%s]: settable attributes: %s' % (self.__class__.__name__, str(self.__class__._updatable_fields)))
+		methods = [ m for m in inspect.getmembers(self, inspect.ismethod) if m[0].startswith('set_') ]
+		_log.warning('[%s]: valid setter methods: %s' % (self.__class__.__name__, str(methods)))
+		raise AttributeError('[%s]: cannot set [%s]' % (self.__class__.__name__, attribute))
 
 	#--------------------------------------------------------
 	# external API
 	#--------------------------------------------------------
-	def same_payload(self, another_object:'cBusinessDBObject'=None) -> bool:
-		"""Check whether *self* and *another_object* hold the same payload."""
+	def same_payload(self, another_object=None):
 		raise NotImplementedError('comparison between [%s] and [%s] not implemented' % (self, another_object))
 
 	#--------------------------------------------------------
-	def is_modified(self) -> bool:
-		"""Whether data in this business object has been modified."""
+	def is_modified(self):
 		return self._is_modified
 
 	#--------------------------------------------------------
-	def get_fields(self) -> list[str]:
-		"""Return list of accessible fields."""
+	def get_fields(self):
 		try:
-			#return list(self._idx)
-			return self._payload.keys()
-
+			return list(self._idx)
 		except AttributeError:
-			return [
-				'[%s @ %s]' % (self.__class__.__name__, id(self)),
-				'cannot return keys, nascent ?'
-			]
+			return 'nascent [%s @ %s], cannot return keys' %(self.__class__.__name__, id(self))
 
 	#--------------------------------------------------------
-	def get_updatable_fields(self) -> list[str]:
-		"""Return a list of fields that can be updated."""
+	def get_updatable_fields(self):
 		return self.__class__._updatable_fields
 
 	#--------------------------------------------------------
-	def fields_as_dict(self, date_format:str='%Y %b %d  %H:%M', none_string:str='', escape_style:str=None, bool_strings:list[str]=None) -> dict:
-		"""Return field values as a dictionary of strings."""
+	def fields_as_dict(self, date_format='%Y %b %d  %H:%M', none_string='', escape_style=None, bool_strings=None):
 		if bool_strings is None:
 			bools = {True: 'True', False: 'False'}
 		else:
 			bools = {True: bool_strings[0], False: bool_strings[1]}
 		data = {}
-		#for field in self._idx:
-		for field in self._payload.keys():
+		for field in self._idx:
 			# FIXME: harden against BYTEA fields
 			#if type(self._payload[self._idx[field]]) == ...
 			#	data[field] = _('<%s bytes of binary data>') % len(self._payload[self._idx[field]])
 			#	continue
-			val = self._payload[field]
-			#val = self._payload[self._idx[field]]
+			val = self._payload[self._idx[field]]
 			if val is None:
 				data[field] = none_string
 				continue
 			if isinstance(val, bool):
 				data[field] = bools[val]
 				continue
+
 			if isinstance(val, datetime.datetime):
 				if date_format is None:
-					data[field] = val			# type: ignore [assignment]
+					data[field] = val
 					continue
 				data[field] = pydt_strftime(val, format = date_format)
 				if escape_style in ['latex', 'tex']:
@@ -575,6 +540,7 @@ class cBusinessDBObject(object):
 				elif escape_style in ['xetex', 'xelatex']:
 					data[field] = xetex_escape_string(data[field])
 				continue
+
 			try:
 				data[field] = str(val, encoding = 'utf8', errors = 'replace')
 			except TypeError:
@@ -587,52 +553,40 @@ class cBusinessDBObject(object):
 				data[field] = tex_escape_string(data[field])
 			elif escape_style in ['xetex', 'xelatex']:
 				data[field] = xetex_escape_string(data[field])
+
 		return data
 
 	#--------------------------------------------------------
 	def get_patient(self):
-		"""Get associated patient object."""
 		_log.error('[%s:%s]: forgot to override get_patient()' % (self.__class__.__name__, self.pk_obj))
 		return None
 
 	#--------------------------------------------------------
-	def _get_patient_pk(self) -> int:
-		"""Get primary key of associated patient if any."""
-		pk_patient = None
+	def _get_patient_pk(self):
 		try:
-			#return self._payload[self._idx['pk_patient']]
-			pk_patient = self._payload['pk_patient']
+			return self._payload[self._idx['pk_patient']]
 		except KeyError:
 			pass
 		try:
-			#return self._payload[self._idx['pk_identity']]
-			pk_patient = self._payload['pk_identity']
+			return self._payload[self._idx['pk_identity']]
 		except KeyError:
-			pass
-
-		return pk_patient
+			return None
 
 	patient_pk = property(_get_patient_pk)
 
 	#--------------------------------------------------------
-	def _get_staff_id(self) -> int:
-		"""Get staff id of associated staff if any."""
+	def _get_staff_id(self):
 		try:
-			#return self._payload[self._idx['pk_staff']]
-			return self._payload['pk_staff']
-
+			return self._payload[self._idx['pk_staff']]
 		except KeyError:
 			_log.debug('[%s]: .pk_staff should be added to the view', self.__class__.__name__)
 		try:
-			#return self._payload[self._idx['pk_provider']]
-			return self._payload['pk_provider']
-
+			return self._payload[self._idx['pk_provider']]
 		except KeyError:
 			pass
 		mod_by = None
 		try:
-			#mod_by = self._payload[self._idx['modified_by_raw']]
-			mod_by = self._payload['modified_by_raw']
+			mod_by = self._payload[self._idx['modified_by_raw']]
 		except KeyError:
 			_log.debug('[%s]: .modified_by_raw should be added to the view', self.__class__.__name__)
 		if mod_by is not None:
@@ -640,29 +594,28 @@ class cBusinessDBObject(object):
 			args = {'db_u': mod_by}
 			cmd = "SELECT pk FROM dem.staff WHERE db_user = %(db_u)s"
 			rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
-			if rows:
+			if len(rows) > 0:
 				# logically, they are all the same provider, because they share the DB account
-				return rows[0]['pk']
+				return rows[0][0]
 
-		#mod_by = self._payload[self._idx['modified_by']]
-		mod_by = self._payload['modified_by']
+		mod_by = self._payload[self._idx['modified_by']]
 		# is .modified_by a "<DB-account>" ?
 		if mod_by.startswith('<') and mod_by.endswith('>'):
 			# find by DB account
 			args = {'db_u': mod_by.lstrip('<').rstrip('>')}
 			cmd = "SELECT pk FROM dem.staff WHERE db_user = %(db_u)s"
 			rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
-			if rows:
+			if len(rows) > 0:
 				# logically, they are all the same provider, because they share the DB account
-				return rows[0]['pk']
+				return rows[0][0]
 
 		# .modified_by is probably dem.staff.short_alias
 		args = {'alias': mod_by}
 		cmd = "SELECT pk FROM dem.staff WHERE short_alias = %(alias)s"
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
-		if rows:
+		if len(rows) > 0:
 			# logically, they are all the same provider, because they share the DB account
-			return rows[0]['pk']
+			return rows[0][0]
 
 		_log.error('[%s]: cannot retrieve staff ID for [%s]', self.__class__.__name__, mod_by)
 		return None
@@ -670,8 +623,7 @@ class cBusinessDBObject(object):
 	staff_id = property(_get_staff_id)
 
 	#--------------------------------------------------------
-	def format(self, *args, **kwargs) -> list[str]:
-		"""Return instance data generically formatted as a table."""
+	def format(self, *args, **kwargs):
 		return format_dict_like (
 			self.fields_as_dict(none_string = '<?>'),
 			tabular = True,
@@ -679,36 +631,34 @@ class cBusinessDBObject(object):
 		).split('\n')
 
 	#--------------------------------------------------------
-	def _get_revision_history(self, query:str, args:dict, title:str) -> list[str]:
+	def _get_revision_history(self, query, args, title):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': query, 'args': args}], get_col_idx = True)
-		if not rows:
-			return ['%s (no versions)' % title]
 
-		lines = ['%s (%s versions)' % (title, rows[0]['row_version'] + 1)]
-		column_labels = [ 'rev %s (%s)' % (r['row_version'], pydt_strftime(r['audit__action_when'], format = '%Y %b %d %H:%M', none_str = 'live row')) for r in rows ]
-		lines.extend (dicts2table (
-			rows,
-			left_margin = 1,
-			eol = None,
-			keys2ignore = ['audit__action_when', 'row_version', 'pk_audit'],
-			show_only_changes = True,
-			column_labels = column_labels,
-			date_format = '%Y %b %d %H:%M',
-			equality_value = u_left_arrow
-		))
+		lines = []
+		if rows == 0:
+			lines.append('%s (no versions)' % title)
+		else:
+			lines.append('%s (%s versions)' % (title, rows[0]['row_version'] + 1))
+			column_labels = [ 'rev %s (%s)' % (r['row_version'], pydt_strftime(r['audit__action_when'], format = '%Y %b %d %H:%M', none_str = 'live row')) for r in rows ]
+			lines.extend (dicts2table (
+				rows,
+				left_margin = 1,
+				eol = None,
+				keys2ignore = ['audit__action_when', 'row_version', 'pk_audit'],
+				show_only_changes = True,
+				column_labels = column_labels,
+				date_format = '%Y %b %d %H:%M',
+				equality_value = u_left_arrow
+			))
 		return lines
 
 	#--------------------------------------------------------
-	def refetch_payload(self, ignore_changes:bool=False, link_obj=None) -> bool:
-		"""Fetch field values from backend.
-
-		Args:
-			ignore_changes: True -> loose local changes if data on the backend changed
-		"""
+	def refetch_payload(self, ignore_changes=False, link_obj=None):
+		"""Fetch field values from backend."""
 		if self._is_modified:
 			compare_dict_likes(self.original_payload, self.fields_as_dict(date_format = None, none_string = None), 'original payload', 'modified payload')
 			if ignore_changes:
-				_log.critical('[%s:%s]: losing payload changes' % (self.__class__.__name__, self.pk_obj))
+				_log.critical('[%s:%s]: loosing payload changes' % (self.__class__.__name__, self.pk_obj))
 				#_log.debug('most recently fetched: %s' % self.payload_most_recently_fetched)
 				#_log.debug('modified: %s' % self._payload)
 			else:
@@ -716,9 +666,9 @@ class cBusinessDBObject(object):
 				return False
 
 		if isinstance(self.pk_obj, dict):
-			args:dict = self.pk_obj
+			args = self.pk_obj
 		else:
-			args:list = [self.pk_obj]		# type: ignore [no-redef]
+			args = [self.pk_obj]
 		rows, self._idx = gmPG2.run_ro_queries (
 			link_obj = link_obj,
 			queries = [{'cmd': self.__class__._cmd_fetch_payload, 'args': args}],
@@ -735,36 +685,36 @@ class cBusinessDBObject(object):
 		return True
 
 	#--------------------------------------------------------
-	def save(self, conn:gmPG2.dbapi._psycopg.connection=None) -> tuple[bool, tuple]:
-		"""Just calls save_payload()."""
+	def __noop(self):
+		pass
+
+	#--------------------------------------------------------
+	def save(self, conn=None):
 		return self.save_payload(conn = conn)
 
 	#--------------------------------------------------------
-	def save_payload(self, conn:gmPG2.dbapi._psycopg.connection=None) -> tuple[bool, tuple]:
-		"""Store updated values (if any) into database.
+	def save_payload(self, conn=None):
+		"""Store updated values (if any) in database.
 
 		Optionally accepts a pre-existing connection
-
-		Returns:
-			a tuple (True|False, data)
-			True: success
-			False: an error occurred,
-			data: (error, message), for error meanings see gmPG2.run_rw_queries()
+		- returns a tuple (<True|False>, <data>)
+		- True: success
+		- False: an error occurred
+			* data is (error, message)
+			* for error meanings see gmPG2.run_rw_queries()
 		"""
 		if not self._is_modified:
 			return (True, None)
 
-		args:dict[str, Any] = {}
-		#for field in self._idx:
-		for field in self._payload.keys():
-			#args[field] = self._payload[self._idx[field]]
-			args[field] = self._payload[field]
+		args = {}
+		for field in self._idx:
+			args[field] = self._payload[self._idx[field]]
 		self.payload_most_recently_attempted_to_store = args
 
-		conn_close = lambda *x: None
+		close_conn = self.__noop
 		if conn is None:
 			conn = gmPG2.get_connection(readonly=False)
-			conn_close = conn.close
+			close_conn = conn.close
 
 		queries = []
 		for query in self.__class__._cmds_store_payload:
@@ -791,19 +741,15 @@ class cBusinessDBObject(object):
 		# columns see their new values (given they are
 		# returned by the query)
 		row = rows[0]
-		#for key in idx:
-		for key in row.keys():
+		for key in idx:
 			try:
-				#self._payload[self._idx[key]] = row[idx[key]]
-				self._payload[key] = row[key]
+				self._payload[self._idx[key]] = row[idx[key]]
 			except KeyError:
 				conn.rollback()
-				conn_close()
+				close_conn()
 				_log.error('[%s:%s]: cannot update instance, XMIN-refetch key mismatch on [%s]' % (self.__class__.__name__, self.pk_obj, key))
-				#_log.error('payload keys: %s' % str(self._idx))
-				_log.error('payload keys: %s' % str(self._payload.keys()))
-				#_log.error('XMIN-refetch keys: %s' % str(idx))
-				_log.error('XMIN-refetch keys: %s' % str(row.keys()))
+				_log.error('payload keys: %s' % str(self._idx))
+				_log.error('XMIN-refetch keys: %s' % str(idx))
 				_log.error(args)
 				raise
 
@@ -813,14 +759,12 @@ class cBusinessDBObject(object):
 		# right before that
 		self._is_modified = False
 		conn.commit()
-		conn_close()
+		close_conn()
 
 		# update to new "original" payload
 		self.payload_most_recently_fetched = {}
-		#for field in self._idx:
-		for field in self._payload.keys():
-			#self.payload_most_recently_fetched[field] = self._payload[self._idx[field]]
-			self.payload_most_recently_fetched[field] = self._payload[field]
+		for field in self._idx:
+			self.payload_most_recently_fetched[field] = self._payload[self._idx[field]]
 
 		return (True, None)
 
@@ -835,9 +779,9 @@ if __name__ == '__main__':
 
 	#--------------------------------------------------------
 	class cTestObj(cBusinessDBObject):
-		_cmd_fetch_payload = ''
-		_cmds_store_payload:list[str] = []
-		_updatable_fields = ['test']
+		_cmd_fetch_payload = None
+		_cmds_store_payload = None
+		_updatable_fields = []
 		#----------------------------------------------------
 		def get_something(self):
 			pass
@@ -849,21 +793,16 @@ if __name__ == '__main__':
 	gmI18N.activate_locale()
 	gmI18N.install_domain()
 
-	db_row = {'bogus_pk': -1, 'bogus_field': 'bogus_data', 'bogus_date': datetime.datetime.now(), 'test': -1}
-	db_idx = {'bogus_pk': 0, 'bogus_field': 1, 'bogus_date': 2, 'test': 3}
-	row_data = {
+	data = {
 		'pk_field': 'bogus_pk',
-		#'idx': db_idx,
-		'data': db_row
+		'idx': {'bogus_pk': 0, 'bogus_field': 1, 'bogus_date': 2},
+		'data': [-1, 'bogus_data', datetime.datetime.now()]
+		#'data': {'bogus_pk': -1, 'bogus_field': 'bogus_data', 'bogus_date': datetime.datetime.now()}
 	}
-	obj = cTestObj(row = row_data)
-	print('format():', obj.format())
-	print('as_dict():', obj.fields_as_dict())
-	print('test:', obj['test'])
-	obj['test'] = 'test'
-	print('test:', obj['test'])
+	obj = cTestObj(row=data)
+	print(obj.format())
 	#print(obj['wrong_field'])
 	#obj['wrong_field'] = 1
-	#print(obj['wrong_field'])
+	print(obj.fields_as_dict())
 
 #============================================================

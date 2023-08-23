@@ -2,7 +2,7 @@
 """GNUmed expando based textual progress notes handling widgets."""
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import sys
 import logging
@@ -13,11 +13,16 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+
+from Gnumed.pycommon import gmI18N
+
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmDateTime
-from Gnumed.pycommon import gmCfgDB
+from Gnumed.pycommon import gmCfg
 
 from Gnumed.business import gmPerson
 from Gnumed.business import gmPraxis
@@ -68,11 +73,13 @@ class cProgressNotesEAPnl(gmTextCtrl.cExpandoTextCtrlHandling_PanelMixin, wxgPro
 
 		wxgProgressNotesEAPnl.wxgProgressNotesEAPnl.__init__(self, *args, **kwargs)
 
-		self.__use_soap_fields = gmCfgDB.get4user (
+		dbcfg = gmCfg.cCfgSQL()
+		self.__use_soap_fields = bool(dbcfg.get2 (
 			option = 'horstspace.soap_editor.use_one_field_per_soap_category',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user',
 			default = True
-		)
+		))
 
 		self.__soap_fields = [
 			self._TCTRL_Soap,
@@ -190,7 +197,7 @@ class cProgressNotesEAPnl(gmTextCtrl.cExpandoTextCtrlHandling_PanelMixin, wxgPro
 			episode = None
 		else:
 			issue = self.problem['pk_health_issue']
-			episode = gmEMRStructItems.cEpisode.from_problem(self.problem)
+			episode = gmEMRStructItems.problem2episode(self.problem)
 
 		wx.CallAfter (
 			gmVisualProgressNoteWidgets.edit_visual_progress_note,
@@ -214,7 +221,7 @@ class cProgressNotesEAPnl(gmTextCtrl.cExpandoTextCtrlHandling_PanelMixin, wxgPro
 				return False
 		# existing episode
 		else:
-			episode = gmEMRStructItems.cEpisode.from_problem(self.problem)
+			episode = emr.problem2episode(self.problem)
 
 		if encounter is None:
 			encounter = emr.current_encounter['pk_encounter']
@@ -256,7 +263,7 @@ class cProgressNotesEAPnl(gmTextCtrl.cExpandoTextCtrlHandling_PanelMixin, wxgPro
 				'(which will become a new, unassociated episode):\n'
 			)
 		else:
-			issue = gmEMRStructItems.cHealthIssue.from_problem(self.problem)
+			issue = emr.problem2issue(self.problem)
 			msg = _(
 				'Enter a short working name for this new\n'
 				'episode under the existing health issue\n'
@@ -290,7 +297,7 @@ class cProgressNotesEAPnl(gmTextCtrl.cExpandoTextCtrlHandling_PanelMixin, wxgPro
 		new_episode.save()
 
 		if self.problem is not None:
-			issue = gmEMRStructItems.cHealthIssue.from_problem(self.problem)
+			issue = emr.problem2issue(self.problem)
 			if not gmEMRStructWidgets.move_episode_to_issue(episode = new_episode, target_issue = issue, save_to_backend = True):
 				gmGuiHelpers.gm_show_warning (
 					_(
@@ -343,7 +350,7 @@ class cProgressNotesEAPnl(gmTextCtrl.cExpandoTextCtrlHandling_PanelMixin, wxgPro
 			soap['p'] = [tmp]
 		return soap
 
-	soap = property(_get_soap)
+	soap = property(_get_soap, lambda x:x)
 	#--------------------------------------------------------
 	def _get_empty(self):
 		if self.__use_soap_fields:
@@ -388,7 +395,7 @@ class cProgressNotesEAPnl(gmTextCtrl.cExpandoTextCtrlHandling_PanelMixin, wxgPro
 
 		return True
 
-	empty = property(_get_empty)
+	empty = property(_get_empty, lambda x:x)
 
 #============================================================
 # main
@@ -401,13 +408,11 @@ if __name__ == '__main__':
 	if sys.argv[1] != 'test':
 		sys.exit()
 
-	from Gnumed.wxpython import gmPersonSearch
-
 	#----------------------------------------
 	def test_cProgressNotesEAPnl():
-		gmPersonSearch.ask_for_patient()
+		pat = gmPersonSearch.ask_for_patient()
 		application = wx.PyWidgetTester(size=(800,500))
-		#soap_input = cProgressNotesEAPnl(application.frame, -1)
+		soap_input = cProgressNotesEAPnl(application.frame, -1)
 		application.frame.Show(True)
 		application.MainLoop()
 	#----------------------------------------

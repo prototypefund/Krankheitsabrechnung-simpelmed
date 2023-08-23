@@ -18,6 +18,7 @@ __author__ = "K.Hilbert <Karsten.Hilbert@gmx.net>"
 
 
 # std lib
+import os
 import sys
 import io
 import subprocess
@@ -27,7 +28,6 @@ import logging
 # GNUmed libraries
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmShellAPI
@@ -84,7 +84,7 @@ class cArriba(object):
 	def __write_config_file(self, patient=None):
 		xml = """<?xml version="1.0" encoding="UTF-8"?>
 
-<konsultation version="1.1" xmlns="https://gpzk.de/ns/arriba/start-konfiguration">
+<konsultation version="1.1" xmlns="http://gpzk.de/ns/arriba/start-konfiguration">
 	<parameter>
 		%s
 		<idle-timeout>0</idle-timeout>

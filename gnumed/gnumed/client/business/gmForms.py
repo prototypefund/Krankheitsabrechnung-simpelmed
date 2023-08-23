@@ -21,12 +21,13 @@ import platform
 import subprocess
 import io
 import codecs
+import socket										# needed for OOo on Windows
 #, libxml2, libxslt
+import shlex
 
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x		# make pyflakes happy
 	from Gnumed.pycommon import gmI18N
 	gmI18N.activate_locale()
 	gmI18N.install_domain(domain = 'gnumed')
@@ -38,8 +39,8 @@ from Gnumed.pycommon import gmBorg
 from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmMimeLib
 from Gnumed.pycommon import gmShellAPI
-from Gnumed.pycommon import gmCfgDB
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmDateTime
@@ -51,7 +52,7 @@ from Gnumed.business import gmPraxis
 
 
 _log = logging.getLogger('gm.forms')
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 #============================================================
 # this order is also used in choice boxes for the engine
@@ -79,7 +80,7 @@ form_engine_template_wildcards = {
 }
 
 # is filled in further below after each engine is defined
-form_engines:dict = {}
+form_engines = {}
 
 #============================================================
 # match providers
@@ -134,12 +135,7 @@ class cFormTemplateType_MatchProvider(gmMatchProvider.cMatchProvider_SQL2):
 
 #============================================================
 class cFormTemplate(gmBusinessDBObject.cBusinessDBObject):
-	"""Represents a template from which forms/printouts can be generated.
 
-	To create a processable document from a template call
-	.instantiate() and do further processing on the resulting
-	form instance.
-	"""
 	_cmd_fetch_payload = 'SELECT * FROM ref.v_paperwork_templates WHERE pk_paperwork_template = %s'
 
 	_cmds_store_payload = [
@@ -185,42 +181,23 @@ class cFormTemplate(gmBusinessDBObject.cBusinessDBObject):
 
 	#--------------------------------------------------------
 	def _get_template_data(self):
-		"""Return the data that makes up the actual template itself.
+		"""The template itself better not be arbitrarily large unless you can handle that.
 
-		This is typically a text string containing markup
-		specific to a given document definition interspersed
-		with placeholders to be processed by GNUmed.
+		Note that the data type returned will be a buffer."""
 
-		Note that the template may often not (yet) be valid for
-		the target document engine because it usually
-		contains placeholders interspersed with the layout
-		definition.
-		"""
 		cmd = 'SELECT data FROM ref.paperwork_templates WHERE pk = %(pk)s'
 		rows, idx = gmPG2.run_ro_queries (queries = [{'cmd': cmd, 'args': {'pk': self.pk_obj}}], get_col_idx = False)
+
 		if len(rows) == 0:
 			raise gmExceptions.NoSuchBusinessObjectError('cannot retrieve data for template pk = %s' % self.pk_obj)
 
 		return rows[0][0]
 
-	template_data = property(_get_template_data)
+	template_data = property(_get_template_data, lambda x:x)
 
 	#--------------------------------------------------------
-	def save_to_file(self, filename:str=None, chunksize:int=0, use_sandbox:bool=False) -> str:
-		"""Export actual form template definition into a file.
-
-			Note that this file may often not (yet) be valid
-			for the target document engine because it usually
-			contains placeholders interspersed with the
-			layout definition.
-
-		Args:
-			filename: an explicit filename to save to, a suitable one is generated if None
-			use_sandbox: instantiate in a sandbox directory, unless a filename is given
-
-		Returns:
-			The name of the file that was saved into. None on failure.
-		"""
+	def save_to_file(self, filename=None, chunksize=0, use_sandbox=False):
+		"""Export form template from database into file."""
 		if not self._payload['has_template_data']:
 			_log.error('no template data')
 			return None
@@ -241,14 +218,17 @@ class cFormTemplate(gmBusinessDBObject.cBusinessDBObject):
 				suffix = suffix,
 				tmp_dir = sandbox_dir
 			)
+
 		data_query = {
 			'cmd': 'SELECT substring(data from %(start)s for %(size)s) FROM ref.paperwork_templates WHERE pk = %(pk)s',
 			'args': {'pk': self.pk_obj}
 		}
+
 		data_size_query = {
 			'cmd': 'select octet_length(data) from ref.paperwork_templates where pk = %(pk)s',
 			'args': {'pk': self.pk_obj}
 		}
+
 		result = gmPG2.bytea2file (
 			data_query = data_query,
 			filename = filename,
@@ -261,37 +241,17 @@ class cFormTemplate(gmBusinessDBObject.cBusinessDBObject):
 		return filename
 
 	#--------------------------------------------------------
-	def update_template_from_file(self, filename:str=None):
-		"""Update the template definition in the database.
-
-		Args:
-			filename: the filename to read the template definition from
-		"""
+	def update_template_from_file(self, filename=None):
 		gmPG2.file2bytea (
 			filename = filename,
 			query = 'update ref.paperwork_templates set data = %(data)s::bytea where pk = %(pk)s and xmin = %(xmin)s',
 			args = {'pk': self.pk_obj, 'xmin': self._payload[self._idx['xmin_paperwork_template']]}
 		)
 		# adjust for xmin change
-		return self.refetch_payload()
+		self.refetch_payload()
 
 	#--------------------------------------------------------
-	def instantiate(self, use_sandbox:bool=False):
-		"""Create an instance of this form template for further processing.
-
-			This saves the template data to a file, and from
-			that creates a form instances, specific to the
-			text processing engine defined for this template.
-			Invoke methods of the form instance for further
-			processing (placeholder substitution, PDF
-			generation, ...)
-
-		Args:
-			use_sandbox: instantiate in a sandbox directory
-
-		Returns:
-			A form instance or None on failure.
-		"""
+	def instantiate(self, use_sandbox=False):
 		fname = self.save_to_file(use_sandbox = use_sandbox)
 		if not fname:
 			return None
@@ -302,11 +262,11 @@ class cFormTemplate(gmBusinessDBObject.cBusinessDBObject):
 		return form
 
 #============================================================
-def get_form_template(name_long:str=None, external_version:str=None):
-	"""Load a form template from the backend based on name and version."""
+def get_form_template(name_long=None, external_version=None):
 	cmd = 'select pk from ref.paperwork_templates where name_long = %(lname)s and external_version = %(ver)s'
 	args = {'lname': name_long, 'ver': external_version}
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
+
 	if len(rows) == 0:
 		_log.error('cannot load form template [%s - %s]', name_long, external_version)
 		return None
@@ -316,26 +276,32 @@ def get_form_template(name_long:str=None, external_version:str=None):
 #------------------------------------------------------------
 def get_form_templates(engine=None, active_only=False, template_types=None, excluded_types=None, return_pks=False):
 	"""Load form templates."""
+
 	args = {'eng': engine, 'in_use': active_only}
 	where_parts = ['1 = 1']
+
 	if engine is not None:
 		where_parts.append('engine = %(eng)s')
+
 	if active_only:
 		where_parts.append('in_use IS true')
+
 	if template_types is not None:
-		args['incl_types'] = template_types
-		where_parts.append('template_type = ANY(%(incl_types)s)')
+		args['incl_types'] = tuple(template_types)
+		where_parts.append('template_type IN %(incl_types)s')
+
 	if excluded_types is not None:
-		args['excl_types'] = excluded_types
-		where_parts.append('template_type <> ALL(%(excl_types)s)')
+		args['excl_types'] = tuple(excluded_types)
+		where_parts.append('template_type NOT IN %(excl_types)s')
+
 	cmd = "SELECT * FROM ref.v_paperwork_templates WHERE %s ORDER BY in_use desc, name_long" % '\nAND '.join(where_parts)
+
 	rows, idx = gmPG2.run_ro_queries (
 		queries = [{'cmd': cmd, 'args': args}],
 		get_col_idx = True
 	)
 	if return_pks:
 		return [ r['pk_paperwork_template'] for r in rows ]
-
 	templates = [ cFormTemplate(row = {'pk_field': 'pk_paperwork_template', 'data': r, 'idx': idx}) for r in rows ]
 	return templates
 
@@ -532,9 +498,11 @@ class gmOOoConnector(gmBorg.cBorg):
 	#--------------------------------------------------------
 	def __get_startup_settle_time(self):
 		# later factor this out !
-		self.ooo_startup_settle_time = gmCfgDB.get4workplace (
+		dbcfg = gmCfg.cCfgSQL()
+		self.ooo_startup_settle_time = dbcfg.get2 (
 			option = 'external.ooo.startup_settle_time',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace',
 			default = 3.0
 		)
 	#--------------------------------------------------------
@@ -601,7 +569,7 @@ class gmOOoConnector(gmBorg.cBorg):
 		_log.debug('got OOo desktop handle')
 		return self.__desktop
 
-	desktop = property(_get_desktop)
+	desktop = property(_get_desktop, lambda x:x)
 
 #------------------------------------------------------------
 class cOOoLetter(object):
@@ -811,7 +779,7 @@ class cOOoForm(cFormEngine):
 	"""A forms engine wrapping OOo."""
 
 	def __init__(self, template_file=None):
-		super().__init__(template_file = template_file)
+		super(self.__class__, self).__init__(template_file = template_file)
 
 		path, ext = os.path.splitext(self.template_filename)
 		if ext in [r'', r'.']:
@@ -828,7 +796,7 @@ class cAbiWordForm(cFormEngine):
 
 	def __init__(self, template_file=None):
 
-		super().__init__(template_file = template_file)
+		super(cAbiWordForm, self).__init__(template_file = template_file)
 
 		# detect abiword
 		found, self.abiword_binary = gmShellAPI.detect_external_binary(binary = r'abiword')
@@ -843,11 +811,10 @@ class cAbiWordForm(cFormEngine):
 			ext = r'.abw'
 		self.instance_filename = r'%s-instance%s' % (path, ext)
 
-		template_file = io.open(self.template_filename, mode = 'rt', encoding = 'utf-8-sig')
+		template_file = io.open(self.template_filename, mode = 'rt', encoding = 'utf8')
 		instance_file = io.open(self.instance_filename, mode = 'wt', encoding = 'utf8')
 
-		if self.template:
-			# pylint: disable=unsubscriptable-object
+		if self.template is not None:
 			# inject placeholder values
 			data_source.set_placeholder('form_name_long', self.template['name_long'])
 			data_source.set_placeholder('form_name_short', self.template['name_short'])
@@ -891,8 +858,8 @@ class cAbiWordForm(cFormEngine):
 			data_source.unset_placeholder('form_version')
 			data_source.unset_placeholder('form_version_internal')
 			data_source.unset_placeholder('form_last_modified')
-		return
 
+		return
 	#--------------------------------------------------------
 	def edit(self):
 		enc = sys.getfilesystemencoding()
@@ -940,7 +907,7 @@ class cTextForm(cFormEngine):
 
 	def __init__(self, template_file=None):
 
-		super().__init__(template_file = template_file)
+		super(self.__class__, self).__init__(template_file = template_file)
 
 		# create sandbox to play in (and don't assume much
 		# of anything about the template_file except that it
@@ -952,8 +919,8 @@ class cTextForm(cFormEngine):
 		# file containing the actual template plus metadata
 		self.form_definition_filename = self.template_filename
 		_log.debug('form definition file: [%s]', self.form_definition_filename)
-		cfg_file = io.open(self.form_definition_filename, mode = 'rt', encoding = 'utf-8-sig')
-		self.form_definition = gmCfgINI.parse_INI_stream(stream = cfg_file)
+		cfg_file = io.open(self.form_definition_filename, mode = 'rt', encoding = 'utf8')
+		self.form_definition = gmCfg2.parse_INI_stream(stream = cfg_file)
 		cfg_file.close()
 
 		# extract actual template into a file
@@ -972,14 +939,15 @@ class cTextForm(cFormEngine):
 
 	#--------------------------------------------------------
 	def substitute_placeholders(self, data_source=None):
-		if self.template:
-			# pylint: disable=unsubscriptable-object
+
+		if self.template is not None:
 			# inject placeholder values
 			data_source.set_placeholder('form_name_long', self.template['name_long'])
 			data_source.set_placeholder('form_name_short', self.template['name_short'])
 			data_source.set_placeholder('form_version', self.template['external_version'])
 			data_source.set_placeholder('form_version_internal', gmTools.coalesce(self.template['gnumed_revision'], '', '%s'))
 			data_source.set_placeholder('form_last_modified', gmDateTime.pydt_strftime(self.template['last_modified'], '%Y-%b-%d %H:%M'))
+
 		base = os.path.join(self.__sandbox_dir, gmTools.fname_stem(self.template_filename))
 		filenames = [
 			self.template_filename,
@@ -993,23 +961,27 @@ class cTextForm(cFormEngine):
 			data_source.second_pass_placeholder_regex,
 			data_source.third_pass_placeholder_regex
 		]
+
 		current_pass = 1
 		while current_pass < 4:
 			_log.debug('placeholder substitution pass #%s', current_pass)
-			self.__substitute_placeholders (
+			found_placeholders = self.__substitute_placeholders (
 				input_filename = filenames[current_pass-1],
 				output_filename = filenames[current_pass],
 				data_source = data_source,
 				placeholder_regex = regexen[current_pass]
 			)
 			current_pass += 1
+
 		# remove temporary placeholders
 		data_source.unset_placeholder('form_name_long')
 		data_source.unset_placeholder('form_name_short')
 		data_source.unset_placeholder('form_version')
 		data_source.unset_placeholder('form_version_internal')
 		data_source.unset_placeholder('form_last_modified')
+
 		self.instance_filename = self.re_editable_filenames[0]
+
 		return True
 
 	#--------------------------------------------------------
@@ -1018,7 +990,7 @@ class cTextForm(cFormEngine):
 		_log.debug('[%s] -> [%s]', input_filename, output_filename)
 		_log.debug('searching for placeholders with pattern: %s', placeholder_regex)
 
-		template_file = io.open(input_filename, mode = 'rt', encoding = 'utf-8-sig')
+		template_file = io.open(input_filename, mode = 'rt', encoding = 'utf8')
 		instance_file = io.open(output_filename, mode = 'wt', encoding = 'utf8')
 
 		for line in template_file:
@@ -1098,15 +1070,9 @@ class cLaTeXForm(cFormEngine):
 	"""A forms engine wrapping LaTeX (pdflatex)."""
 
 	_version_checked = False
-	_mimetypes = [
-		'application/x-latex',
-		'application/x-tex',
-		'text/latex',
-		'text/tex',
-		'text/x-tex',
-		'text/plain'
-	]
+
 	def __init__(self, template_file=None):
+
 		# create sandbox for LaTeX to play in (and don't assume
 		# much of anything about the template_file except that it
 		# is at our disposal for reading)
@@ -1114,8 +1080,30 @@ class cLaTeXForm(cFormEngine):
 		_log.debug('LaTeX sandbox directory: [%s]', sandbox_dir)
 		shutil.copy(template_file, sandbox_dir)
 		template_file = os.path.join(sandbox_dir, os.path.split(template_file)[1])
+
 		super().__init__(template_file = template_file)
+
 		self.__sandbox_dir = sandbox_dir
+
+		# set up PDF generator
+		if platform.system() == 'Windows':
+			executable = 'pdflatex.exe'
+		else:
+			executable = 'pdflatex'
+		self._final_cmd_line = [
+			executable,
+			'-recorder',
+			'-interaction=nonstopmode',
+			"-output-directory=%s" % self.__sandbox_dir
+		]
+		self._draft_cmd_line = self._final_cmd_line + ['-draftmode']
+
+		if not cLaTeXForm._version_checked:
+			cLaTeXForm._version_checked = True
+			cmd_line = [executable, '-version']
+			success, ret_code, stdout = gmShellAPI.run_process(cmd_line = cmd_line, encoding = 'utf8', verbose = True)
+			if not success:
+				_log.error('[%s] failed, LaTeX forms not usable', cmd_line)
 
 	#--------------------------------------------------------
 	def _rst2latex_transform(self, text):
@@ -1130,8 +1118,7 @@ class cLaTeXForm(cFormEngine):
 		# debugging
 		#data_source.debug = True
 
-		if self.template:
-			# pylint: disable=unsubscriptable-object
+		if self.template is not None:
 			# inject placeholder values
 			data_source.set_placeholder('form_name_long', self.template['name_long'])
 			data_source.set_placeholder('form_name_short', self.template['name_short'])
@@ -1160,23 +1147,19 @@ class cLaTeXForm(cFormEngine):
 			self.template_filename,
 			r'%s-result-pass-1%s' % (path, ext),
 			r'%s-result-pass-2%s' % (path, ext),
-			r'%s-result-pass-3%s' % (path, ext),
-			r'%s-result-pass-4%s' % (path, ext),
-			r'%s-result-pass-5%s' % (path, ext)
+			r'%s-result-pass-3%s' % (path, ext)
 		]
 		regexen = [
 			'dummy',
 			r'\$1{0,1}<[^<].+?>1{0,1}\$',
 			r'\$2<[^<].+?>2\$',
-			r'\$3<[^<].+?>3\$',
-			r'\$4<[^<].+?>4\$',
-			r'\$5<[^<].+?>5\$'
+			r'\$3<[^<].+?>3\$'
 		]
 
 		current_pass = 1
-		while current_pass < 6:
+		while current_pass < 4:
 			_log.debug('placeholder substitution pass #%s', current_pass)
-			self.__substitute_placeholders (
+			found_placeholders = self.__substitute_placeholders (
 				input_filename = filenames[current_pass-1],
 				output_filename = filenames[current_pass],
 				data_source = data_source,
@@ -1201,7 +1184,7 @@ class cLaTeXForm(cFormEngine):
 		_log.debug('[%s] -> [%s]', input_filename, output_filename)
 		_log.debug('searching for placeholders with pattern: %s', placeholder_regex)
 
-		template_file = io.open(input_filename, mode = 'rt', encoding = 'utf-8-sig')
+		template_file = io.open(input_filename, mode = 'rt', encoding = 'utf8')
 		instance_file = io.open(output_filename, mode = 'wt', encoding = 'utf8')
 
 		for line in template_file:
@@ -1259,13 +1242,17 @@ class cLaTeXForm(cFormEngine):
 		return
 
 	#--------------------------------------------------------
-	def edit(self) -> bool:
-		"""Call editor on generated LaTeX file.
+	def edit(self):
 
-		Checks for editors on mimetypes:
-			%s
-		""" % cLaTeXForm._mimetypes
-		for mimetype in cLaTeXForm._mimetypes:
+		mimetypes = [
+			'application/x-latex',
+			'application/x-tex',
+			'text/latex',
+			'text/tex',
+			'text/plain'
+		]
+
+		for mimetype in mimetypes:
 			editor_cmd = gmMimeLib.get_editor_cmd(mimetype, self.instance_filename)
 			if editor_cmd is not None:
 				break
@@ -1273,7 +1260,7 @@ class cLaTeXForm(cFormEngine):
 		if editor_cmd is None:
 			# LaTeX code is text: also consider text *viewers*
 			# since pretty much any of them will be an editor as well
-			for mimetype in cLaTeXForm._mimetypes:
+			for mimetype in mimetypes:
 				editor_cmd = gmMimeLib.get_viewer_cmd(mimetype, self.instance_filename)
 				if editor_cmd is not None:
 					break
@@ -1290,6 +1277,7 @@ class cLaTeXForm(cFormEngine):
 
 		if instance_file is None:
 			instance_file = self.instance_filename
+
 		try:
 			open(instance_file, 'r').close()
 		except Exception:
@@ -1298,15 +1286,36 @@ class cLaTeXForm(cFormEngine):
 			return None
 
 		self.instance_filename = instance_file
-		_log.debug('ignoring <format> directive [%s], generating PDF', format)
-		sandboxed_pdf_name = gmMimeLib.convert_latex_to_pdf (
-			filename = self.instance_filename,
-			verbose = _cfg.get(option = 'debug'),
-			is_sandboxed = True
-		)
-		if sandboxed_pdf_name is None:
-			return None
 
+		_log.debug('ignoring <format> directive [%s], generating PDF', format)
+		draft_cmd = self._draft_cmd_line + [self.instance_filename]
+		final_cmd = self._final_cmd_line + [self.instance_filename]
+		# LaTeX can need up to three runs to get cross references et al right
+		for run_cmd in [draft_cmd, draft_cmd, final_cmd]:
+			success, ret_code, stdout = gmShellAPI.run_process (
+				cmd_line = run_cmd,
+				acceptable_return_codes = [0],
+				encoding = 'utf8',
+				verbose = _cfg.get(option = 'debug')
+			)
+			if not success:
+				_log.error('problem running pdflatex, cannot generate form output, trying diagnostics')
+				gmDispatcher.send(signal = 'statustext', msg = _('Error running pdflatex. Cannot turn LaTeX template into PDF.'), beep = True)
+				found, binary = gmShellAPI.find_first_binary(binaries = ['lacheck', 'miktex-lacheck.exe'])
+				if not found:
+					_log.debug('lacheck not found')
+				else:
+					cmd_line = [binary, self.instance_filename]
+					success, ret_code, stdout = gmShellAPI.run_process(cmd_line = cmd_line, encoding = 'utf8', verbose = True)
+				found, binary = gmShellAPI.find_first_binary(binaries = ['chktex', 'ChkTeX.exe'])
+				if not found:
+					_log.debug('chcktex not found')
+				else:
+					cmd_line = [binary, '--verbosity=2', '--headererr', self.instance_filename]
+					success, ret_code, stdout = gmShellAPI.run_process(cmd_line = cmd_line, encoding = 'utf8', verbose = True)
+				return None
+
+		sandboxed_pdf_name = '%s.pdf' % os.path.splitext(self.instance_filename)[0]
 		target_dir = os.path.normpath(os.path.join(os.path.split(sandboxed_pdf_name)[0], '..'))
 		final_pdf_name = os.path.join (
 			target_dir,
@@ -1321,6 +1330,7 @@ class cLaTeXForm(cFormEngine):
 			return None
 
 		self.final_output_filenames = [final_pdf_name]
+
 		return final_pdf_name
 
 #------------------------------------------------------------
@@ -1343,14 +1353,13 @@ class cXeTeXForm(cFormEngine):
 		shutil.copy(template_file, sandbox_dir)
 		template_file = os.path.join(sandbox_dir, os.path.split(template_file)[1])
 
-		super().__init__(template_file = template_file)
+		super(self.__class__, self).__init__(template_file = template_file)
 
 		self.__sandbox_dir = sandbox_dir
 	#--------------------------------------------------------
 	def substitute_placeholders(self, data_source=None):
 
 		if self.template is not None:
-			# pylint: disable=unsubscriptable-object
 			# inject placeholder values
 			data_source.set_placeholder('form_name_long', self.template['name_long'])
 			data_source.set_placeholder('form_name_short', self.template['name_short'])
@@ -1400,7 +1409,7 @@ class cXeTeXForm(cFormEngine):
 
 		found_placeholders = False
 
-		template_file = io.open(input_filename, mode = 'rt', encoding = 'utf-8-sig')
+		template_file = io.open(input_filename, mode = 'rt', encoding = 'utf8')
 		instance_file = io.open(output_filename, mode = 'wt', encoding = 'utf8')
 
 		for line in template_file:
@@ -1532,18 +1541,18 @@ _GNUPLOT_WRAPPER_SCRIPT = """# -------------------------------------------------
 #
 # This script is used to make gnuplot
 #
-#	- display some debugging information,
+#	display some debugging information
 #
-#	- load GNUmed specific settings such as the timestamp
-#	  format, encoding, symbol for missing values,
+#	load GNUmed specific settings such as the timestamp
+#	format, encoding, symbol for missing values,
 #
-#	- load data specific values such as y(2)label or plot
-#	  title which GNUmed will have set up while exporting
-#	  test results for plotting,
+#	load data specific values such as y(2)label or plot
+#	title which GNUmed will have set up while exporting
+#	test results for plotting,
 #
-#	- learn the datafile name from the variable <gm2gpl_datafile>
-#	  which the user-provided plotting script can then use
-#	  to access data like so:
+#	know the datafile name from the variable <gm2gpl_datafile>
+#	which the user provided plotting script can then use
+#	to access data like so:
 #
 #		plot gm2gpl_datafile ...
 #
@@ -1565,7 +1574,7 @@ if (gmd_log_verbose == 1) {
 
 # -- data format setup ----
 set encoding utf8
-set timefmt "%%Y-%%m-%%d_%%H:%%M"		# timestamp format in data (output format defined elsewhere)
+set timefmt "%%Y-%%m-%%d_%%H:%%M"		# timestamp input formatting, not for output
 
 
 # -- data file setup ----
@@ -1619,7 +1628,6 @@ class cGnuplotForm(cFormEngine):
 	def substitute_placeholders(self, data_source=None):
 		"""Parse the template into an instance and replace placeholders with values."""
 		pass
-
 	#--------------------------------------------------------
 	def edit(self):
 		"""Allow editing the instance of the template."""
@@ -1632,17 +1640,6 @@ class cGnuplotForm(cFormEngine):
 
 		Expects .data_filename to be set.
 		"""
-		assert self.data_filename, '.data_filename must be set'
-
-		# append some metadata for debugging, if available
-		if self.template:
-			f = open(self.template_filename, 'at', encoding = 'utf8')
-			f.write('\n')
-			f.write('# -- metadata ----------------------------------------------------------------\n')
-			for line in self.template.format():
-				f.write('# %s\n' % line)
-			f.write('# ----------------------------------------------------------------------------\n')
-			f.close()
 		wrapper_filename = gmTools.get_unique_filename (
 			prefix = 'gm2gpl-wrapper-',
 			suffix = '.gpl',
@@ -1668,14 +1665,14 @@ class cGnuplotForm(cFormEngine):
 		success, exit_code, stdout = gmShellAPI.run_process(cmd_line = cmd_line, encoding = 'utf8', verbose = _cfg.get(option = 'debug'))
 		if not success:
 			gmDispatcher.send(signal = 'statustext', msg = _('Error running gnuplot. Cannot plot data.'), beep = True)
-			return False
+			return
 
 		self.final_output_filenames = [
 			self.data_filename,
 			self.template_filename,
 			wrapper_filename
 		]
-		return True
+		return
 
 #------------------------------------------------------------
 form_engines['G'] = cGnuplotForm
@@ -1737,7 +1734,7 @@ class cPDFForm(cFormEngine):
 
 		# parse dumped FDF file for "/V (...)" records
 		# and replace placeholders therein
-		fdf_dumped_file = io.open(self.fdf_dumped_filename, mode = 'rt', encoding = 'utf-8-sig')
+		fdf_dumped_file = io.open(self.fdf_dumped_filename, mode = 'rt', encoding = 'utf8')
 		fdf_replaced_file = io.open(self.fdf_replaced_filename, mode = 'wt', encoding = 'utf8')
 
 		string_value_regex = r'\s*/V\s*\(.+\)\s*$'
@@ -1895,6 +1892,69 @@ form_engines['P'] = cPDFForm
 #============================================================
 # older code
 #------------------------------------------------------------
+class cIanLaTeXForm(cFormEngine):
+	"""A forms engine wrapping LaTeX.
+	"""
+	def __init__(self, id, template):
+		self.id = id
+		self.template = template
+
+	def process (self,params={}):
+		try:
+			latex = Cheetah.Template.Template (self.template, filter=LaTeXFilter, searchList=[params])
+			# create a 'sandbox' directory for LaTeX to play in
+			self.tmp = tempfile.mktemp ()
+			os.makedirs (self.tmp)
+			self.oldcwd = os.getcwd()
+			os.chdir (self.tmp)
+			stdin = os.popen ("latex", "w", 2048)
+			stdin.write (str (latex)) #send text. LaTeX spits it's output into stdout
+			# FIXME: send LaTeX output to the logger
+			stdin.close ()
+			if not gmShellAPI.run_command_in_shell("dvips texput.dvi -o texput.ps", blocking=True):
+				raise FormError ('DVIPS returned error')
+		except EnvironmentError as e:
+			_log.error(e.strerror)
+			raise FormError (e.strerror)
+		return open("texput.ps")
+
+	def xdvi (self):
+		"""
+		For testing purposes, runs Xdvi on the intermediate TeX output
+		WARNING: don't try this on Windows
+		"""
+		gmShellAPI.run_command_in_shell("xdvi texput.dvi", blocking=True)
+
+	def exe (self, command):
+		if "%F" in command:
+			command.replace ("%F", "texput.ps")
+		else:
+			command	 = "%s < texput.ps" % command
+		try:
+			if not gmShellAPI.run_command_in_shell(command, blocking=True):
+				_log.error("external command %s returned non-zero" % command)
+				raise FormError ('external command %s returned error' % command)
+		except EnvironmentError as e:
+			_log.error(e.strerror)
+			raise FormError (e.strerror)
+		return True
+
+	def printout (self):
+		command, set1 = gmCfg.getDBParam (workplace = self.workplace, option = 'main.comms.print')
+		self.exe (command)
+
+	def cleanup (self):
+		"""
+		Delete all the LaTeX output iles
+		"""
+		for i in os.listdir ('.'):
+			os.unlink (i)
+		os.chdir (self.oldcwd)
+		os.rmdir (self.tmp)
+
+
+
+
 #================================================================
 # define a class for HTML forms (for printing)
 #================================================================
@@ -1911,7 +1971,8 @@ class cXSLTFormEngine(cFormEngine):
 		if template is None:
 			raise ValueError('%s: cannot create form instance without a template' % __name__)
 
-		super().__init__(template_file = template)
+		cFormEngine.__init__(self, template = template)
+
 		self._FormData = None
 
 		# here we know/can assume that the template was stored as a utf-8
@@ -1932,8 +1993,7 @@ class cXSLTFormEngine(cFormEngine):
 		"""get data from backend and process it with XSLT template to produce readable output"""
 
 		# extract SQL (this is wrong but displays what is intended)
-		#xslt = libxml2.parseDoc(self._XSLTData)
-		xslt = None
+		xslt = libxml2.parseDoc(self._XSLTData)
 		root = xslt.children
 		for child in root:
 			if child.type == 'element':
@@ -1948,10 +2008,8 @@ class cXSLTFormEngine(cFormEngine):
 
 		# process XML data according to supplied XSLT, producing HTML
 		self._XMLData =__header + __body
-		#style = libxslt.parseStylesheetDoc(xslt)
-		style = None
-		#xml = libxml2.parseDoc(self._XMLData)
-		xml = None
+		style = libxslt.parseStylesheetDoc(xslt)
+		xml = libxml2.parseDoc(self._XMLData)
 		html = style.applyStylesheet(xml, None)
 		self._FormData = html.serialize()
 
@@ -2008,32 +2066,17 @@ class LaTeXFilter:
 			# FIXME: cover all of ISO-Latin-1 which can be expressed in TeX
 			item = item.encode ('latin-1', 'replace')
 			trans = {'ß':'\\ss{}', 'ä': '\\"{a}', 'Ä' :'\\"{A}', 'ö': '\\"{o}', 'Ö': '\\"{O}',	'ü': '\\"{u}', 'Ü': '\\"{U}',
-					'\x8a':'\\v{S}', #'\x8a':'\\OE{}',
-					'\x9a':'\\v{s}',
-					'\x9c': '\\oe{}',
-					'\a9f':'\\"{Y}', #Microsloth extensions
-					'\x86': '{\\dag}',
-					'\x87': '{\\ddag}',
-					'\xa7':'{\\S}',
-					'\xb6': '{\\P}',
-					'\xa9': '{\\copyright}',
-					'\xbf': '?`',
-					'\xc0':'\\`{A}',
-					'\xa1': "\\'{A}",
-					#'\xa1': '!`',
-					'\xa2': '\\^{A}',
-					#'\xa2':'cent'
-					#'\xa3':'\\~{A}',
-					'\xa3': '\pounds{}',
-					'\\xc5': '{\AA}',
-					'\xc7':'\\c{C}',
-					'\xc8':'\\`{E}',
-					'\xb5':'$\mu$',
+					'\x8a':'\\v{S}', '\x8a':'\\OE{}', '\x9a':'\\v{s}', '\x9c': '\\oe{}', '\a9f':'\\"{Y}', #Microsloth extensions
+					'\x86': '{\\dag}', '\x87': '{\\ddag}', '\xa7':'{\\S}', '\xb6': '{\\P}', '\xa9': '{\\copyright}', '\xbf': '?`',
+					'\xc0':'\\`{A}', '\xa1': "\\'{A}", '\xa2': '\\^{A}', '\xa3':'\\~{A}', '\\xc5': '{\AA}',
+					'\xc7':'\\c{C}', '\xc8':'\\`{E}',
+					'\xa1': '!`',
+					'\xb5':'$\mu$', '\xa3': '\pounds{}', '\xa2':'cent'
 			}
 			for k, i in trans.items ():
 				item = item.replace (k, i)
 		elif type(item) is list or type(item) is tuple:
-			item = table_sep.join ([self.conv_enc(i, ' & ') for i in item])
+			item = string.join ([self.conv_enc(i, ' & ') for i in item], table_sep)
 		elif item is None:
 			item = '\\relax % Python None\n'
 		elif type(item) is int or type(item) is float:
@@ -2051,12 +2094,143 @@ class cHL7Form (cFormEngine):
 #============================================================
 # convenience functions
 #------------------------------------------------------------
+def get_form(id):
+	"""
+	Instantiates a FormEngine based on the form ID or name from the backend
+	"""
+	try:
+		# it's a number: match to form ID
+		id = int (id)
+		cmd = 'select template, engine, pk from paperwork_templates where pk = %s'
+	except ValueError:
+		# it's a string, match to the form's name
+		# FIXME: can we somehow OR like this: where name_short=%s OR name_long=%s ?
+		cmd = 'select template, engine, flags, pk from paperwork_templates where name_short = %s'
+	result = gmPG.run_ro_query ('reference', cmd, None, id)
+	if result is None:
+		_log.error('error getting form [%s]' % id)
+		raise gmExceptions.FormError ('error getting form [%s]' % id)
+	if len(result) == 0:
+		_log.error('no form [%s] found' % id)
+		raise gmExceptions.FormError ('no such form found [%s]' % id)
+	if result[0][1] == 'L':
+		return LaTeXForm (result[0][2], result[0][0])
+	elif result[0][1] == 'T':
+		return TextForm (result[0][2], result[0][0])
+	else:
+		_log.error('no form engine [%s] for form [%s]' % (result[0][1], id))
+		raise FormError ('no engine [%s] for form [%s]' % (result[0][1], id))
+#-------------------------------------------------------------
 class FormError (Exception):
 	def __init__ (self, value):
 		self.value = value
 
 	def __str__ (self):
 		return repr (self.value)
+#-------------------------------------------------------------
+
+test_letter = """
+\\documentclass{letter}
+\\address{ $DOCTOR \\\\
+$DOCTORADDRESS}
+\\signature{$DOCTOR}
+
+\\begin{document}
+\\begin{letter}{$RECIPIENTNAME \\\\
+$RECIPIENTADDRESS}
+
+\\opening{Dear $RECIPIENTNAME}
+
+\\textbf{Re:} $PATIENTNAME, DOB: $DOB, $PATIENTADDRESS \\\\
+
+$TEXT
+
+\\ifnum$INCLUDEMEDS>0
+\\textbf{Medications List}
+
+\\begin{tabular}{lll}
+$MEDSLIST
+\\end{tabular}
+\\fi
+
+\\ifnum$INCLUDEDISEASES>0
+\\textbf{Disease List}
+
+\\begin{tabular}{l}
+$DISEASELIST
+\\end{tabular}
+\\fi
+
+\\closing{$CLOSING}
+
+\\end{letter}
+\\end{document}
+"""
+
+
+def test_au():
+	f = io.open('../../test-area/ian/terry-form.tex')
+	params = {
+	'RECIPIENT': "Dr. R. Terry\n1 Main St\nNewcastle",
+	'DOCTORSNAME': 'Ian Haywood',
+	'DOCTORSADDRESS': '1 Smith St\nMelbourne',
+	'PATIENTNAME':'Joe Bloggs',
+	'PATIENTADDRESS':'18 Fred St\nMelbourne',
+	'REQUEST':'echocardiogram',
+	'THERAPY':'on warfarin',
+	'CLINICALNOTES':"""heard new murmur
+	Here's some
+crap to demonstrate how it can cover multiple lines.""",
+	'COPYADDRESS':'Jack Jones\nHannover, Germany',
+	'ROUTINE':1,
+	'URGENT':0,
+	'FAX':1,
+	'PHONE':1,
+	'PENSIONER':1,
+	'VETERAN':0,
+	'PADS':0,
+	'INSTRUCTIONS':'Take the blue pill, Neo'
+	}
+	form = LaTeXForm (1, f.read())
+	form.process (params)
+	form.xdvi ()
+	form.cleanup ()
+
+def test_au2 ():
+	form = LaTeXForm (2, test_letter)
+	params = {'RECIPIENTNAME':'Dr. Richard Terry',
+		  'RECIPIENTADDRESS':'1 Main St\nNewcastle',
+		  'DOCTOR':'Dr. Ian Haywood',
+		  'DOCTORADDRESS':'1 Smith St\nMelbourne',
+		  'PATIENTNAME':'Joe Bloggs',
+		  'PATIENTADDRESS':'18 Fred St, Melbourne',
+		  'TEXT':"""This is the main text of the referral letter""",
+		  'DOB':'12/3/65',
+		  'INCLUDEMEDS':1,
+		  'MEDSLIST':[["Amoxycillin", "500mg", "TDS"], ["Perindopril", "4mg", "OD"]],
+		  'INCLUDEDISEASES':0, 'DISEASELIST':'',
+		  'CLOSING':'Yours sincerely,'
+		  }
+	form.process (params)
+	print(os.getcwd())
+	form.xdvi()
+	form.cleanup()
+
+#------------------------------------------------------------
+def test_de():
+		template = io.open('../../test-area/ian/Formularkopf-DE.tex')
+		form = LaTeXForm(template=template.read())
+		params = {
+				'PATIENT LASTNAME': 'Kirk',
+				'PATIENT FIRSTNAME': 'James T.',
+				'PATIENT STREET': 'Hauptstrasse',
+				'PATIENT ZIP': '02999',
+				'PATIENT TOWN': 'Gross Saerchen',
+				'PATIENT DOB': '22.03.1931'
+		}
+		form.process(params)
+		form.xdvi()
+		form.cleanup()
 
 #============================================================
 # main
@@ -2100,8 +2274,7 @@ if __name__ == '__main__':
 		input('press <ENTER> to continue')
 	#--------------------------------------------------------
 	def play_with_ooo():
-		#doc = open_uri_in_ooo(filename=sys.argv[1])
-		doc = None
+		doc = open_uri_in_ooo(filename=sys.argv[1])
 
 		class myCloseListener(unohelper.Base, oooXCloseListener):
 			def disposing(self, evt):
@@ -2142,7 +2315,6 @@ if __name__ == '__main__':
 		doc = None
 #		doc.close_in_ooo()
 		input('press <ENTER> to continue')
-
 	#--------------------------------------------------------
 	# other
 	#--------------------------------------------------------
@@ -2150,12 +2322,10 @@ if __name__ == '__main__':
 		template = cFormTemplate(aPK_obj = sys.argv[2])
 		print(template)
 		print(template.save_to_file())
-
 	#--------------------------------------------------------
 	def set_template_from_file():
 		template = cFormTemplate(aPK_obj = sys.argv[2])
 		template.update_template_from_file(filename = sys.argv[3])
-
 	#--------------------------------------------------------
 	def test_latex_form():
 		pat = gmPersonSearch.ask_for_patient()
@@ -2171,10 +2341,9 @@ if __name__ == '__main__':
 		from Gnumed.wxpython import gmMacro
 		ph = gmMacro.gmPlaceholderHandler()
 		ph.debug = True
-		form.substitute_placeholders(data_source = ph)
-		pdf_name = form.generate_output()
+		instance_file = form.substitute_placeholders(data_source = ph)
+		pdf_name = form.generate_output(instance_file = instance_file)
 		print("final PDF file is:", pdf_name)
-
 	#--------------------------------------------------------
 	def test_pdf_form():
 		pat = gmPersonSearch.ask_for_patient()
@@ -2190,10 +2359,9 @@ if __name__ == '__main__':
 		from Gnumed.wxpython import gmMacro
 		ph = gmMacro.gmPlaceholderHandler()
 		ph.debug = True
-		form.substitute_placeholders(data_source = ph)
-		pdf_name = form.generate_output()
+		instance_file = form.substitute_placeholders(data_source = ph)
+		pdf_name = form.generate_output(instance_file = instance_file)
 		print("final PDF file is:", pdf_name)
-
 	#--------------------------------------------------------
 	def test_abiword_form():
 		pat = gmPersonSearch.ask_for_patient()
@@ -2209,13 +2377,13 @@ if __name__ == '__main__':
 		from Gnumed.wxpython import gmMacro
 		ph = gmMacro.gmPlaceholderHandler()
 		ph.debug = True
-		form.substitute_placeholders(data_source = ph)
+		instance_file = form.substitute_placeholders(data_source = ph)
 		form.edit()
-		final_name = form.generate_output()
+		final_name = form.generate_output(instance_file = instance_file)
 		print("final file is:", final_name)
-
 	#--------------------------------------------------------
 	def test_text_form():
+
 		from Gnumed.business import gmPraxis
 
 		branches = gmPraxis.get_praxis_branches()
@@ -2243,6 +2411,9 @@ if __name__ == '__main__':
 	#--------------------------------------------------------
 	#--------------------------------------------------------
 	# now run the tests
+	#test_au()
+	#test_de()
+
 	# OOo
 	#test_init_ooo()
 	#test_ooo_connect()

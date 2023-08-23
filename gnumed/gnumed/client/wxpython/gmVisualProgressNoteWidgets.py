@@ -2,7 +2,7 @@
 """GNUmed visual progress notes handling widgets."""
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import sys
 import logging
@@ -20,13 +20,18 @@ import wx.lib.statbmp as wx_genstatbmp
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+
+from Gnumed.pycommon import gmI18N
+
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmShellAPI
-from Gnumed.pycommon import gmCfgDB
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmMatchProvider
 from Gnumed.pycommon import gmMimeLib
 from Gnumed.pycommon import gmWorkerThread
@@ -195,9 +200,11 @@ def edit_visual_progress_note(filename=None, episode=None, discard_unmodified=Fa
 			gmDispatcher.send(signal = 'statustext', msg = _('Cannot export visual progress note to file.'))
 			return None
 
-	editor = gmCfgDB.get4user (
+	dbcfg = gmCfg.cCfgSQL()
+	editor = dbcfg.get2 (
 		option = 'external.tools.visual_soap_editor_cmd',
-		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'user'
 	)
 
 	if editor is None:
@@ -510,5 +517,8 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain = 'gnumed')
 
 	#----------------------------------------

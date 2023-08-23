@@ -27,7 +27,7 @@ except ImportError:
 	print("")
 	print("  ERROR: psycopg2 not installed")
 	print("  ERROR: this is needed to access PostgreSQL")
-	print("  ERROR: psycopg2 is available from https://www.initd.org/")
+	print("  ERROR: psycopg2 is available from http://www.initd.org/")
 
 print(" wxPython...", end=' ')
 try:
@@ -43,7 +43,7 @@ except ImportError:
 		print("  INFO : you may have to explicitly set $DISPLAY")
 	print("  ERROR: wxPython not installed")
 	print("  ERROR: this is needed to show the GNUmed GUI")
-	print("  INFO : wxPython is available from https://www.wxpython.org")
+	print("  INFO : wxPython is available from http://www.wxpython.org")
 	print("  INFO : on Mac OSX Panther you may have to use 'export DISPLAY=:0'")
 
 # needs to check for uno3
@@ -126,8 +126,7 @@ except ImportError:
 	print("  INFO : this is needed to print EMR timelines")
 	print("  INFO : GNUmed will still work without it")
 	print("  INFO : note that you need v0.2.1 (not 0.2.2)")
-	print("  INFO :  $> pip3 install pysvg==0.2.1")
-	print("  INFO : (you may need to install <pip3> first)")
+	print("  INFO :  <pip3 install pysvg==0.2.1>")
 
 print(" packaging...", end=' ')
 try:
@@ -221,15 +220,6 @@ except ImportError:
 	print("  ERROR: humblewx not installed")
 	print("  INFO : this is used to display the EMR timeline")
 
-print(" urwid...", end=' ')
-try:
-	import urwid
-	print("found")
-except ImportError:
-	missing = True
-	print("")
-	print("  ERROR: <urwid> not installed")
-	print("  INFO : this is used to display the textmode user interface")
 
 #print "=> checking for Python module 'sane' ..."
 #try:

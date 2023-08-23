@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
-
-"""GNUmed provider inbox plugin"""
+#=====================================================
+# GNUmed provider inbox plugin
+# later to evolve into a more complete "provider-centric hub"
 #=====================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
 __license__ = "GPL"
 
 from Gnumed.wxpython import gmPlugin, gmProviderInboxWidgets
 from Gnumed.wxpython import gmAccessPermissionWidgets
-
-if __name__ == '__main__':
-	_ = lambda x:x
 
 #======================================================================
 class gmProviderInboxPlugin(gmPlugin.cNotebookPlugin):

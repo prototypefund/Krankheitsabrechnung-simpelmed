@@ -13,13 +13,11 @@ import wx
 
 
 # GNUmed
-from Gnumed.pycommon import gmDispatcher, gmExceptions, gmTools, gmCfgDB
-from Gnumed.wxpython import gmResizingWidgets, gmEMRStructWidgets, gmGuiHelpers, gmRegetMixin, gmEditArea, gmPatSearchWidgets, gmVaccWidgets
+from Gnumed.pycommon import gmDispatcher, gmI18N, gmExceptions, gmMatchProvider, gmTools, gmCfg
+from Gnumed.wxpython import gmResizingWidgets, gmPhraseWheel, gmEMRStructWidgets, gmGuiHelpers, gmRegetMixin, gmEditArea, gmPatSearchWidgets
 from Gnumed.business import gmPerson, gmEMRStructItems, gmSOAPimporter, gmPraxis, gmPersonSearch, gmStaff
 
 _log = logging.getLogger('gm.ui')
-if __name__ == '__main__':
-	_ = lambda x:x
 
 #============================================================
 def create_issue_popup(parent, pos, size, style, data_sink):
@@ -370,7 +368,7 @@ class cNotebookedProgressNoteInputPanel(wx.Panel):
 	"""
 	#--------------------------------------------------------
 	def __init__(self, parent, id):
-		"""Constructs a new instance of SOAP input panel
+		"""Contructs a new instance of SOAP input panel
 
 		@param parent: Wx parent widget
 		@param id: Wx widget id
@@ -386,7 +384,7 @@ class cNotebookedProgressNoteInputPanel(wx.Panel):
 		)
 		self.__pat = gmPerson.gmCurrentPatient()
 
-		# ui construction and event handling set up
+		# ui contruction and event handling set up
 		self.__do_layout()
 		self.__register_interests()
 		self.reset_ui_content()
@@ -486,7 +484,7 @@ class cNotebookedProgressNoteInputPanel(wx.Panel):
 			if not problem['problem_active']:
 				continue
 			if problem['type'] == 'issue':
-				issue = gmEMRStructItems.cHealthIssue.from_problem(problem)
+				issue = emr.problem2issue(problem)
 				last_encounter = emr.get_last_encounter(issue_id = issue['pk_health_issue'])
 				if last_encounter is None:
 					last = issue['modified_when'].strftime('%m/%Y')
@@ -494,7 +492,7 @@ class cNotebookedProgressNoteInputPanel(wx.Panel):
 					last = last_encounter['last_affirmed'].strftime('%m/%Y')
 				label = '%s: %s "%s"' % (last, problem['l10n_type'], problem['problem'])
 			elif problem['type'] == 'episode':
-				epi = gmEMRStructItems.cEpisode.from_problem(problem)
+				epi = emr.problem2episode(problem)
 				last_encounter = emr.get_last_encounter(episode_id = epi['pk_episode'])
 				if last_encounter is None:
 					last = epi['episode_modified_when'].strftime('%m/%Y')
@@ -575,11 +573,13 @@ class cNotebookedProgressNoteInputPanel(wx.Panel):
 		if len(epis) == 0:
 			value = True
 		else:
-			value = gmCfgDB.get4user (
+			dbcfg = gmCfg.cCfgSQL()
+			value = bool(dbcfg.get2 (
 				option = 'horstspace.soap_editor.allow_same_episode_multiple_times',
 				workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+				bias = 'user',
 				default = False
-			)
+			))
 
 		self.__soap_notebook.add_editor(allow_same_problem = value)
 	#--------------------------------------------------------
@@ -690,15 +690,16 @@ class cPopupDataHolder:
 	# def rename_data(self, old_desc=None, new_desc=None):
 #============================================================
 class cResizingSoapWin(gmResizingWidgets.cResizingWindow):
-	"""Resizing SOAP note input editor.
 
-	This is a wrapper around a few resizing STCs (the
-	labels and categories are settable) which are
-	customized to accept progress note input. It provides
-	the unified resizing behaviour.
-	"""
 	def __init__(self, parent, size, input_defs=None, problem=None):
-		"""Initialize SOAP note input editor.
+		"""Resizing SOAP note input editor.
+
+		This is a wrapper around a few resizing STCs (the
+		labels and categories are settable) which are
+		customized to accept progress note input. It provides
+		the unified resizing behaviour.
+
+		Knows how to save it's data into the backend.
 
 		@param input_defs: note's labels and categories
 		@type input_defs: list of cSOAPLineDef instances
@@ -716,9 +717,9 @@ class cResizingSoapWin(gmResizingWidgets.cResizingWindow):
 
 		self.__problem = problem
 		if isinstance(problem, gmEMRStructItems.cEpisode):
-			self.__problem = gmEMRStructItems.episode2problem(episode = problem)
+			self.__problem = emr.episode2problem(episode = problem)
 		elif isinstance(problem, gmEMRStructItems.cHealthIssue):
-			self.__problem = gmEMRStructItems.health_issue2problem(issue = problem)
+			self.__problem = emr.health_issue2problem(issue = problem)
 		self.__pat = gmPerson.gmCurrentPatient()
 	#--------------------------------------------------------
 	# cResizingWindow API
@@ -765,7 +766,7 @@ class cResizingSoapWin(gmResizingWidgets.cResizingWindow):
 		progress_note = []
 		aoe = ''
 		rfe = ''
-		#has_rfe = False
+		has_rfe = False
 		soap_lines_contents = self.GetValue()
 		for line_content in soap_lines_contents.values():
 			if line_content.text.strip() == '':
@@ -776,7 +777,7 @@ class cResizingSoapWin(gmResizingWidgets.cResizingWindow):
 				gmSOAPimporter.soap_bundle_TEXT_KEY: line_content.text.rstrip()
 			})
 			if line_content.data.is_rfe:
-				#has_rfe = True
+				has_rfe = True
 				rfe += line_content.text.rstrip()
 			if line_content.data.soap_cat == 'a':
 				aoe += line_content.text.rstrip()
@@ -812,7 +813,7 @@ class cResizingSoapWin(gmResizingWidgets.cResizingWindow):
 			new_episode = emr.add_episode(episode_name = epi_name[:45], pk_health_issue = None, is_open = True)
 
 			if self.__problem is not None:
-				issue = gmEMRStructItems.cHealthIssue.from_problem(self.__problem)
+				issue = emr.problem2issue(self.__problem)
 				if not gmEMRStructWidgets.move_episode_to_issue(episode = new_episode, target_issue = issue, save_to_backend = True):
 					print("error moving episode to issue")
 
@@ -967,7 +968,7 @@ class cResizingSoapPanel(wx.Panel):
 		"""
 		Set SOAP input widget saved (dumped to backend) state
 
-		@param is_saved: Flag indicating whether the SOAP has been dumped to
+		@param is_saved: Flag indicating wether the SOAP has been dumped to
 						 persistent backend
 		@type is_saved: boolean
 		"""
@@ -1092,6 +1093,7 @@ if __name__ == "__main__":
 
 	import sys
 
+	from Gnumed.pycommon import gmPG2
 	#--------------------------------------------------------
 	def get_narrative(pk_encounter=None, pk_health_issue = None, default_labels=None):
 		"""
@@ -1168,16 +1170,14 @@ if __name__ == "__main__":
 	def test_soap_notebook():
 		print('testing notebooked soap input...')
 		application = wx.PyWidgetTester(size=(800,500))
-		#soap_input = 
-		cProgressNoteInputNotebook(application.frame, -1)
+		soap_input = cProgressNoteInputNotebook(application.frame, -1)
 		application.frame.Show(True)
 		application.MainLoop()
 	#--------------------------------------------------------
 	def test_soap_notebook_panel():
 		print('testing notebooked soap panel...')
 		application = wx.PyWidgetTester(size=(800,500))
-		#soap_input = 
-		cNotebookedProgressNoteInputPanel(application.frame, -1)
+		soap_input = cNotebookedProgressNoteInputPanel(application.frame, -1)
 		application.frame.Show(True)
 		application.MainLoop()
 	#--------------------------------------------------------

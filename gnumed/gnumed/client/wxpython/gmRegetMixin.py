@@ -15,7 +15,7 @@ whenever you learn of backend data changes. This will
 in most cases happen after you receive a gmDispatcher
 signal indicating a change in the backend.
 
-The _populate_with_data(self) method must be overridden in the
+The _populate_with_data(self) method must be overriden in the
 including class and must return True if the UI was successfully
 repopulated with content.
 
@@ -40,7 +40,7 @@ Template for users:
 """
 #===========================================================================
 __author__ = "K.Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 import wx
 

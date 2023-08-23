@@ -26,17 +26,19 @@ FIXME: check status on save_payload()s
 #===============================================================
 __version__ = "$Revision: 1.34 $"
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL, details at https://www.gnu.org"
+__license__ = "GPL, details at http://www.gnu.org"
 
 # stdlib
 import glob, os.path, sys, tempfile, fileinput, time, copy, random, shutil
 
 
-from Gnumed.pycommon import gmCfgDB, gmLoginInfo, gmExceptions, gmI18N
+from Gnumed.pycommon import gmCfg, gmLoginInfo, gmExceptions, gmI18N
 from Gnumed.business import gmPathLab, gmXdtMappings, gmPerson, gmPersonSearch
 
+import mx.DateTime as mxDT
+
 _log = gmLog.gmDefLog
-_cfg = gmCfgINI.gmDefCfgFile
+_cfg = gmCfg.gmDefCfgFile
 #===============================================================
 class cLDTImporter:
 
@@ -56,7 +58,7 @@ class cLDTImporter:
 		conn = pool.GetConnection('historica')
 		if conn is None:
 			_log.Log(gmLog.lErr, 'cannot connect to database')
-			raise gmExceptions.ConstructorError('cannot connect to database')
+			raise gmExceptions.ConstructorError, 'cannot connect to database'
 		else:
 			pool.ReleaseConnection('historica')
 	#-----------------------------------------------------------
@@ -84,7 +86,7 @@ class cLDTImporter:
 		# create scratch directory
 		tempfile.tempdir = self.work_base
 		self.work_dir = tempfile.mktemp()
-		os.mkdir(self.work_dir, 0o700)
+		os.mkdir(self.work_dir, 0700)
 
 		# split into parts
 		source_files = self.__split_file(self.ldt_filename)
@@ -124,7 +126,7 @@ class cLDTImporter:
 		cmd = "select exists(select pk from test_org where internal_name=%s)"
 		status = gmPG.run_ro_query('historica', cmd, None, field_data)
 		if status is None:
-			_log.Log(gmLog.lErr, 'cannot check for lab existence on [%s]' % field_data)
+			_log.Log(gmLog.lErr, 'cannot check for lab existance on [%s]' % field_data)
 			return False
 		if not status[0][0]:
 			_log.Log(gmLog.lErr, 'Unbekanntes Labor [%s]' % field_data)
@@ -261,23 +263,23 @@ class cLDTImporter:
 	def __xform_8302(self, request_data):
 		"""8302: Berichtsdatum"""
 		if self.__request['results_reported_when'] is None:
-			self.__request['results_reported_when'] = None #mxDT.now()
-		self.__request['results_reported_when'] = None #mxDT.strptime(
-#			request_data['8302'][0].strip(),
-#			'%d%m%Y',
-#			self.__request['results_reported_when']
-#		)
+			self.__request['results_reported_when'] = mxDT.now()
+		self.__request['results_reported_when'] = mxDT.strptime(
+			request_data['8302'][0].strip(),
+			'%d%m%Y',
+			self.__request['results_reported_when']
+		)
 		return None
 	#-----------------------------------------------------------
 	def __xform_8303(self, request_data):
 		"""8303: Berichtszeit"""
 		if self.__request['results_reported_when'] is None:
-			self.__request['results_reported_when'] = None #mxDT.now()
-		self.__request['results_reported_when'] = None #mxDT.strptime(
-#			request_data['8303'][0].strip(),
-#			'%H%M',
-#			self.__request['results_reported_when']
-#		)
+			self.__request['results_reported_when'] = mxDT.now()
+		self.__request['results_reported_when'] = mxDT.strptime(
+			request_data['8303'][0].strip(),
+			'%H%M',
+			self.__request['results_reported_when']
+		)
 		return None
 	#-----------------------------------------------------------
 	def __xform_3103(self, request_data):
@@ -405,14 +407,13 @@ class cLDTImporter:
 		# essential fields
 		try:
 			reqid = request_data['8310'][0]
-		except (KeyError, IndexError):
+		except KeyError, IndexError:
 			# FIXME: todo item
 			_log.Log(gmLog.lErr, 'Satz vom Typ [8000:%s] enthält keine Probennummer' % request_data['8000'][0])
 			return False
 		# get lab request
 		try:
-			#self.__request = gmPathLab.cLabRequest(req_id=reqid, lab=self.__lab_name)
-			pass
+			self.__request = gmPathLab.cLabRequest(req_id=reqid, lab=self.__lab_name)
 		except gmExceptions.ConstructorError:
 			prob = 'Kann keine Patientenzuordnung der Probe finden.'
 			sol = 'Zuordnung der Probe zu einem Patienten prüfen. Falls doch vorhanden, Systembetreuer verständigen.'
@@ -458,14 +459,13 @@ class cLDTImporter:
 				'firstnames': request_data['3102'][0],
 				'dob': gmXdtMappings.xdt_8date2iso(request_data['3103'][0])
 			}
-		except (KeyError, IndexError):
+		except KeyError, IndexError:
 			pat_ldt = None
 		# either get lab request from request id
 		if '8310' in request_data:
 			reqid = request_data['8310'][0]
 			try:
-				#request = gmPathLab.cLabRequest(req_id=reqid, lab=self.__lab_name)
-				pass
+				request = gmPathLab.cLabRequest(req_id=reqid, lab=self.__lab_name)
 			except gmExceptions.ConstructorError:
 				_log.LogException('cannot get lab request', sys.exc_info(), verbose=0)
 			# try to verify patient

@@ -4,12 +4,11 @@ This encapsulates some of the XDT data into
 objects for easy access.
 """
 #==============================================================
+__version__ = "$Revision: 1.33 $"
 __author__ = "K.Hilbert, S.Hilbert"
 __license__ = "GPL"
 
-import os.path, sys, linecache, re as regex, time, datetime as pyDT, logging
-import fileinput
-import hashlib
+import os.path, sys, linecache, io, re as regex, time, datetime as pyDT, logging, io
 
 
 if __name__ == '__main__':
@@ -19,6 +18,7 @@ from Gnumed.business import gmXdtMappings, gmPerson
 
 
 _log = logging.getLogger('gm.xdt')
+_log.info(__version__)
 
 #==============================================================
 class cDTO_xdt_person(gmPerson.cDTO_person):
@@ -28,7 +28,7 @@ class cDTO_xdt_person(gmPerson.cDTO_person):
 #==============================================================
 def determine_xdt_encoding(filename=None, default_encoding=None):
 
-	f = open(filename, mode = 'rt', encoding = 'utf-8-sig', errors = 'ignore')
+	f = io.open(filename, mode = 'rt', encoding = 'utf8', errors = 'ignore')
 
 	file_encoding = None
 	for line in f:
@@ -74,7 +74,7 @@ def read_person_from_xdt(filename=None, encoding=None, dob_format=None):
 	if encoding is None:
 		encoding = determine_xdt_encoding(filename=filename)
 
-	xdt_file = open(filename, mode = 'rt', encoding = encoding)
+	xdt_file = io.open(filename, mode = 'rt', encoding = encoding)
 
 	for line in xdt_file:
 
@@ -90,7 +90,7 @@ def read_person_from_xdt(filename=None, encoding=None, dob_format=None):
 		# do we care about this line ?
 		if field in interesting_fields:
 			try:
-				data[_map_id2name[field]]
+				already_seen = data[_map_id2name[field]]
 				break
 			except KeyError:
 				data[_map_id2name[field]] = line[7:]
@@ -116,7 +116,7 @@ def read_person_from_xdt(filename=None, encoding=None, dob_format=None):
 		dto.dob = None
 
 	try:
-		dto.gender = gmXdtMappings.map_gender_xdt2gm[data['gender'].casefold()]
+		dto.gender = gmXdtMappings.map_gender_xdt2gm[data['gender'].lower()]
 	except KeyError:
 		dto.gender = None
 
@@ -178,12 +178,10 @@ class cLDTFile(object):
 		if self.__header is not None:
 			return self.__header
 
-		ldt_file = open(self.filename, mode = 'rt', encoding = self.encoding)
+		ldt_file = io.open(self.filename, mode = 'rt', encoding = self.encoding)
 		self.__header = []
 		for line in ldt_file:
-			#length, field, content = line[:3], line[3:7], line[7:].replace('\015','').replace('\012','')
-			field = line[3:7]
-			content = line[7:].replace('\015','').replace('\012','')
+			length, field, content = line[:3], line[3:7], line[7:].replace('\015','').replace('\012','')
 			# loop until found first LG-Bericht
 			if field == '8000':
 				if content in ['8202']:
@@ -193,14 +191,14 @@ class cLDTFile(object):
 		ldt_file.close()
 		return self.__header
 
-	header = property(_get_header)
+	header = property(_get_header, lambda x:x)
 	#----------------------------------------------------------
 	def _get_tail(self):
 
 		if self.__tail is not None:
 			return self.__tail
 
-		ldt_file = open(self.filename, mode = 'rt', encoding = self.encoding)
+		ldt_file = io.open(self.filename, mode = 'rt', encoding = self.encoding)
 		self.__tail = []
 		in_tail = False
 		for line in ldt_file:
@@ -208,9 +206,8 @@ class cLDTFile(object):
 				self.__tail.append(line)
 				continue
 
-			#length, field, content = line[:3], line[3:7], line[7:].replace('\015','').replace('\012','')
-			field = line[3:7]
-			content = line[7:].replace('\015','').replace('\012','')
+			length, field, content = line[:3], line[3:7], line[7:].replace('\015','').replace('\012','')
+
 			# loop until found tail
 			if field == '8000':
 				if content not in ['8221']:
@@ -221,11 +218,11 @@ class cLDTFile(object):
 		ldt_file.close()
 		return self.__tail
 
-	tail = property(_get_tail)
+	tail = property(_get_tail, lambda x:x)
 	#----------------------------------------------------------
 	def split_by_patient(self, dir=None, file=None):
 
-		ldt_file = open(self.filename, mode = 'rt', encoding = self.encoding)
+		ldt_file = io.open(self.filename, mode = 'rt', encoding = self.encoding)
 		out_file = None
 
 		in_patient = False
@@ -235,9 +232,8 @@ class cLDTFile(object):
 				out_file.write(line)
 				continue
 
-			#length, field, content = line[:3], line[3:7], line[7:].replace('\015','').replace('\012','')
-			content = line[7:].replace('\015','').replace('\012','')
-			field = line[3:7]
+			length, field, content = line[:3], line[3:7], line[7:].replace('\015','').replace('\012','')
+
 			# start of record
 			if field == '8000':
 				# start of LG-Bericht
@@ -246,7 +242,7 @@ class cLDTFile(object):
 					if out_file is not None:
 						out_file.write(''.join(self.tail))
 						out_file.close()
-					#out_file = open(filename=filename_xxxx, mode=xxxx_'rU', encoding=self.encoding)
+					#out_file = io.open(filename=filename_xxxx, mode=xxxx_'rU', encoding=self.encoding)
 					out_file.write(''.join(self.header))
 				else:
 					in_patient = False
@@ -300,9 +296,14 @@ def get_pat_files(aFile, ID, name, patdir = None, patlst = None):
 	return [patdir, files]
 #==============================================================
 def split_xdt_file(aFile,patlst,cfg):
+	content=[]
+	lineno = []
+
 	# xDT line format: aaabbbbcccccccccccCRLF where aaa = length, bbbb = record type, cccc... = content
+
 	content = []
 	record_start_lines = []
+
 	# find record starts
 	for line in fileinput.input(aFile):
 		strippedline = line.replace('\015','')
@@ -310,6 +311,7 @@ def split_xdt_file(aFile,patlst,cfg):
 		# do we care about this line ? (records start with 8000)
 		if strippedline[3:7] == '8000':
 			record_start_lines.append(fileinput.filelineno())
+
 	# loop over patient records
 	for aline in record_start_lines:
 		# WHY +2 ?!? 
@@ -333,19 +335,18 @@ def split_xdt_file(aFile,patlst,cfg):
 			startline=aline
 			endline=record_start_lines[record_start_lines.index(aline)+1]
 			_log.debug("reading from%s" %str(startline)+' '+str(endline) )
-			for tmp in range(startline,endline):
+			for tmp in range(startline,endline):							
 				content.append(linecache.getline(aFile,tmp))
-				_log.debug("reading %s" % tmp )
+				_log.debug("reading %s"%tmp )
 			hashes = check_for_previous_records(ID,name,patlst)
 			# is this new content ?
-			#data_hash = md5.new()			# FIXME: use hashlib
-			#map(data_hash.update, content)
-			data_hash = hashlib.md5(''.join(content).encode('utf8'))
+			data_hash = md5.new()			# FIXME: use hashlib
+			map(data_hash.update, content)
 			digest = data_hash.hexdigest()
 			if digest not in hashes:
 				pat_dir = cfg.get("xdt-viewer", "export-dir")
 				file = write_xdt_pat_data(content, pat_dir)
-				add_file_to_patlst(ID, name, patlst, file, data_hash)
+				add_file_to_patlst(ID, name, patlst, file, ahash)
 			content = []
 		else:
 			continue
@@ -361,8 +362,7 @@ def get_rand_fname(aDir):
 #==============================================================
 def write_xdt_pat_data(data, aDir):
 	"""write record for this patient to new file"""
-	fname = os.path.join(aDir, get_rand_fname(aDir))
-	pat_file = open(fname, mode = "wt", encoding = 'utf8')
+	pat_file = io.open(os.path.join(aDir, get_rand_fname(aDir)), mode = "wt", encoding = 'utf8')
 	map(pat_file.write, data)
 	pat_file.close()
 	return fname
@@ -381,24 +381,25 @@ def check_for_previous_records(ID, name, patlst):
 		hashes.append(ahash)
 
 	return hashes
-
 #==============================================================
 def add_file_to_patlst(ID, name, patlst, new_file, ahash):
 	anIdentity = "%s:%s" % (ID, name)
 	files = patlst.get(aGroup = anIdentity, anOption = "files")
-	files.append("%s:%s" % (new_file, ahash))
+	for file in new_files:
+		files.append("%s:%s" % (file, ahash))
 	_log.debug("files now there : %s" % files)
 	patlst.set(aGroup=anIdentity, anOption="files", aValue = files, aComment="")
-
 #==============================================================
 # main
 #--------------------------------------------------------------
 if __name__ == "__main__":
+	from Gnumed.pycommon import gmI18N, gmLog2
+
 	root_log = logging.getLogger()
 	root_log.setLevel(logging.DEBUG)
 	_log = logging.getLogger('gm.xdt')
 
-	from Gnumed.pycommon import gmI18N
+	#from Gnumed.business import gmPerson
 	gmI18N.activate_locale()
 	gmI18N.install_domain()
 	gmDateTime.init()

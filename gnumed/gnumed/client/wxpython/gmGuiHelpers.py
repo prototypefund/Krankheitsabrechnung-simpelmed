@@ -6,8 +6,9 @@ GNUmed.
 """
 # ========================================================================
 __author__  = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
+import os
 import logging
 import sys
 import io
@@ -20,8 +21,9 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmMatchProvider
+from Gnumed.pycommon import gmExceptions
+from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.wxpython import gmPhraseWheel
@@ -81,7 +83,7 @@ class c2ButtonQuestionDlg(wxg2ButtonQuestionDlg.wxg2ButtonQuestionDlg):
 
 		wxg2ButtonQuestionDlg.wxg2ButtonQuestionDlg.__init__(self, *args, **kwargs)
 
-		self.SetTitle(title = decorate_window_title(caption))
+		self.SetTitle(title = gmTools.decorate_window_title(caption))
 		self._LBL_question.SetLabel(label = question)
 
 		if not show_checkbox:
@@ -164,7 +166,7 @@ class c3ButtonQuestionDlg(wxg3ButtonQuestionDlg.wxg3ButtonQuestionDlg):
 
 		wxg3ButtonQuestionDlg.wxg3ButtonQuestionDlg.__init__(self, *args, **kwargs)
 
-		self.SetTitle(title = decorate_window_title(caption))
+		self.SetTitle(title = gmTools.decorate_window_title(caption))
 		self._LBL_question.SetLabel(label = question)
 
 		if not show_checkbox:
@@ -245,7 +247,7 @@ class cMultilineTextEntryDlg(wxgMultilineTextEntryDlg.wxgMultilineTextEntryDlg):
 		wxgMultilineTextEntryDlg.wxgMultilineTextEntryDlg.__init__(self, *args, **kwargs)
 
 		if title is not None:
-			self.SetTitle(decorate_window_title(title))
+			self.SetTitle(gmTools.decorate_window_title(title))
 
 		if self.original_text is not None:
 			self._TCTRL_text.SetValue(self.original_text)
@@ -272,12 +274,12 @@ class cMultilineTextEntryDlg(wxgMultilineTextEntryDlg.wxgMultilineTextEntryDlg):
 	def _get_value(self):
 		return self._TCTRL_text.GetValue()
 
-	value = property(_get_value)
+	value = property(_get_value, lambda x:x)
 	#--------------------------------------------------------
 	def _get_is_user_formatted(self):
 		return self._CHBOX_is_already_formatted.IsChecked()
 
-	is_user_formatted = property(_get_is_user_formatted)
+	is_user_formatted = property(_get_is_user_formatted, lambda x:x)
 	#--------------------------------------------------------
 	def _set_enable_user_formatting(self, value):
 		self._CHBOX_is_already_formatted.Enable(value)
@@ -337,7 +339,6 @@ def clipboard2file(check_for_filename=False):
 			try:
 				io.open(clipboard_text_content).close()
 				return clipboard_text_content
-
 			except IOError:
 				_log.exception('clipboard does not seem to hold filename: %s', clipboard_text_content)
 		fname = gmTools.get_unique_filename(prefix = 'gm-clipboard-', suffix = '.txt')
@@ -350,7 +351,7 @@ def clipboard2file(check_for_filename=False):
 	got_it = wx.TheClipboard.GetData(data_obj)
 	if got_it:
 		fname = gmTools.get_unique_filename(prefix = 'gm-clipboard-', suffix = '.png')
-		data_obj.Bitmap.SaveFile(fname, wx.BITMAP_TYPE_PNG)
+		bmp = data_obj.Bitmap.SaveFile(fname, wx.BITMAP_TYPE_PNG)
 		wx.TheClipboard.Close()
 		return fname
 
@@ -373,7 +374,7 @@ def text2clipboard(text=None, announce_result=False):
 
 #-------------------------------------------------------------------------
 def file2clipboard(filename=None, announce_result=False):
-	f = open(filename, mode = 'rt', encoding = 'utf-8-sig')
+	f = io.open(filename, mode = 'rt', encoding = 'utf8')
 	result = text2clipboard(text = f.read(), announce_result = False)
 	f.close()
 	if announce_result:
@@ -423,8 +424,11 @@ def file2scaled_image(filename:str=None, height:int=100):
 		rescaled_width = round(current_width / current_height) * rescaled_height
 		img_data.Rescale(rescaled_width, rescaled_height, quality = wx.IMAGE_QUALITY_HIGH)		# w, h
 		bitmap = wx.Bitmap(img_data)
+		del img_data
 	except Exception:
 		_log.exception('cannot load image from [%s]', filename)
+		del img_data
+		del bitmap
 		return None
 
 	return bitmap
@@ -449,7 +453,7 @@ def save_screenshot_to_file(filename:str=None, widget=None, settle_time:int=None
 			prefix = 'gm-screenshot-%s-' % pyDT.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'),
 			suffix = '.png'
 			# for testing:
-			#,tmp_dir = gmTools.gmPaths().user_work_dir
+			#,tmp_dir = os.path.join(gmTools.gmPaths().home_dir, 'gnumed')
 		)
 	else:
 		filename = gmTools.fname_sanitize(filename)
@@ -521,53 +525,6 @@ def __snapshot_to_bitmap(source_dc=None, x2snap_from=0, y2snap_from=0, width2sna
 	return wxbmp
 
 # ========================================================================
-__curr_pat = None
-
-def __on_post_patient_selection(**kwds):
-	global __curr_pat
-	__curr_pat = kwds['current_patient']
-
-gmDispatcher.connect(signal = 'post_patient_selection', receiver = __on_post_patient_selection)
-
-#---------------------------------------------------------------------------
-def __generate_pat_str():
-	if __curr_pat is None:
-		return None
-	data = {
-		'last': __curr_pat['lastnames'].upper(),
-		'first': __curr_pat['firstnames'],
-		'sex': __curr_pat.gender_symbol
-	}
-	return ('%(last)s %(first)s (%(sex)s)' % data).strip()
-
-#---------------------------------------------------------------------------
-def decorate_window_title(title):
-	if not title.startswith(gmTools._GM_TITLE_PREFIX):
-		title = '%s: %s' % (
-			gmTools._GM_TITLE_PREFIX,
-			title.strip()
-		)
-	pat = __generate_pat_str()
-	if (pat is not None) and (pat not in title):
-		title = '%s | %s' % (title, pat)
-	# FIXME: add current provider
-	return title
-
-#---------------------------------------------------------------------------
-def undecorate_window_title(title):
-	pat = __generate_pat_str()
-	if (pat is not None) and (pat in title):
-		title = title.replace(pat, '')
-	title = title.replace('|', '')
-	title = gmTools.strip_prefix (
-		title,
-		gmTools._GM_TITLE_PREFIX + ':',
-		remove_repeats = True,
-		remove_whitespace = True
-	)
-	return title.strip()
-
-# ========================================================================
 def gm_show_error(aMessage=None, aTitle = None, error=None, title=None):
 
 	if error is None:
@@ -582,7 +539,7 @@ def gm_show_error(aMessage=None, aTitle = None, error=None, title=None):
 	dlg = wx.MessageDialog (
 		parent = None,
 		message = error,
-		caption = decorate_window_title(title),
+		caption = gmTools.decorate_window_title(title),
 		style = wx.OK | wx.ICON_ERROR | wx.STAY_ON_TOP
 	)
 	dlg.ShowModal()
@@ -603,7 +560,7 @@ def gm_show_info(aMessage=None, aTitle=None, info=None, title=None):
 	dlg = wx.MessageDialog (
 		parent = None,
 		message = info,
-		caption = decorate_window_title(title),
+		caption = gmTools.decorate_window_title(title),
 		style = wx.OK | wx.ICON_INFORMATION | wx.STAY_ON_TOP
 	)
 	dlg.ShowModal()
@@ -620,7 +577,7 @@ def gm_show_warning(aMessage=None, aTitle=None):
 	dlg = wx.MessageDialog (
 		parent = None,
 		message = aMessage,
-		caption = decorate_window_title(aTitle),
+		caption = gmTools.decorate_window_title(aTitle),
 		style = wx.OK | wx.ICON_EXCLAMATION | wx.STAY_ON_TOP
 	)
 	dlg.ShowModal()
@@ -633,20 +590,21 @@ def gm_show_question(aMessage='programmer forgot to specify question', aTitle='g
 		style = wx.YES_NO | wx.CANCEL | wx.ICON_QUESTION | wx.STAY_ON_TOP
 	else:
 		style = wx.YES_NO | wx.ICON_QUESTION | wx.STAY_ON_TOP
+
 	if question is None:
 		question = aMessage
 	if title is None:
 		title = aTitle
-	title = decorate_window_title(title)
+	title = gmTools.decorate_window_title(title)
+
 	dlg = wx.MessageDialog(None, question, title, style)
 	btn_pressed = dlg.ShowModal()
 	dlg.DestroyLater()
+
 	if btn_pressed == wx.ID_YES:
 		return True
-
 	elif btn_pressed == wx.ID_NO:
 		return False
-
 	else:
 		return None
 
@@ -665,7 +623,7 @@ if __name__ == '__main__':
 
 	#------------------------------------------------------------------
 	def test_scale_img():
-		wx.App()
+		app = wx.App()
 		img = file2scaled_image(filename = sys.argv[2])
 		print(img)
 		print(img.Height)
@@ -673,14 +631,14 @@ if __name__ == '__main__':
 	#------------------------------------------------------------------
 	def test_sql_logic_prw():
 		app = wx.PyWidgetTester(size = (200, 50))
-		cThreeValuedLogicPhraseWheel(app.frame, -1)
+		prw = cThreeValuedLogicPhraseWheel(app.frame, -1)
 		app.frame.Show(True)
 		app.MainLoop()
 
 		return True
 	#------------------------------------------------------------------
 	def test_clipboard():
-		wx.PyWidgetTester(size = (200, 50))
+		app = wx.PyWidgetTester(size = (200, 50))
 		result = clipboard2file()
 		if result is False:
 			print("problem opening clipboard")
@@ -692,7 +650,7 @@ if __name__ == '__main__':
 
 	#------------------------------------------------------------------
 	def test_take_screenshot():
-		wx.App()
+		app = wx.App()
 		input('enter for next screenshot')
 		print(save_screenshot_to_file())
 		input('enter for next screenshot')

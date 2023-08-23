@@ -17,7 +17,7 @@ import wx
 # GNUmed libs
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmMimeLib
@@ -25,7 +25,7 @@ from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmPrinting
 from Gnumed.pycommon import gmShellAPI
 from Gnumed.pycommon import gmNetworkTools
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmLog2
 
 from Gnumed.business import gmPerson
@@ -38,7 +38,7 @@ from Gnumed.wxpython import gmDocumentWidgets
 
 
 _log = logging.getLogger('gm.ui')
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 #============================================================
 def _add_file_to_export_area(**kwargs):
@@ -209,7 +209,7 @@ class cExportAreaExportToMediaDlg(wxgExportAreaExportToMediaDlg.wxgExportAreaExp
 			'Select the media to export onto below.\n'
 		) % (
 			self.__item_count,
-			self.__patient.description_gender
+			self.__patient['description_gender']
 		)
 		self._LBL_header.Label = msg
 		self._LCTRL_removable_media.set_columns([_('Type'), _('Medium'), _('Details')])
@@ -247,10 +247,6 @@ class cExportAreaExportToMediaDlg(wxgExportAreaExportToMediaDlg.wxgExportAreaExp
 		data = []
 
 		found, self.__burn_script = gmShellAPI.detect_external_binary('gm-burn_doc')
-		if not found:
-			_log.debug('gm-burn_doc(.bat) arguments: "DIRECTORY-TO-BURN-FROM"')
-			_log.debug('gm-burn_doc(.bat): call a CD/DVD burning application and pass in DIRECTORY-TO-BURN-FROM')
-			_log.debug('gm-burn_doc(.bat): return 0 on success')
 
 		# USB / MMC drives
 		removable_partitions = gmTools.enumerate_removable_partitions()
@@ -400,7 +396,7 @@ class cExportAreaSaveAsDlg(wxgExportAreaSaveAsDlg.wxgExportAreaSaveAsDlg):
 		event.Skip()
 		curr_path = self._LBL_directory.Label.rstrip(os.sep).rstrip('/')
 		if not os.path.isdir(curr_path):
-			curr_path = gmTools.gmPaths().user_work_dir
+			curr_path = os.path.join(gmTools.gmPaths().home_dir, 'gnumed')
 		msg = _('Select directory where to save the archive or files.')
 		dlg = wx.DirDialog(self, message = msg, defaultPath = curr_path, style = wx.DD_DEFAULT_STYLE)# | wx.DD_DIR_MUST_EXIST)
 		choice = dlg.ShowModal()
@@ -453,10 +449,10 @@ class cExportAreaSaveAsDlg(wxgExportAreaSaveAsDlg.wxgExportAreaSaveAsDlg):
 	def __init_ui(self):
 		msg = ('\n' + _('Number of entries to save: %s') + '\n\n' + _('Patient: %s') + '\n') % (
 			self.__item_count,
-			self.__patient.description_gender
+			self.__patient['description_gender']
 		)
 		self._LBL_header.Label = msg
-		self._LBL_directory.Label = os.path.join(gmTools.gmPaths().user_work_dir, self.__patient.subdir_name) + os.sep
+		self._LBL_directory.Label = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', self.__patient.subdir_name) + os.sep
 		self.__update_ui_state()
 
 	#--------------------------------------------------------
@@ -540,44 +536,8 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 		self._schedule_data_reget()
 
 	#--------------------------------------------------------
-	def _on_item_up_pressed(self, event):
+	def _on_list_item_selected(self, event):
 		event.Skip()
-		sort_col_idx, is_ascending = self._LCTRL_items.GetSortState()
-		if sort_col_idx != 0:
-			gmDispatcher.send(signal = 'statustext', msg = _('Not sorted by list position, cannot move item.'))
-			return
-
-		selected = self._LCTRL_items.GetFirstSelected()
-		if selected == -1:
-			return
-
-		if selected == 0:
-			return
-
-		item = self._LCTRL_items.get_item_data(item_idx = selected)
-		next_item = self._LCTRL_items.get_item_data(item_idx = selected - 1)
-		item['list_position'] = next_item['list_position']
-		item.save()
-
-	#--------------------------------------------------------
-	def _on_item_down_pressed(self, event):
-		event.Skip()
-		sort_col_idx, is_ascending = self._LCTRL_items.GetSortState()
-		if sort_col_idx != 0:
-			gmDispatcher.send(signal = 'statustext', msg = _('Not sorted by list position, cannot move item.'))
-			return
-
-		selected = self._LCTRL_items.GetFirstSelected()
-		if selected == -1:
-			return
-
-		if (selected + 1) == self._LCTRL_items.ItemCount:
-			return
-
-		item = self._LCTRL_items.get_item_data(item_idx = selected)
-		next_item = self._LCTRL_items.get_item_data(item_idx = selected + 1)
-		item['list_position'] = next_item['list_position'] + 1
-		item.save()
 
 	#--------------------------------------------------------
 	def _on_show_item_button_pressed(self, event):
@@ -593,7 +553,7 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 		dlg = wx.FileDialog (
 			parent = self,
 			message = _("Select files to add to the export area"),
-			defaultDir = gmTools.gmPaths().user_work_dir,
+			defaultDir = os.path.expanduser(os.path.join('~', 'gnumed')),
 			style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE | wx.FD_PREVIEW
 		)
 		choice = dlg.ShowModal()
@@ -613,7 +573,7 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 		dlg = wx.DirDialog (
 			parent = self,
 			message = _("Select directory to add to the export area"),
-			defaultPath = gmTools.gmPaths().user_work_dir,
+			defaultPath = os.path.expanduser(os.path.join('~', 'gnumed')),
 			style = wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST
 		)
 		choice = dlg.ShowModal()
@@ -663,7 +623,7 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 		if not gmPerson.gmCurrentPatient().export_area.add_files(scans, _('scan')):
 			gmGuiHelpers.gm_show_error (
 				title = _('Scanning files into export area'),
-				error = _('Cannot add (some of) the following scans to the export area:\n%s ') % '\n '.join(scans)
+				error = _('Cannot add (some of) the following scans to the export area:\n%s ') % '\n '.join(fnames)
 			)
 
 	#--------------------------------------------------------
@@ -730,7 +690,7 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 		choice = dlg.ShowModal()
 		path = dlg._LBL_directory.Label
 		generate_metadata = dlg._CHBOX_generate_metadata.IsChecked()
-		#use_subdir = dlg._CHBOX_use_subdirectory.IsChecked()
+		use_subdir = dlg._CHBOX_use_subdirectory.IsChecked()
 		encrypt = dlg._CHBOX_encrypt.IsChecked()
 		convert2pdf = dlg._CHBOX_convert2pdf.IsChecked()
 		dlg.DestroyLater()
@@ -865,16 +825,6 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 		return True
 
 	#--------------------------------------------------------
-	def _on_pdfjoin_button_pressed(self, event):
-		event.Skip()
-		self.__join_items_into_pdf()
-
-	#--------------------------------------------------------
-	def _on_encrypt_items_button_pressed(self, event):
-		event.Skip()
-		self.__encrypt_items()
-
-	#--------------------------------------------------------
 	def _on_archive_items_button_pressed(self, event):
 		print("Event handler '_on_archive_items_button_pressed' not implemented!")
 		event.Skip()
@@ -882,9 +832,8 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 	#--------------------------------------------------------
 	def _on_mail_items_button_pressed(self, event):
 		event.Skip()
-		_log.debug('gm-mail_doc(.bat) API: PRAXIS-VCF ZIP-ARCHIVE"')
-		_log.debug('gm-mail_doc(.bat) should call an email client and pass in PRAXIS-VCF and ZIP-ARCHIVE as attachments')
-		_log.debug('gm-mail_doc(.bat) should return 0 on success')
+
+		_log.debug('gm-mail_doc(.bat) API: "MAIL-PROGRAM PRAXIS-VCF ZIP-ARCHIVE"')
 
 		found, external_cmd = gmShellAPI.detect_external_binary('gm-mail_doc')
 		if not found:
@@ -916,6 +865,8 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 	#--------------------------------------------------------
 	def _on_fax_items_button_pressed(self, event):
 		event.Skip()
+
+		_log.debug('gm-fax_doc(.bat) API: "FAX-PROGRAM FAXNUMBER-OR-<EMPTY> LIST-OF-FILES-TO-FAX" (any file type !)')
 
 		found, external_cmd = gmShellAPI.detect_external_binary('gm-fax_doc')
 		if not found:
@@ -966,36 +917,6 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 		return True
 
 	#--------------------------------------------------------
-	def _get_list_item_identifier(self, idx):
-		if idx == -1:
-			return None
-
-		if idx >= self._LCTRL_items.ItemCount:
-			return None
-
-		data = self._LCTRL_items.get_item_data(item_idx = idx)
-		if data is None:
-			return None
-
-		return data['pk_export_item']
-	#--------------------------------------------------------
-	def _get_drag_data(self):
-		data = self._LCTRL_items.get_selected_item_data(only_one = True)
-		if data is None:
-			return None
-
-		if data.is_DIRENTRY:
-			return None
-
-		filename = data.save_to_file()
-		if filename is None:
-			return None
-
-		file_data_obj = wx.FileDataObject()
-		file_data_obj.AddFile(filename)
-		return file_data_obj
-
-	#--------------------------------------------------------
 	def repopulate_ui(self):
 		self._populate_with_data()
 
@@ -1003,30 +924,19 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 	# internal API
 	#--------------------------------------------------------
 	def __init_ui(self):
-		self._LCTRL_items.set_columns(['#', _('By'), _('When'), _('Description')])
-		self._LCTRL_items.ItemIdentityCallback = self._get_list_item_identifier
-		self._LCTRL_items.dnd_callback = self._get_drag_data
+		self._LCTRL_items.set_columns([_('By'), _('When'), _('Description')])
 
-		self._BTN_item_up.Enable()
-		self._BTN_item_down.Enable()
 		self._BTN_archive_items.Disable()
 
+		# there's no GetToolTipText() in wx2.8
 		self.__mail_script_exists, path = gmShellAPI.detect_external_binary(binary = r'gm-mail_doc')
 		if not self.__mail_script_exists:
-			_log.debug('gm-mail_doc(.bat) arguments: PRAXIS-VCF ZIP-ARCHIVE"')
-			_log.debug('gm-mail_doc(.bat): call an email client and pass in PRAXIS-VCF and ZIP-ARCHIVE as attachments')
-			_log.debug('gm-mail_doc(.bat): return 0 on success')
 			self._BTN_mail_items.Disable()
 			tt = self._BTN_mail_items.GetToolTipText() + '\n\n' + _('<gm-mail_doc(.bat) not found>')
 			self._BTN_mail_items.SetToolTip(tt)
 
 		self.__fax_script_exists, path = gmShellAPI.detect_external_binary(binary = r'gm-fax_doc')
 		if not self.__fax_script_exists:
-			_log.debug('gm-fax_doc(.bat) arguments: "FAXNUMBER-OR-<EMPTY> LIST-OF-FILES-TO-FAX"')
-			_log.debug('gm-fax_doc(.bat): call a fax client and pass in FAXNUMBER and LIST-OF-FILES-TO-FAX')
-			_log.debug('gm-fax_doc(.bat): return 0 on success')
-			_log.debug('gm-fax_doc(.bat): FAXNUMBER is either the receiver number or the string "EMPTY" if unknown number to GNUmed')
-			_log.debug('gm-fax_doc(.bat): LIST-OF-FILES-TO-FAX can be of any file type, so may need to be converted to, say, G3 TIFF')
 			self._BTN_fax_items.Disable()
 			tt = self._BTN_fax_items.GetToolTipText() + '\n\n' + _('<gm-fax_doc(.bat) not found>')
 			self._BTN_fax_items.SetToolTip(tt)
@@ -1170,6 +1080,7 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 
 	#--------------------------------------------------------
 	def __get_items_to_work_on(self, msg_title):
+
 		items = self._LCTRL_items.get_selected_item_data(only_one = False)
 		if len(items) > 0:
 			return items
@@ -1218,87 +1129,8 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 		return False
 
 	#--------------------------------------------------------
-	def __encrypt_items(self):
-		items = self.__get_items_to_work_on(_('Select items for encryption.'))
-		if items is None:
-			return
-
-		data_pwd = self.__get_password('Encrypting items')
-		if data_pwd is None:
-			_log.debug('user aborted by not providing the same password twice')
-			gmDispatcher.send(signal = 'statustext', msg = _('Password not provided twice. Aborting.'))
-			return None
-
-		wx.BeginBusyCursor()
-		converted_item_files = {}
-		for item in items:
-			if item.is_DIRENTRY:
-				_log.error('cannot encrypt DIRENTRY')
-				wx.EndBusyCursor()
-				return False
-
-			fname = item.save_to_file(passphrase = data_pwd, convert2pdf = False)
-			if fname is not None:
-				converted_item_files[fname] = item
-				continue
-			fname = item.save_to_file(passphrase = data_pwd, convert2pdf = True)
-			if fname is not None:
-				converted_item_files[fname] = item
-				continue
-			_log.error('problem encrypting item either directly or when converted to PDF')
-			wx.EndBusyCursor()
-			return False
-
-		for fname in converted_item_files:
-			if item.update_data_from_file(filename = fname, convert_document_part = True):
-				continue
-			_log.error('error updating item data')
-			wx.EndBusyCursor()
-			return False
-
-		wx.EndBusyCursor()
-		return True
-
-	#--------------------------------------------------------
-	def __join_items_into_pdf(self):
-		items = self.__get_items_to_work_on(_('Select items for PDF.'))
-		if items is None:
-			return
-
-		export_dir = self.__export_as_files (
-			_('Creating PDF from selected items'),
-			base_dir = None,
-			encrypt = False,
-			with_metadata = False,
-			items = items,
-			convert2pdf = False
-		)
-		if export_dir is None:
-			gmDispatcher.send(signal = 'statustext', msg = _('Cannot turn into PDF: aborted or error.'))
-			return
-
-		# unite files in export_dir
-		pdf_pages = gmTools.dir_list_files(directory = export_dir, exclude_subdirs = True)
-		if pdf_pages is None:
-			gmDispatcher.send(signal = 'statustext', msg = _('Cannot turn into PDF: aborted or error.'))
-			return
-
-		pdf_pages.sort()
-		# ask for PDF name ?
-		pdf_name = gmMimeLib.join_files_as_pdf(files = pdf_pages)
-		if pdf_name is None:
-			gmDispatcher.send(signal = 'statustext', msg = _('Cannot turn into PDF: aborted or error.'))
-			return
-
-		item = gmPerson.gmCurrentPatient().export_area.add_file (
-			filename = pdf_name,
-			hint = _('Document generated from selected items (%s)') % gmDateTime.pydt_now_here().strftime('%Y %b %d  %H:%M')
-		)
-		item.display_via_mime(block = False)
-		# hint about showing and ask whether to remove items from export area ?
-
-	#--------------------------------------------------------
 	def __browse_patient_data(self, base_dir):
+
 		msg = _('Documents saved into:\n\n %s') % base_dir
 		browse_index = gmGuiHelpers.gm_show_question (
 			title = _('Browsing patient data excerpt'),
@@ -1356,20 +1188,17 @@ class cExportAreaPluginPnl(wxgExportAreaPluginPnl.wxgExportAreaPluginPnl, gmRege
 			return True
 
 		items = pat.export_area.items
-		self._LCTRL_items.RememberItemSelection()
-		self._LCTRL_items.RememberSortState()
 		self._LCTRL_items.set_string_items ([
-			[	i['list_position'],
-				i['created_by'],
+			[	i['created_by'],
 				gmDateTime.pydt_strftime(i['created_when'], '%Y %b %d %H:%M'),
 				i['description']
 			] for i in items
 		])
 		self._LCTRL_items.set_column_widths([wx.LIST_AUTOSIZE, wx.LIST_AUTOSIZE, wx.LIST_AUTOSIZE])
 		self._LCTRL_items.set_data(items)
-		self._LCTRL_items.RestoreItemSelection()
-		self._LCTRL_items.RestoreSortState()
+
 		self._LCTRL_items.SetFocus()
+
 		return True
 
 #============================================================
@@ -1483,7 +1312,6 @@ class cPrintMgrPluginPnl(wxgPrintMgrPluginPnl.wxgPrintMgrPluginPnl, gmRegetMixin
 	#--------------------------------------------------------
 	def __init_ui(self):
 		self._BTN_export_printouts.Enable(False)
-
 	#--------------------------------------------------------
 	# reget mixin API
 	#--------------------------------------------------------

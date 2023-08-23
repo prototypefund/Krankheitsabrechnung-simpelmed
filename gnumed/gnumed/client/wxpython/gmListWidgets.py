@@ -1,4 +1,4 @@
-"""GNUmed list controls and widgets.
+__doc__ = """GNUmed list controls and widgets.
 
 TODO:
 
@@ -9,9 +9,9 @@ TODO:
 	Thanks for all the suggestions, on and off line.  There's an update
 	with a new name (ColumnAutoSizeMixin) and better sizing algorithm at:
 
-	https://trac.flipturn.org/browser/trunk/peppy/lib/column_autosize.py
+	http://trac.flipturn.org/browser/trunk/peppy/lib/column_autosize.py
 
-	sorting: https://code.activestate.com/recipes/426407/
+	sorting: http://code.activestate.com/recipes/426407/
 """
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
@@ -19,11 +19,13 @@ __license__ = "GPL v2 or later"
 
 
 import sys
+import types
 import logging
 import threading
 import time
 import locale
 import os
+import io
 import csv
 import re as regex
 import datetime as pydt
@@ -35,10 +37,8 @@ import wx.lib.mixins.listctrl as listmixins
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
-from Gnumed.wxpython.gmGuiHelpers import decorate_window_title, undecorate_window_title
 
 
 _log = logging.getLogger('gm.list_ui')
@@ -99,7 +99,7 @@ def get_choices_from_list (
 				else:
 					None
 	"""
-	caption = decorate_window_title(gmTools.coalesce(caption, _('generic multi choice dialog')))
+	caption = gmTools.decorate_window_title(gmTools.coalesce(caption, _('generic multi choice dialog')))
 
 	dlg = cGenericListSelectorDlg(parent, -1, title = caption, msg = msg, single_selection = single_selection)
 	dlg.refresh_callback = refresh_callback
@@ -158,7 +158,7 @@ class cGenericListSelectorDlg(wxgGenericListSelectorDlg.wxgGenericListSelectorDl
 			title = kwargs['title']
 		except KeyError:
 			title = self.__class__.__name__
-		kwargs['title'] = decorate_window_title(title)
+		kwargs['title'] = gmTools.decorate_window_title(title)
 
 		try:
 			single_selection = kwargs['single_selection']
@@ -285,19 +285,15 @@ class cGenericListSelectorDlg(wxgGenericListSelectorDlg.wxgGenericListSelectorDl
 		if not self.__left_extra_button_callback(item_data):
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
-			self._LCTRL_items.set_column_widths()
 		finally:
 			wx.EndBusyCursor()
+		self._LCTRL_items.set_column_widths()
 		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
@@ -309,19 +305,15 @@ class cGenericListSelectorDlg(wxgGenericListSelectorDlg.wxgGenericListSelectorDl
 		if not self.__middle_extra_button_callback(item_data):
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
-			self._LCTRL_items.set_column_widths()
 		finally:
 			wx.EndBusyCursor()
+		self._LCTRL_items.set_column_widths()
 		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
@@ -333,19 +325,15 @@ class cGenericListSelectorDlg(wxgGenericListSelectorDlg.wxgGenericListSelectorDl
 		if not self.__right_extra_button_callback(item_data):
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
-			self._LCTRL_items.set_column_widths()
 		finally:
 			wx.EndBusyCursor()
+		self._LCTRL_items.set_column_widths()
 		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
@@ -386,14 +374,11 @@ class cGenericListSelectorDlg(wxgGenericListSelectorDlg.wxgGenericListSelectorDl
 			return
 
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
 			self._LCTRL_items.set_column_widths()
 		finally:
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
 	def _on_edit_invoked_in_listctrl(self):
@@ -404,20 +389,16 @@ class cGenericListSelectorDlg(wxgGenericListSelectorDlg.wxgGenericListSelectorDl
 		if not self.__edit_callback(self._LCTRL_items.get_selected_item_data(only_one = True)):
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
 			self._LCTRL_items.set_column_widths()
+			self._LCTRL_items.SetFocus()
 		finally:
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
 	def _on_insert_key_pressed_in_listctrl(self):
@@ -428,20 +409,16 @@ class cGenericListSelectorDlg(wxgGenericListSelectorDlg.wxgGenericListSelectorDl
 		if not self.__new_callback():
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
 			self._LCTRL_items.set_column_widths()
+			self._LCTRL_items.SetFocus()
 		finally:
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
 	# properties
@@ -612,14 +589,11 @@ class cGenericListSelectorDlg(wxgGenericListSelectorDlg.wxgGenericListSelectorDl
 
 	def _set_refresh_callback_helper(self):
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
-			self._LCTRL_items.set_column_widths()
 		finally:
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
+		self._LCTRL_items.set_column_widths()
 
 	def _set_refresh_callback(self, callback):
 		if callback is not None:
@@ -741,30 +715,18 @@ class cGenericListManagerPnl(wxgGenericListManagerPnl.wxgGenericListManagerPnl):
 
 	#------------------------------------------------------------
 	def __do_delete(self):
-		if self.__delete_callback is None:
+		if not self.__delete_callback(self._LCTRL_items.get_selected_item_data(only_one = True)):
 			return
-
-		item = self._LCTRL_items.get_selected_item_data(only_one = True)
-		if item is None:
-			return
-
-		if not self.__delete_callback(item):
-			self._LCTRL_items.SetFocus()
-			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
 			self._LCTRL_items.set_column_widths()
+			self._LCTRL_items.SetFocus()
 		finally:
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
 	def _on_edit_invoked_in_listctrl(self):
@@ -772,30 +734,19 @@ class cGenericListManagerPnl(wxgGenericListManagerPnl.wxgGenericListManagerPnl):
 
 	#------------------------------------------------------------
 	def __do_edit(self):
-		if self.__edit_callback is None:
-			return
-
-		item = self._LCTRL_items.get_selected_item_data(only_one = True)
-		if item is None:
-			return
-
-		if not self.__edit_callback(item):
+		if not self.__edit_callback(self._LCTRL_items.get_selected_item_data(only_one = True)):
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
 			self._LCTRL_items.set_column_widths()
+			self._LCTRL_items.SetFocus()
 		finally:
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
 	def _on_insert_key_pressed_in_listctrl(self):
@@ -803,26 +754,19 @@ class cGenericListManagerPnl(wxgGenericListManagerPnl.wxgGenericListManagerPnl):
 
 	#------------------------------------------------------------
 	def __do_insert(self):
-		if self.__new_callback is None:
-			return
-
 		if not self.__new_callback():
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
 			self._LCTRL_items.set_column_widths()
+			self._LCTRL_items.SetFocus()
 		finally:
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
 	# event handlers
@@ -838,18 +782,41 @@ class cGenericListManagerPnl(wxgGenericListManagerPnl.wxgGenericListManagerPnl):
 	#------------------------------------------------------------
 	def _on_list_item_activated(self, event):
 		event.Skip()
+		if self.__edit_callback is None:
+			return
 		self._on_edit_button_pressed(event)
 
 	#------------------------------------------------------------
 	def _on_add_button_pressed(self, event):
-		self.__do_insert()
+		if not self.__new_callback():
+			return
+		if self.__refresh_callback is None:
+			return
+		wx.BeginBusyCursor()
+		try:
+			self.__refresh_callback(lctrl = self._LCTRL_items)
+		finally:
+			wx.EndBusyCursor()
 
 	#------------------------------------------------------------
 	def _on_edit_button_pressed(self, event):
-		self.__do_edit()
+		item = self._LCTRL_items.get_selected_item_data(only_one = True)
+		if item is None:
+			return
+		if not self.__edit_callback(item):
+			return
+		if self.__refresh_callback is None:
+			return
+		wx.BeginBusyCursor()
+		try:
+			self.__refresh_callback(lctrl = self._LCTRL_items)
+		finally:
+			wx.EndBusyCursor()
 
 	#------------------------------------------------------------
 	def _on_remove_button_pressed(self, event):
+		if self._LCTRL_items.get_selected_items(only_one = True) is None:
+			return
 		self.__do_delete()
 
 	#------------------------------------------------------------
@@ -858,20 +825,16 @@ class cGenericListManagerPnl(wxgGenericListManagerPnl.wxgGenericListManagerPnl):
 		if not self.__left_extra_button_callback(item_data):
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
-			self._LCTRL_items.set_column_widths()
 		finally:
+			self._LCTRL_items.set_column_widths()
+			self._LCTRL_items.SetFocus()
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
 	def _on_middle_extra_button_pressed(self, event):
@@ -879,20 +842,16 @@ class cGenericListManagerPnl(wxgGenericListManagerPnl.wxgGenericListManagerPnl):
 		if not self.__middle_extra_button_callback(item_data):
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
-			self._LCTRL_items.set_column_widths()
 		finally:
+			self._LCTRL_items.set_column_widths()
+			self._LCTRL_items.SetFocus()
 			wx.EndBusyCursor()
-		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
 	def _on_right_extra_button_pressed(self, event):
@@ -900,19 +859,15 @@ class cGenericListManagerPnl(wxgGenericListManagerPnl.wxgGenericListManagerPnl):
 		if not self.__right_extra_button_callback(item_data):
 			self._LCTRL_items.SetFocus()
 			return
-
 		if self.__refresh_callback is None:
 			self._LCTRL_items.SetFocus()
 			return
-
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
-			self._LCTRL_items.set_column_widths()
 		finally:
 			wx.EndBusyCursor()
+		self._LCTRL_items.set_column_widths()
 		self._LCTRL_items.SetFocus()
 
 	#------------------------------------------------------------
@@ -989,13 +944,11 @@ class cGenericListManagerPnl(wxgGenericListManagerPnl.wxgGenericListManagerPnl):
 
 	def _set_refresh_callback_helper(self):
 		wx.BeginBusyCursor()
-		self._LCTRL_items.RememberItemSelection()
 		try:
 			self.__refresh_callback(lctrl = self._LCTRL_items)
-			self._LCTRL_items.RestoreItemSelection()
-			self._LCTRL_items.set_column_widths()
 		finally:
 			wx.EndBusyCursor()
+		self._LCTRL_items.set_column_widths()
 
 	def _set_refresh_callback(self, callback):
 		if callback is not None:
@@ -1108,7 +1061,7 @@ class cItemPickerDlg(wxgItemPickerDlg.wxgItemPickerDlg):
 			title = kwargs['title']
 		except KeyError:
 			title = self.__class__.__name__
-		kwargs['title'] = decorate_window_title(title)
+		kwargs['title'] = gmTools.decorate_window_title(title)
 
 		wxgItemPickerDlg.wxgItemPickerDlg.__init__(self, *args, **kwargs)
 
@@ -1173,7 +1126,7 @@ class cItemPickerDlg(wxgItemPickerDlg.wxgItemPickerDlg):
 	def get_picks(self):
 		return self._LCTRL_right.get_item_data()
 
-	picks = property(get_picks)
+	picks = property(get_picks, lambda x:x)
 
 	#------------------------------------------------------------
 	def _set_extra_button(self, definition):
@@ -1280,352 +1233,8 @@ class cItemPickerDlg(wxgItemPickerDlg.wxgItemPickerDlg):
 
 	right_item_tooltip_callback = property(lambda x:x, _set_right_item_tooltip_callback)
 
-
 #================================================================
-# listctrl mixins
-#----------------------------------------------------------------
-class cColumnSorterMixin:
-	"""
-	A mixin class that handles sorting of a wx.ListCtrl in REPORT mode when
-	the column header is clicked on.
-
-	There are a few requirements needed in order for this to work generically:
-
-	  1. Items in the list control must have a unique data value set
-		 with list.SetItemData.
-
-	  2. The combined class must provide a method <_generate_map_for_sorting>
-		 which produces a dictionary keyed by row idx with each entry being a
-		 sequence of strings representing the value in each column of that row.
-
-	Interesting methods to override are GetColumnSorter,
-	GetSecondarySortValues, and GetSortImages.	See below for details.
-
-	Lifted from wx.lib.mixins.listctrl and adapted.
-	"""
-	sort_order_tags = {
-		True: ' \u2193',
-		False: ' \u2191'
-	}
-	#------------------------------------------------------------
-	def __init__(self, numColumns):
-		method_needed = '_generate_map_for_sorting'
-		assert(isinstance(self, wx.ListCtrl)), '<%s> must be mixed in with a wx.ListCtrl descendant' % self.__class__
-		assert(hasattr(self, method_needed)), '<%s> must have a method <%s>' % (self, method_needed)
-
-		self.itemDataMap = None
-		self.__previous_sort_state = None
-		self.SetColumnCount(numColumns)
-		self.Bind(wx.EVT_LIST_COL_CLICK, self.__on_col_click, self)
-
-		try:
-			self.RememberItemSelection
-			self.__retain_selection_state = True
-		except AttributeError:
-			_log.exception('cannot enable item selection retainment across sorts, cannot detect SelectionStateMixin via <RememberItemSelection>')
-			self.__retain_selection_state = False
-
-	#------------------------------------------------------------
-	def SetColumnCount(self, newNumColumns):
-		self._colSortFlag = [0] * newNumColumns
-		self._col = -1
-
-	#------------------------------------------------------------
-	def SortListItems(self, col=-1, ascending=1):
-		"""Sort the list on demand.	 Can also be used to set the sort column and order."""
-		oldCol = self._col
-		if col != -1:
-			self._col = col
-			self._colSortFlag[col] = ascending
-		if self.__retain_selection_state:
-			self.RememberItemSelection()
-		self._update_sorting_metadata()
-		self.SortItems(self.GetColumnSorter())
-		if self.__retain_selection_state:
-			self.RestoreItemSelection()
-		self.__updateImages(oldCol)
-		self.update_sorting_indicator()
-
-	#------------------------------------------------------------
-	def GetColumnWidths(self):
-		"""
-		Returns a list of column widths.  Can be used to help restore the current
-		view later.
-		"""
-		rv = []
-		for x in range(len(self._colSortFlag)):
-			rv.append(self.GetColumnWidth(x))
-		return rv
-
-	#------------------------------------------------------------
-	def GetSortImages(self):
-		"""
-		Returns a tuple of image list indexesthe indexes in the image list for an image to be put on the column
-		header when sorting in descending order.
-		"""
-		return (-1, -1)	 # (descending, ascending) image IDs
-
-	#------------------------------------------------------------
-	def GetColumnSorter(self):
-		"""Returns a callable object to be used for comparing column values when sorting."""
-		return self.__ColumnSorter
-
-	#------------------------------------------------------------
-	def GetSecondarySortValues(self, col, key1, key2):
-		"""Returns a tuple of 2 values to use for secondary sort values when the
-		   items in the selected column match equal.  The default just returns the
-		   item data values."""
-		return (key1, key2)
-
-	#------------------------------------------------------------
-	def __on_col_click(self, evt):
-		evt.Skip()
-		oldCol = self._col
-		self._col = evt.GetColumn()
-		self._colSortFlag[self._col] = int(not self._colSortFlag[self._col])
-		if self.__retain_selection_state:
-			self.RememberItemSelection()
-		self._update_sorting_metadata()
-		self.SortItems(self.GetColumnSorter())
-		if self.__retain_selection_state:
-			self.RestoreItemSelection()
-		if wx.Platform != "__WXMAC__" or wx.SystemOptions.GetOptionInt("mac.listctrl.always_use_generic") == 1:
-			self.__updateImages(oldCol)
-		self.update_sorting_indicator()
-		self.OnSortOrderChanged()
-
-	#------------------------------------------------------------
-	def OnSortOrderChanged(self):
-		"""
-		Callback called after sort order has changed (whenever user
-		clicked column header).
-		"""
-		pass
-
-	#------------------------------------------------------------
-	def __ColumnSorter(self, key1, key2):
-		col = self._col
-		ascending = self._colSortFlag[col]
-		item1 = self.itemDataMap[key1][col]
-		item2 = self.itemDataMap[key2][col]
-		cmpVal = locale.strcoll(item1, item2)
-		if cmpVal == 0:
-			cmpVal = self._cmp(*self.GetSecondarySortValues(col, key1, key2))
-		if ascending:
-			return cmpVal
-		else:
-			return -cmpVal
-
-	#------------------------------------------------------------
-	def __updateImages(self, oldCol):
-		sortImages = self.GetSortImages()
-		if self._col != -1 and sortImages[0] != -1:
-			img = sortImages[self._colSortFlag[self._col]]
-			self._update_sorting_metadata()
-			if oldCol != -1:
-				self.ClearColumnImage(oldCol)
-			self.SetColumnImage(self._col, img)
-
-	#------------------------------------------------------------
-	# sorting state API
-	#------------------------------------------------------------
-	def GetSortState(self):
-		"""
-		Return a tuple containing the index of the column that was last sorted
-		and the sort direction of that column.
-		Usage:
-		col, ascending = self.GetSortState()
-		# Make changes to list items... then resort
-		self.SortListItems(col, ascending)
-		"""
-		return (self._col, self._colSortFlag[self._col])
-
-	#------------------------------------------------------------
-	def RememberSortState(self):
-		self.__previous_sort_state = self.GetSortState()
-
-	#------------------------------------------------------------
-	def RestoreSortState(self):
-		if self.__previous_sort_state is None:
-			return
-
-		self.SortListItems(*self.__previous_sort_state)
-
-	#------------------------------------------------------------
-	# sorting indicator handling
-	#------------------------------------------------------------
-	def remove_sorting_indicators_from_column_labels(self):
-		for col_idx in range(self.ColumnCount):
-			self._remove_sorting_indicator_from_column_label(col_idx)
-
-	#------------------------------------------------------------
-	def update_sorting_indicator(self):
-		self.remove_sorting_indicators_from_column_labels()
-		if self._col == -1:
-			return
-
-		col_state = self.GetColumn(self._col)
-		col_state.Text += self.sort_order_tags[self._colSortFlag[self._col]]
-		self.SetColumn(self._col, col_state)
-
-	#------------------------------------------------------------
-	def __remove_sorting_indicator(self, text):
-		for tag in self.sort_order_tags.values():
-			if text.endswith(tag):
-				text = text[:-len(tag)]
-		return text
-
-	#------------------------------------------------------------
-	def _remove_sorting_indicator_from_column_label(self, col_idx):
-		assert (col_idx > -1), '<col_idx> must be non-negative integer'
-		if col_idx > self.ColumnCount:
-			_log.warning('<col_idx>=%s, but .ColumnCount=%s', col_idx, self.ColumnCount)
-			return
-
-		col_state = self.GetColumn(col_idx)
-		cleaned_header = self.__remove_sorting_indicator(col_state.Text)
-		if col_state.Text == cleaned_header:
-			return
-
-		col_state.Text = cleaned_header
-		self.SetColumn(col_idx, col_state)
-
-	#------------------------------------------------------------
-	# sorting metadata API
-	#------------------------------------------------------------
-	def invalidate_sorting_metadata(self):
-		"""Mark sorting metadata as invalid.
-
-		To be called whenever list data changes.
-		"""
-		self.itemDataMap = None
-		self.SetColumnCount(self.ColumnCount)
-		self.remove_sorting_indicators_from_column_labels()
-
-	#------------------------------------------------------------
-	def _update_sorting_metadata(self):
-		"""Update the sorting metadata.
-
-		Calls _generate_map_for_sorting in the combined class
-		IF the metadata has been invalidated before.
-		"""
-		if self.itemDataMap is not None:
-			return
-
-		self.itemDataMap = self._generate_map_for_sorting()
-
-	#------------------------------------------------------------
-	# generic helper code
-	#------------------------------------------------------------
-	def _cmp(self, a, b):
-		return (a > b) - (a < b)
-
-#================================================================
-class SelectionStateMixin:
-	"""This mixin allows saving/restoring selection state."""
-
-	def __init__(self):
-		assert(isinstance(self, wx.ListCtrl)), '<%s> must be mixed in with wx.ListCtrl'
-		self.__previously_selected_items = []
-		self.__item_identity_callback = None
-
-	#------------------------------------------------------------
-	# external API
-	#------------------------------------------------------------
-	def RememberItemSelection(self):
-		"""Remember the currently selected items."""
-		self.__previously_selected_items = []
-		if self.ItemCount == 0:
-			return
-
-		if self.__item_identity_callback is None:
-			return
-
-		for sel_idx in self.__get_item_selections():
-			self.__previously_selected_items.append(self.__item_identity_callback(sel_idx))
-
-	#------------------------------------------------------------
-	def RestoreItemSelection(self):
-		"""Restore (a remembered) item selection (if any)."""
-		if not self.__previously_selected_items:
-			return
-
-		if self.ItemCount == 0:
-			return
-
-		if self.__item_identity_callback is None:
-			return
-
-		for item_idx in range(self.ItemCount):
-			if self.__item_identity_callback(item_idx) in self.__previously_selected_items:
-				self.Select(idx = item_idx, on = 1)
-			else:
-				self.Select(idx = item_idx, on = 0)
-
-	#------------------------------------------------------------
-	# properties
-	#------------------------------------------------------------
-	def __get_item_identity_callback(self):
-		"""The function to call for retrieving the identity of a list item."""
-		return self.__item_identity_callback
-
-	def __set_item_identity_callback(self, callback):
-		if callback is not None:
-			if not callable(callback):
-				raise ValueError('<ItemIdentityCallback> is neither None nor callable: %s' % callback)
-
-		self.__item_identity_callback = callback
-
-	ItemIdentityCallback = property(__get_item_identity_callback, __set_item_identity_callback)
-
-	#------------------------------------------------------------
-	# helpers
-	#------------------------------------------------------------
-	def __get_item_selections(self):
-		if self.ItemCount == 0:
-			return []
-
-		selections = []
-		idx = self.GetFirstSelected()
-		while idx != -1:
-			selections.append(idx)
-			idx = self.GetNextSelected(idx)
-		return selections
-
-#================================================================
-class DnDMixin:
-	"""This mixin enables drag and drop of list items."""
-
-	def __init__(self):
-		assert(isinstance(self, wx.ListCtrl)), '<%s> must be mixed in with wx.ListCtrl'
-		self.Bind(wx.EVT_LIST_BEGIN_DRAG, self.OnDragInit, id = self.GetId())
-
-	#------------------------------------------------------------
-	def OnDragInit(self, evt):
-		evt.Skip()
-		drag_data = self.get_drag_data_object()
-		if drag_data is None:
-			return
-
-		src = wx.DropSource(self)
-		src.SetData(drag_data)
-		src.DoDragDrop(True)
-
-	#------------------------------------------------------------
-	def get_drag_data_object(self):
-		"""Get data to be dragged.
-
-		Returns:
-			A drag data object, or None if nothing is to be dragged.
-
-		Override to provide whatever data is to be dragged.
-		The overrider itself can provide a default or call
-		some external callback.
-		"""
-		return None
-
-#================================================================
-class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorterMixin, SelectionStateMixin, wx.ListCtrl):#
+class cReportListCtrl(listmixins.ListCtrlAutoWidthMixin, listmixins.ColumnSorterMixin, wx.ListCtrl):
 
 	# sorting: at set_string_items() time all items will be
 	# adorned with their initial row number as wxPython data,
@@ -1633,6 +1242,11 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 	# GNUmed data objects associated with rows,
 	# the latter are ordered in initial row number order
 	# at set_data() time
+
+	sort_order_tags = {
+		True: ' [\u03b1\u0391 \u2192 \u03c9\u03A9]',
+		False: ' [\u03c9\u03A9 \u2192 \u03b1\u0391]'
+	}
 
 	def __init__(self, *args, **kwargs):
 
@@ -1647,12 +1261,14 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		self.__is_single_selection = ((kwargs['style'] & wx.LC_SINGLE_SEL) == wx.LC_SINGLE_SEL)
 
 		wx.ListCtrl.__init__(self, *args, **kwargs)
-		SelectionStateMixin.__init__(self)
-		cColumnSorterMixin.__init__(self, 0)
-		self.invalidate_sorting_metadata()
-		self.__secondary_sort_col = None
 		listmixins.ListCtrlAutoWidthMixin.__init__(self)
-		DnDMixin.__init__(self)
+
+		# required for column sorting
+		self._invalidate_sorting_metadata()					# must be called after each (external/direct) list item update
+		listmixins.ColumnSorterMixin.__init__(self, 0)		# must be called again after adding columns (why ?)
+		self.__secondary_sort_col = None
+		# apparently, this MUST be bound under wxp3 - but why ??
+		self.Bind(wx.EVT_LIST_COL_CLICK, self._on_col_click, self)
 
 		# cols/rows
 		self.__widths = None
@@ -1665,7 +1281,6 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		self.__new_callback = None
 		self.__edit_callback = None
 		self.__delete_callback = None
-		self.__dnd_callback = None
 
 		# context menu
 		self.__extend_popup_menu_callback = None
@@ -1674,6 +1289,14 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		# row tooltips
 		self.__item_tooltip_callback = None
 		self.__tt_last_item = None
+#		self.__tt_static_part_base = _(
+#			u'Select the items you want to work on.\n'
+#			u'\n'
+#			u'A discontinuous selection may depend on your holding '
+#			u'down a platform-dependent modifier key (<CTRL>, <ALT>, '
+#			u'etc) or key combination (eg. <CTRL-SHIFT> or <CTRL-ALT>) '
+#			u'while clicking.'
+#		)
 		self.__tt_static_part_base = ''
 		self.__tt_static_part = self.__tt_static_part_base
 		self.Bind(wx.EVT_MOTION, self._on_mouse_motion)
@@ -1834,12 +1457,12 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		self.__log_sizing(sys._getframe().f_code.co_name, *args, **kwargs)
 		return res
 
-#	#------------------------------------------------------------
-#	def GetClientSize(self, *args, **kwargs):
-#		res = super(cReportListCtrl, self).GetClientSize(*args, **kwargs)
-#		kwargs['sizing_function_result'] = res
-#		self.__log_sizing(sys._getframe().f_code.co_name, *args, **kwargs)
-#		return res
+	#------------------------------------------------------------
+	def GetClientSize(self, *args, **kwargs):
+		res = super(cReportListCtrl, self).GetClientSize(*args, **kwargs)
+		kwargs['sizing_function_result'] = res
+		self.__log_sizing(sys._getframe().f_code.co_name, *args, **kwargs)
+		return res
 
 	#------------------------------------------------------------
 	def GetClientSize(self, *args, **kwargs):
@@ -1939,7 +1562,9 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 			return
 		for idx in range(len(columns)):
 			self.InsertColumn(idx, columns[idx])
-		self.invalidate_sorting_metadata()
+
+		listmixins.ColumnSorterMixin.__init__(self, 0)
+		self._invalidate_sorting_metadata()
 
 	#------------------------------------------------------------
 	def set_column_widths(self, widths=None):
@@ -1992,14 +1617,15 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 			_log.warning('<col_idx>=%s, .ColumnCount=%s', col_idx, self.ColumnCount)
 			return
 
+		sort_col_idx, is_ascending = self.GetSortState()
 		col_state = self.GetColumn(col_idx)
 		col_state.Text = label
+		if col_idx == sort_col_idx:
+			col_state.Text += self.sort_order_tags[is_ascending]
 		self.SetColumn(col_idx, col_state)
-		self.update_sorting_indicator()
 
 	#------------------------------------------------------------
 	def remove_items_safely(self, max_tries=3):
-		self.invalidate_sorting_metadata()
 		tries = 0
 		while tries < max_tries:
 			if self.debug is not None:
@@ -2010,7 +1636,6 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 			item_count = self.GetItemCount()
 			if item_count == 0:
 				return True
-
 			wx.SafeYield(None, True)
 			_log.error('<%s>.GetItemCount() not 0 (rather: %s) after DeleteAllItems()', self.debug, item_count)
 			time.sleep(0.3)
@@ -2025,7 +1650,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		"""All item members must be str()able or None."""
 
 		wx.BeginBusyCursor()
-		self.invalidate_sorting_metadata()
+		self._invalidate_sorting_metadata()
 
 		if self.ItemCount == 0:
 			topmost_visible = 0
@@ -2143,7 +1768,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		self.__data = data
 		self.__tt_last_item = None
 		# string data (rows/visible list items) not modified,
-		# so no need to call invalidate_sorting_metadata
+		# so no need to call _update_sorting_metadata
 		return
 
 	def _get_data(self):
@@ -2158,21 +1783,18 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 	#------------------------------------------------------------
 	def set_selections(self, selections=None):
 		# not sure why this is done:
-		if self.ItemCount > 0:
+		if self.GetItemCount() > 0:
 			self.Select(0, on = 0)
 		if selections is None:
 			return
-
 		for idx in selections:
 			self.Select(idx = idx, on = 1)
 
 	def __get_selections(self):
 		if self.ItemCount == 0:
 			return []
-
 		if self.__is_single_selection:
 			return [self.GetFirstSelected()]
-
 		selections = []
 		idx = self.GetFirstSelected()
 		while idx != -1:
@@ -2192,20 +1814,15 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 			labels.append(col.Text)
 		return labels
 
-	column_labels = property(get_column_labels)
+	column_labels = property(get_column_labels, lambda x:x)
 
 	#------------------------------------------------------------
 	def get_item(self, item_idx=None):
-		if item_idx == -1:
-			return None
-
 		if self.ItemCount == 0:
 			_log.warning('no items')
 			return None
-
 		if item_idx is not None:
 			return self.GetItem(item_idx)
-
 		_log.error('get_item(None) called')
 		return None
 
@@ -2215,7 +1832,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 			return []
 		return [ self.GetItem(item_idx) for item_idx in range(self.ItemCount) ]
 
-	items = property(get_items)
+	items = property(get_items, lambda x:x)
 
 	#------------------------------------------------------------
 	def get_selected_items(self, only_one=False):
@@ -2236,7 +1853,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 
 		return items
 
-	selected_items = property(get_selected_items)
+	selected_items = property(get_selected_items, lambda x:x)
 
 	#------------------------------------------------------------
 	def get_selected_string_items(self, only_one=False):
@@ -2257,7 +1874,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 
 		return items
 
-	selected_string_items = property(get_selected_string_items)
+	selected_string_items = property(get_selected_string_items, lambda x:x)
 
 	#------------------------------------------------------------
 	def get_item_data(self, item_idx=None):
@@ -2273,7 +1890,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		# gives the chance to figure out what is going on
 		return [ self.__data[self.map_item_idx2data_idx(item_idx)] for item_idx in range(self.GetItemCount()) ]
 
-	item_data = property(get_item_data)
+	item_data = property(get_item_data, lambda x:x)
 
 	#------------------------------------------------------------
 	def get_selected_item_data(self, only_one=False):
@@ -2296,7 +1913,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 
 		return data
 
-	selected_item_data = property(get_selected_item_data)
+	selected_item_data = property(get_selected_item_data, lambda x:x)
 
 	#------------------------------------------------------------
 	def deselect_selected_item(self):
@@ -2312,7 +1929,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		#	del self.__data[self.map_item_idx2data_idx(item_idx)]
 		self.DeleteItem(item_idx)
 		self.__tt_last_item = None
-		self.invalidate_sorting_metadata()
+		self._invalidate_sorting_metadata()
 
 	#------------------------------------------------------------
 	# internal helpers
@@ -2628,21 +2245,22 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		if self.__activate_callback is not None:
 			self.__activate_callback(event)
 			return
-
 		# default double-click / ENTER action: edit
 		self.__handle_edit()
 
 	#------------------------------------------------------------
 	def _on_list_item_selected(self, event):
-		event.Skip()
 		if self.__select_callback is not None:
 			self.__select_callback(event)
+		else:
+			event.Skip()
 
 	#------------------------------------------------------------
 	def _on_list_item_deselected(self, event):
-		event.Skip()
 		if self.__deselect_callback is not None:
 			self.__deselect_callback(event)
+		else:
+			event.Skip()
 
 	#------------------------------------------------------------
 	def _on_list_item_rightclicked(self, event):
@@ -2702,8 +2320,6 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 			LIST_HITTEST_TOLEFT 1024
 			LIST_HITTEST_TORIGHT 2048
 		"""
-		event.Skip()
-
 		item_idx, where_flag = self.HitTest(wx.Point(event.X, event.Y))
 
 		# pointer on item related area at all ?
@@ -2723,7 +2339,7 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		if self.__tt_last_item == item_idx:
 			return
 
-		# remember the new item we are on
+		# remeber the new item we are on
 		self.__tt_last_item = item_idx
 
 		# HitTest() can return -1 if it so pleases, meaning that no item
@@ -2800,8 +2416,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 	#------------------------------------------------------------
 	def _all_rows2file(self, evt):
 
-		txt_name = os.path.join(gmTools.gmPaths().user_work_dir, 'gm-all_rows-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
-		txt_file = open(txt_name, mode = 'wt', encoding = 'utf8')
+		txt_name = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', 'gm-all_rows-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
+		txt_file = io.open(txt_name, mode = 'wt', encoding = 'utf8')
 
 		col_labels = self.column_labels
 		line = '%s' % ' || '.join(col_labels)
@@ -2820,8 +2436,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 	#------------------------------------------------------------
 	def _all_rows2csv(self, evt):
 
-		csv_name = os.path.join(gmTools.gmPaths().user_work_dir, 'gm-all_rows-%s.csv' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
-		csv_file = open(csv_name, mode = 'wt', encoding = 'utf8')
+		csv_name = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', 'gm-all_rows-%s.csv' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
+		csv_file = io.open(csv_name, mode = 'wt', encoding = 'utf8')
 		csv_writer = csv.writer(csv_file)
 		csv_writer.writerow([ l for l in self.column_labels ])
 		for item_idx in range(self.ItemCount):
@@ -2838,8 +2454,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		if (self.__data is None) or (self.__item_tooltip_callback is None):
 			return
 
-		txt_name = os.path.join(gmTools.gmPaths().user_work_dir, 'gm-list_tooltips-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
-		txt_file = open(txt_name, mode = 'wt', encoding = 'utf8')
+		txt_name = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', 'gm-list_tooltips-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
+		txt_file = io.open(txt_name, mode = 'wt', encoding = 'utf8')
 
 		for data in self.data:
 			tt = self.__item_tooltip_callback(data)
@@ -2856,8 +2472,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		if self.__data is None:
 			return
 
-		txt_name = os.path.join(gmTools.gmPaths().user_work_dir, 'gm-list_data-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
-		txt_file = open(txt_name, mode = 'wt', encoding = 'utf8')
+		txt_name = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', 'gm-list_data-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
+		txt_file = io.open(txt_name, mode = 'wt', encoding = 'utf8')
 
 		for data in self.data:
 			if hasattr(data, 'format'):
@@ -2874,8 +2490,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 	#------------------------------------------------------------
 	def _selected_rows2file(self, evt):
 
-		txt_name = os.path.join(gmTools.gmPaths().user_work_dir, 'gm-some_rows-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
-		txt_file = open(txt_name, mode = 'wt', encoding = 'utf8')
+		txt_name = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', 'gm-some_rows-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
+		txt_file = io.open(txt_name, mode = 'wt', encoding = 'utf8')
 
 		col_labels = self.column_labels
 		line = '%s' % ' || '.join(col_labels)
@@ -2898,8 +2514,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 	#------------------------------------------------------------
 	def _selected_rows2csv(self, evt):
 
-		csv_name = os.path.join(gmTools.gmPaths().user_work_dir, 'gm-some_rows-%s.csv' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
-		csv_file = open(csv_name, mode = 'wt', encoding = 'utf8')
+		csv_name = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', 'gm-some_rows-%s.csv' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
+		csv_file = io.open(csv_name, mode = 'wt', encoding = 'utf8')
 		csv_writer = csv.writer(csv_file)
 		csv_writer.writerow([ l for l in self.column_labels ])
 		items = self.selected_items
@@ -2919,8 +2535,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		if (self.__data is None) or (self.__item_tooltip_callback is None):
 			return
 
-		txt_name = os.path.join(gmTools.gmPaths().user_work_dir, 'gm-list_tooltips-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
-		txt_file = open(txt_name, mode = 'wt', encoding = 'utf8')
+		txt_name = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', 'gm-list_tooltips-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
+		txt_file = io.open(txt_name, mode = 'wt', encoding = 'utf8')
 
 		for data in self.selected_item_data:
 			tt = self.__item_tooltip_callback(data)
@@ -2937,8 +2553,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		if self.__data is None:
 			return
 
-		txt_name = os.path.join(gmTools.gmPaths().user_work_dir, 'gm-list_data-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
-		txt_file = open(txt_name, mode = 'wt', encoding = 'utf8')
+		txt_name = os.path.join(gmTools.gmPaths().home_dir, 'gnumed', 'gm-list_data-%s.txt' % pydt.datetime.now().strftime('%m%d-%H%M%S'))
+		txt_file = io.open(txt_name, mode = 'wt', encoding = 'utf8')
 
 		for data in self.selected_item_data:
 			if hasattr(data, 'format'):
@@ -2960,7 +2576,8 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		else:
 			widget2screenshot = dlg
 		png_name = os.path.join (
-			gmTools.gmPaths().user_work_dir,
+			gmTools.gmPaths().home_dir,
+			'gnumed',
 			'gm-%s-%s.png' % (self.useful_title, pydt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
 		)
 		from Gnumed.wxpython.gmGuiHelpers import save_screenshot_to_file
@@ -2973,6 +2590,11 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 			widget2screenshot = self
 		else:
 			widget2screenshot = dlg
+		png_name = os.path.join (
+			gmTools.gmPaths().home_dir,
+			'gnumed',
+			'gm-%s-%s.png' % (self.useful_title, pydt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+		)
 		from Gnumed.wxpython.gmGuiHelpers import save_screenshot_to_file
 		screenshot_file = save_screenshot_to_file(widget = widget2screenshot, settle_time = 500)
 		gmDispatcher.send(signal = 'add_file_to_export_area', filename = screenshot_file, hint = _('GMd screenshot'))
@@ -2982,18 +2604,18 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		if wx.TheClipboard.IsOpened():
 			_log.debug('clipboard already open')
 			return
-
 		if not wx.TheClipboard.Open():
 			_log.debug('cannot open clipboard')
 			return
-
 		data_obj = wx.TextDataObject()
+
 		if (self.__data is None) or (self.__item_tooltip_callback is None):
 			txt = self.__tt_static_part
 		else:
 			txt = self.__item_tooltip_callback(self.__data[self.map_item_idx2data_idx(self._rclicked_row_idx)])
 			if txt is None:
 				txt = self.__tt_static_part
+
 		data_obj.SetText(txt)
 		wx.TheClipboard.SetData(data_obj)
 		wx.TheClipboard.Close()
@@ -3577,24 +3199,163 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 	extend_popup_menu_callback = property(lambda x:x, _set_extend_popup_menu_callback)
 
 	#------------------------------------------------------------
-	# cColumnSorterMixin API
+	# ColumnSorterMixin API
+	#------------------------------------------------------------
+	def GetListCtrl(self):
+		if self.itemDataMap is None:
+			self._update_sorting_metadata()
+		return self								# required
+
+	#------------------------------------------------------------
+	def OnSortOrderChanged(self):
+		col_idx, is_ascending = self.GetSortState()
+		if col_idx == -1:
+			_log.debug('outside any column (idx: -1) clicked, ignoring')
+			return
+		self._remove_sorting_indicators_from_column_labels()
+		col_state = self.GetColumn(col_idx)
+		col_state.Text += self.sort_order_tags[is_ascending]
+		self.SetColumn(col_idx, col_state)
+
+	#------------------------------------------------------------
+	def GetSecondarySortValues(self, primary_sort_col, primary_item1_idx, primary_item2_idx):
+		return (primary_item1_idx, primary_item2_idx)
+
+		if self.__secondary_sort_col is None:
+			return (primary_item1_idx, primary_item2_idx)
+		if self.__secondary_sort_col == primary_sort_col:
+			return (primary_item1_idx, primary_item2_idx)
+
+		secondary_val1 = self.itemDataMap[primary_item1_idx][self.__secondary_sort_col]
+		secondary_val2 = self.itemDataMap[primary_item2_idx][self.__secondary_sort_col]
+
+		if type(secondary_val1) == type('') and type(secondary_val2) == type(''):
+			secondary_cmp_result = locale.strcoll(secondary_val1, secondary_val2)
+		elif type(secondary_val1) == type('') or type(secondary_val2) == type(''):
+			secondary_cmp_result = locale.strcoll(str(secondary_val1), str(secondary_val2))
+		else:
+			secondary_cmp_result = cmp(secondary_val1, secondary_val2)
+
+		if secondary_cmp_result == 0:
+			return (primary_item1_idx, primary_item2_idx)
+
+		# make the secondary column always sort ascending
+		currently_ascending = self._colSortFlag[primary_sort_col]
+		if currently_ascending:
+			secondary_val1, secondary_val2 = min(secondary_val1, secondary_val2), max(secondary_val1, secondary_val2)
+		else:
+			secondary_val1, secondary_val2 = max(secondary_val1, secondary_val2), min(secondary_val1, secondary_val2)
+		return (secondary_val1, secondary_val2)
+
+	#------------------------------------------------------------
+	def _unicode_aware_column_sorter(self, item1, item2):
+		# http://jtauber.com/blog/2006/01/27/python_unicode_collation_algorithm/
+		# http://stackoverflow.com/questions/1097908/how-do-i-sort-unicode-strings-alphabetically-in-python
+		# PyICU
+		sort_col, is_ascending = self.GetSortState()
+		data1 = self.itemDataMap[item1][sort_col]
+		data2 = self.itemDataMap[item2][sort_col]
+		if type(data1) == type('') and type(data2) == type(''):
+			cmp_result = locale.strcoll(data1, data2)
+		elif type(data1) == type('') or type(data2) == type(''):
+			cmp_result = locale.strcoll(str(data1), str(data2))
+		else:
+			cmp_result = cmp(data1, data2)
+
+		#direction = u'ASC'
+		if not is_ascending:
+			cmp_result = -1 * cmp_result
+			#direction = u'DESC'
+		# debug:
+#		if cmp_result < 0:
+#			op1 = u'\u2191 ' # up
+#			op2 = u'\u2193' # down
+#		elif cmp_result > 0:
+#			op2 = u'\u2191 ' # up
+#			op1 = u'\u2193' # down
+#		else:
+#			op1 = u' = '
+#			op2 = u''
+#		print u'%s: [%s]%s[%s]%s (%s)' % (direction, data1, op1, data2, op2, cmp_result)
+
+		return cmp_result
+
+	# defining our own column sorter does not seem to make
+	# a difference over the default one until we resort to
+	# something other than locale.strcoll/strxform/cmp for
+	# actual sorting
+	#def GetColumnSorter(self):
+	#	return self._unicode_aware_column_sorter
+
 	#------------------------------------------------------------
 	def _generate_map_for_sorting(self):
 		dict2sort = {}
-		row_count = self.GetItemCount()
-		if row_count == 0:
+		item_count = self.GetItemCount()
+		if item_count == 0:
 			return dict2sort
-
 		col_count = self.GetColumnCount()
-		for row_idx in range(row_count):
-			dict2sort[row_idx] = ()
+		for item_idx in range(item_count):
+			dict2sort[item_idx] = ()
 			if col_count == 0:
 				continue
 			for col_idx in range(col_count):
-				dict2sort[row_idx] += (self.GetItem(row_idx, col_idx).GetText(), )
+				dict2sort[item_idx] += (self.GetItem(item_idx, col_idx).GetText(), )
 				# debugging:
-				#print u'[%s:%s] ' % (row_idx, col_idx), self.GetItem(row_idx, col_idx).GetText()
+				#print u'[%s:%s] ' % (item_idx, col_idx), self.GetItem(item_idx, col_idx).GetText()
+
 		return dict2sort
+
+	#------------------------------------------------------------
+	def __remove_sorting_indicator(self, text):
+		for tag in self.sort_order_tags.values():
+			if text.endswith(tag):
+				text = text[:-len(tag)]
+		return text
+
+	#------------------------------------------------------------
+	def _remove_sorting_indicators_from_column_labels(self):
+		for col_idx in range(self.ColumnCount):
+			self._remove_sorting_indicator_from_column_label(col_idx)
+
+	#------------------------------------------------------------
+	def _remove_sorting_indicator_from_column_label(self, col_idx):
+		assert (col_idx > -1), '<col_idx> must be non-negative integer'
+		if col_idx > self.ColumnCount:
+			_log.warning('<col_idx>=%s, but .ColumnCount=%s', col_idx, self.ColumnCount)
+			return
+
+		col_state = self.GetColumn(col_idx)
+		cleaned_header = self.__remove_sorting_indicator(col_state.Text)
+		if col_state.Text == cleaned_header:
+			return
+
+		col_state.Text = cleaned_header
+		self.SetColumn(col_idx, col_state)
+
+	#------------------------------------------------------------
+	def _invalidate_sorting_metadata(self):
+		self.itemDataMap = None
+		self.SetColumnCount(self.GetColumnCount())
+		self._remove_sorting_indicators_from_column_labels()
+
+	#------------------------------------------------------------
+	def _update_sorting_metadata(self):
+		# MUST have this name
+		self.itemDataMap = self._generate_map_for_sorting()
+
+	#------------------------------------------------------------
+	def _on_col_click(self, event):
+		# this MUST NOT call event.Skip() or else the column sorter mixin#
+		# will not kick in anymore under wxP 3
+		#event.Skip()
+		pass
+		# debugging:
+#		sort_col, order = self.GetSortState()
+#		print u'col clicked: %s / sort col: %s / sort direction: %s / sort flags: %s' % (event.GetColumn(), sort_col, order, self._colSortFlag)
+#		if self.itemDataMap is not None:
+#			print u'sort items data map:'
+#			for key, item in self.itemDataMap.items():
+#				print key, u' -- ', item
 
 	#------------------------------------------------------------
 	def __get_secondary_sort_col(self):
@@ -3604,73 +3365,15 @@ class cReportListCtrl(DnDMixin, listmixins.ListCtrlAutoWidthMixin, cColumnSorter
 		if col is None:
 			self.__secondary_sort_col = None
 			return
-		if col > self.ColumnCount:
-			raise ValueError('cannot secondary-sort on col [%s], there are only [%s] columns', col, self.ColumnCount)
+		if col > self.GetColumnCount():
+			raise ValueError('cannot secondary-sort on col [%s], there are only [%s] columns', col, self.GetColumnCount())
 		self.__secondary_sort_col = col
 
 	secondary_sort_column = property(__get_secondary_sort_col, __set_secondary_sort_col)
 
 	#------------------------------------------------------------
-	# drag and drop mixin API
-	#------------------------------------------------------------
-	def get_drag_data_object(self):
-		"""Get data to be dragged.
-
-		Returns:
-			A drag data object, or None if nothing is to be dragged.
-
-		Override to provide whatever data is to be dragged.
-		The overrider itself can provide a default or call
-		some external callback.
-		"""
-		if self.__dnd_callback is not None:
-			return self.__dnd_callback()
-
-		item = self.get_selected_items(only_one = True)
-		data = self.get_selected_item_data(only_one = True)
-		if (item is None) and (data is None):
-			return None
-
-		data_obj = wx.DataObjectComposite()
-		if data is not None:
-			if hasattr(data, 'format'):
-				txt = data.format()
-				if type(txt) is list:
-					txt = '\n'.join(txt)
-			else:
-				txt = '%s' % data
-			txt_data = wx.TextDataObject(txt)
-			data_obj.Add(txt_data, True)
-		if item is not None:
-			fields = []
-			for col_idx in range(self.ColumnCount):
-				fields.append(self.GetItem(item, col_idx).Text)
-			txt = '%s\n' % ' || '.join(fields)
-			txt_data = wx.TextDataObject(txt)
-			data_obj.Add(txt_data, False)
-		#tdo = wx.PyTextDataObject(str(item))
-		return data_obj
-
-	#------------------------------------------------------------
-	def _get_dnd_callback(self):
-		return self.__dnd_callback
-
-	def _set_dnd_callback(self, callback):
-		if callback is None:
-			self.__dnd_callback = None
-			return
-
-		if not callable(callback):
-			raise ValueError('<dnd> callback is not a callable: %s' % callback)
-
-		self.__dnd_callback = callback
-
-	dnd_callback = property(_get_dnd_callback, _set_dnd_callback)
-
-	#------------------------------------------------------------
-	#------------------------------------------------------------
 	def __get_useful_title(self):
-		title = undecorate_window_title(gmTools.coalesce(self.container_title, '').rstrip())
+		title = gmTools.undecorate_window_title(gmTools.coalesce(self.container_title, '').rstrip())
 		if title != '':
 			return title
 
@@ -3743,7 +3446,7 @@ if __name__ == '__main__':
 
 	#------------------------------------------------------------
 	def test_wxMultiChoiceDialog():
-		#app = wx.PyWidgetTester(size = (400, 500))
+		app = wx.PyWidgetTester(size = (400, 500))
 		dlg = wx.MultiChoiceDialog (
 			parent = None,
 			message = 'test message',
@@ -3767,8 +3470,7 @@ if __name__ == '__main__':
 			choices = ['a', 'b', 'c']
 			lctrl.set_string_items(choices)
 
-		#app = 
-		wx.App()
+		app = wx.App()
 		chosen = get_choices_from_list (
 #			msg = 'select a health issue\nfrom the list below\n',
 			caption = 'select health issues',
@@ -3785,8 +3487,7 @@ if __name__ == '__main__':
 	#------------------------------------------------------------
 	def test_item_picker_dlg():
 		#app = wx.PyWidgetTester(size = (200, 50))
-		#app = 
-		wx.App(size = (200, 50))
+		app = wx.App(size = (200, 50))
 		dlg = cItemPickerDlg(None, -1, msg = 'Pick a few items:')
 		dlg.set_columns(['Plugins'], ['Load in workplace', 'dummy'])
 		#dlg.set_columns(['Plugins'], [])

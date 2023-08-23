@@ -1,10 +1,13 @@
 """Widgets dealing with patient demographics."""
 #============================================================
 __author__ = "R.Terry, SJ Tan, I Haywood, Carlos Moro <cfmoro1976@yahoo.es>"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 # standard library
 import sys
+import sys
+import io
+import re as regex
 import logging
 import os
 import datetime as pydt
@@ -18,11 +21,12 @@ import wx.lib.statbmp as wx_genstatbmp
 # GNUmed specific
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmDispatcher
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmMatchProvider
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmTools
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmShellAPI
 from Gnumed.pycommon import gmNetworkTools
@@ -38,6 +42,7 @@ from Gnumed.wxpython import gmAuthWidgets
 from Gnumed.wxpython import gmPersonContactWidgets
 from Gnumed.wxpython import gmEditArea
 from Gnumed.wxpython import gmListWidgets
+from Gnumed.wxpython import gmDateTimeInput
 from Gnumed.wxpython import gmDataMiningWidgets
 from Gnumed.wxpython import gmGuiHelpers
 
@@ -294,7 +299,7 @@ def select_patient_tags(parent=None, patient=None):
 		manage_tag_images(parent = parent)
 		return False
 	#--------------------------------------------------------
-	msg = _('Tags of patient: %s\n') % patient.description_gender
+	msg = _('Tags of patient: %s\n') % patient['description_gender']
 
 	return gmListWidgets.get_choices_from_list (
 		parent = parent,
@@ -443,7 +448,7 @@ class cKOrganizerSchedulePnl(gmDataMiningWidgets.cPatientListingPnl):
 		except OSError: pass
 		gmShellAPI.run_command_in_shell(command=self.reload_cmd, blocking=True)
 		try:
-			csv_file = open(self.fname , mode = 'rt', encoding = 'utf-8-sig', errors = 'replace')
+			csv_file = io.open(self.fname , mode = 'rt', encoding = 'utf8', errors = 'replace')
 		except IOError:
 			gmDispatcher.send(signal = 'statustext', msg = _('Cannot access KOrganizer transfer file [%s]') % self.fname, beep = True)
 			return
@@ -1518,7 +1523,7 @@ class cPersonSocialNetworkManagerPnl(wxgPersonSocialNetworkManagerPnl.wxgPersonS
 			self._TCTRL_person.person = ident
 			tt = '%s\n\n%s\n\n%s' % (
 				tt,
-				ident.description_gender,
+				ident['description_gender'],
 				'\n'.join([
 					'%s: %s%s' % (
 						c['l10n_comm_type'],
@@ -1846,6 +1851,8 @@ if __name__ == "__main__":
 	#--------------------------------------------------------
 	if len(sys.argv) > 1 and sys.argv[1] == 'test':
 
+		gmI18N.activate_locale()
+		gmI18N.install_domain(domain='gnumed')
 		gmPG2.get_connection()
 
 #		app = wx.PyWidgetTester(size = (400, 300))

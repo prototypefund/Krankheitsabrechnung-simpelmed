@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-"""GNUmed schema installation.
+__doc__="""GNUmed schema installation.
 
 This script bootstraps a GNUmed database system.
 
@@ -89,7 +89,7 @@ try:
 except ImportError:
 	print("""Please make sure the GNUmed Python modules are in the Python path !""")
 	raise
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmPsql
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmConnectionPool
@@ -107,7 +107,7 @@ _log = logging.getLogger('gm.bootstrapper')
 #faulthandler.enable(file = gmLog2._logfile)
 
 
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 
 _interactive = None
@@ -172,7 +172,7 @@ below, or press RETURN to quit.
 superuser_sermon = """
 I can't log on as the PostgreSQL database owner.
 Try running this script as the system administrator (user "root")
-to get the necessary permissions.
+to get the neccessary permissions.
 
 NOTE: I expect the PostgreSQL database owner to be called "%s"
 If for some reason it is not, you need to adjust my configuration
@@ -194,7 +194,7 @@ Welcome to the GNUmed server instllation script.
 You must have a PostgreSQL server running and
 administrator access.
 
-Please select a database configuration from the list below.
+Please select a database configuation from the list below.
 """
 
 SQL_add_foreign_key = u"""
@@ -674,21 +674,12 @@ class database:
 		curs.close()
 
 		# reindex db so upgrade doesn't fail on broken index
-		llap = []
-		reindexed = self.reindex_all()
-		llap.append(reindexed)
-		if not reindexed:
+		if not self.reindex_all():
 			_log.error(u'cannot REINDEX cloned target database')
 			return False
 
-		revalidated = self.revalidate_constraints()
-		llap.append(revalidated)
-		if not revalidated:
+		if not self.revalidate_constraints():
 			_log.error(u'cannot VALIDATE CONSTRAINTs in cloned target database')
-			return False
-
-		if not self.validate_collations(use_the_source_luke = llap):
-			_log.error(u'cannot validate collations in cloned target database')
 			return False
 
 		tmp = cfg_get(self.section, 'superuser schema')
@@ -926,7 +917,7 @@ class database:
 		cursor.close()
 
 		# create database by cloning
-		print_msg("==> [%s]: cloning (%s) as target database [%s] ..." % (self.template_db, size, self.name))
+		print_msg("==> cloning [%s] (%s) as target database [%s] ..." % (self.template_db, size, self.name))
 		# CREATE DATABASE must be run outside transactions
 		self.conn.commit()
 		self.conn.set_session(readonly = False, autocommit = True)
@@ -949,7 +940,7 @@ class database:
 	#--------------------------------------------------------------
 	def check_data_plausibility(self):
 
-		print_msg("==> [%s]: checking migrated data for plausibility ..." % self.template_db)
+		print_msg("==> checking migrated data for plausibility ...")
 
 		plausibility_queries = cfg_get(self.section, 'upgrade plausibility checks')
 		if plausibility_queries is None:
@@ -1116,13 +1107,13 @@ class database:
 			print_msg('')
 			print_msg('For details refer to the GNUmed documentation at:')
 			print_msg('')
-			print_msg('  https://www.gnumed.de/bin/view/Gnumed/ConfigurePostgreSQL')
+			print_msg('  http://wiki.gnumed.de/bin/view/Gnumed/ConfigurePostgreSQL')
 			print_msg('')
 
 	#--------------------------------------------------------------
 	def import_data(self):
 
-		print_msg("==> [%s]: upgrading reference data sets ..." % self.name)
+		print_msg("==> upgrading reference data sets ...")
 
 		import_scripts = cfg_get(self.section, "data import scripts")
 		if (import_scripts is None) or (len(import_scripts) == 0):
@@ -1166,7 +1157,7 @@ class database:
 	#--------------------------------------------------------------
 	def verify_result_hash(self):
 
-		print_msg("==> [%s]: verifying target database schema ..." % self.name)
+		print_msg("==> verifying target database schema ...")
 
 		target_version = cfg_get(self.section, 'target version')
 		if target_version == 'devel':
@@ -1188,7 +1179,9 @@ class database:
 
 	#--------------------------------------------------------------
 	def reindex_all(self):
-		print_msg("==> [%s]: reindexing target database (can take a while) ..." % self.name)
+
+		print_msg("==> reindexing target database (can take a while) ...")
+
 		do_reindex = cfg_get(self.section, 'reindex')
 		if do_reindex is None:
 			do_reindex = True
@@ -1202,18 +1195,38 @@ class database:
 		_log.info(u'REINDEXing cloned target database so upgrade does not fail in case of a broken index')
 		_log.info(u'this may potentially take "quite a long time" depending on how much data there is in the database')
 		_log.info(u'you may want to monitor the PostgreSQL log for signs of progress')
-		reindexed = gmPG2.reindex_database(conn = self.conn)
-		if not reindexed:
-			print_msg('    ... failed')
-			_log.error('REINDEXing database failed')
-			return False
 
-		return reindexed
+		# REINDEX must be run outside transactions
+		self.conn.commit()
+		self.conn.set_session(readonly = False, autocommit = True)
+		curs_outer = self.conn.cursor()
+		cmd = 'REINDEX (VERBOSE) DATABASE %s' % self.name
+		try:
+			curs_outer.execute(cmd)
+		except:
+			_log.exception(u">>>[%s]<<< failed" % cmd)
+			# re-attempt w/o VERBOSE
+			_log.info(u'attempting REINDEXing without VERBOSE')
+			curs_inner = self.conn.cursor()
+			cmd = 'REINDEX DATABASE %s' % self.name
+			try:
+				curs_inner.execute(cmd)
+			except:
+				_log.exception(u">>>[%s]<<< failed" % cmd)
+				return False
+			finally:
+				curs_inner.close()
+				self.conn.set_session(readonly = False, autocommit = False)
+		finally:
+			curs_outer.close()
+			self.conn.set_session(readonly = False, autocommit = False)
+
+		return True
 
 	#--------------------------------------------------------------
 	def revalidate_constraints(self):
 
-		print_msg("==> [%s]: revalidating constraints in target database (can take a while) ..." % self.name)
+		print_msg("==> revalidating constraints in target database (can take a while) ...")
 
 		do_revalidate = cfg_get(self.section, 'revalidate')
 		if do_revalidate is None:
@@ -1228,38 +1241,37 @@ class database:
 		_log.info(u'reVALIDATing CONSTRAINTs in cloned target database so upgrade does not fail due to broken data')
 		_log.info(u'this may potentially take "quite a long time" depending on how much data there is in the database')
 		_log.info(u'you may want to monitor the PostgreSQL log for signs of progress')
+
+		curs = self.conn.cursor()
+		cmd = u"""do $$
+			DECLARE
+				r record;
+			BEGIN
+				FOR r IN (
+					select con.connamespace, nsp.nspname, con.conname, con.conrelid, rel.relname
+					from pg_constraint con
+						join pg_namespace nsp on nsp.oid = con.connamespace
+						join pg_class rel on rel.oid = con.conrelid
+					where contype in ('c','f')
+				) LOOP
+					RAISE NOTICE 'validating [%] on [%.%]', r.conname, r.nspname, r.relname;
+					EXECUTE 'UPDATE pg_constraint SET convalidated=false WHERE conname=$1 AND connamespace=$2 AND conrelid=$3' USING r.conname, r.connamespace, r.conrelid;
+					EXECUTE 'ALTER TABLE ' || r.nspname || '.' || r.relname || ' VALIDATE CONSTRAINT "' || r.conname || '"';
+				END LOOP;
+			END
+		$$;"""
 		try:
-			revalidated = gmPG2.revalidate_constraints(link_obj = self.conn)
-		except Exception:
-			_log.exception('>>>[VALIDATE CONSTRAINT]<<< failed')
+			curs.execute(cmd)
+		except:
+			_log.exception(u">>>[VALIDATE CONSTRAINT]<<< failed")
 			return False
-
-		return revalidated
-
-	#--------------------------------------------------------------
-	def validate_collations(self, use_the_source_luke):
-		print_msg('==> [%s]: validating collations ...' % self.name)
-		sane_pg_database_collation = gmPG2.sanity_check_database_default_collation_version(conn = self.conn)
-		sane_pg_collations = gmPG2.sanity_check_collation_versions(conn = self.conn)
-		if sane_pg_database_collation and sane_pg_collations:
-			return True
-
-		_log.debug('Kelvin: %s', use_the_source_luke)
-		if sane_pg_database_collation is False:
-			if not gmPG2.refresh_database_default_collation_version_information(conn = self.conn, use_the_source_luke = use_the_source_luke):
-				print_msg('    ... fixing database default collation failed')
-				return False
-
-		if sane_pg_collations is False:
-			if not gmPG2.refresh_collations_version_information(conn = self.conn, use_the_source_luke = use_the_source_luke):
-				print_msg('    ... fixing all other collations failed')
-				return False
-
+		finally:
+			curs.close()
 		return True
 
 	#--------------------------------------------------------------
 	def transfer_users(self):
-		print_msg("==> [%s]: transferring users ..." % self.name)
+		print_msg("==> transferring users ...")
 		do_user_transfer = cfg_get(self.section, 'transfer users')
 		if do_user_transfer is None:
 			_log.info(u'user transfer not defined')
@@ -1289,7 +1301,7 @@ class database:
 
 	#--------------------------------------------------------------
 	def bootstrap_auditing(self):
-		print_msg("==> [%s]: setting up auditing ..." % self.name)
+		print_msg("==> setting up auditing ...")
 		# get audit trail configuration
 		tmp = cfg_get(self.section, 'audit disable')
 		# if this option is not given, assume we want auditing
@@ -1347,7 +1359,7 @@ class database:
 	def bootstrap_notifications(self):
 
 		# setup clin.clin_root_item child tables FK's
-		print_msg("==> [%s]: setting up encounter/episode FKs and IDXs ..." % self.name)
+		print_msg("==> setting up encounter/episode FKs and IDXs ...")
 		child_tables = gmPG2.get_child_tables(link_obj = self.conn, schema = 'clin', table = 'clin_root_item')
 		_log.info(u'clin.clin_root_item child tables:')
 		for child in child_tables:
@@ -1443,7 +1455,7 @@ class database:
 
 		# re-create fk_encounter/fk_episode sanity check triggers on all tables
 		if gmPG2.function_exists(link_obj = curs, schema = u'gm', function = u'create_all_enc_epi_sanity_check_triggers'):
-			print_msg("==> [%s]: setting up encounter/episode FK sanity check triggers ..." % self.name)
+			print_msg("==> setting up encounter/episode FK sanity check triggers ...")
 			_log.debug(u'attempting to set up sanity check triggers on all tables linking to encounter AND episode')
 			cmd = u'select gm.create_all_enc_epi_sanity_check_triggers()'
 			curs.execute(cmd)
@@ -1455,7 +1467,7 @@ class database:
 
 		# always re-create generic super signal (if exists)
 		if gmPG2.function_exists(link_obj = curs, schema = u'gm', function = u'create_all_table_mod_triggers'):
-			print_msg("==> [%s]: setting up generic notifications ..." % self.name)
+			print_msg("==> setting up generic notifications ...")
 			_log.debug(u'attempting to create generic modification announcement triggers on all registered tables')
 
 			cmd = u"SELECT gm.create_all_table_mod_triggers(True::boolean)"

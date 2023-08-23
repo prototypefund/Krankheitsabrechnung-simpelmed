@@ -2,7 +2,7 @@
 """GNUmed quick person search widgets.
 
 This widget allows to search for persons based on the
-criteria name, date of birth and person ID. It goes to
+critera name, date of birth and person ID. It goes to
 considerable lengths to understand the user's intent from
 her input. For that to work well we need per-culture
 query generators. However, there's always the fallback
@@ -10,11 +10,12 @@ generator.
 """
 #============================================================
 __author__ = "K.Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = 'GPL v2 or later (for details see https://www.gnu.org/)'
+__license__ = 'GPL v2 or later (for details see http://www.gnu.org/)'
 
 import sys
 import os.path
 import glob
+import re as regex
 import logging
 
 
@@ -23,12 +24,15 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+	from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmTools
-from Gnumed.pycommon import gmCfgDB
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmPG2
+from Gnumed.pycommon import gmI18N
+from Gnumed.pycommon import gmCfg
+from Gnumed.pycommon import gmMatchProvider
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmNetworkTools
 
 from Gnumed.business import gmPerson
@@ -41,12 +45,14 @@ from Gnumed.business import gmProviderInbox
 
 from Gnumed.wxpython import gmGuiHelpers
 from Gnumed.wxpython import gmAuthWidgets
+from Gnumed.wxpython import gmRegetMixin
+from Gnumed.wxpython import gmEditArea
 from Gnumed.wxpython.gmPersonCreationWidgets import create_new_person
 
 
 _log = logging.getLogger('gm.person')
 
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 ID_PatPickList = wx.NewId()
 ID_BTN_AddNew = wx.NewId()
@@ -54,7 +60,7 @@ ID_BTN_AddNew = wx.NewId()
 #============================================================
 def merge_patients(parent=None):
 	dlg = cMergePatientsDlg(parent, -1)
-	return dlg.ShowModal()
+	result = dlg.ShowModal()
 
 #============================================================
 from Gnumed.wxGladeWidgets import wxgMergePatientsDlg
@@ -89,7 +95,7 @@ class cMergePatientsDlg(wxgMergePatientsDlg.wxgMergePatientsDlg):
 
 		if patient2merge['lastnames'] == 'Kirk':
 			if _cfg.get(option = 'debug'):
-				gmNetworkTools.open_url_in_browser(url = 'https://en.wikipedia.org/wiki/File:Picard_as_Locutus.jpg')
+				gmNetworkTools.open_url_in_browser(url = 'http://en.wikipedia.org/wiki/File:Picard_as_Locutus.jpg')
 				gmGuiHelpers.gm_show_info(_('\n\nYou will be assimilated.\n\n'), _('The Borg'))
 				return
 			else:
@@ -107,11 +113,11 @@ class cMergePatientsDlg(wxgMergePatientsDlg.wxgMergePatientsDlg):
 				'and the patients in question !\n'
 			) % (
 				patient2merge.ID,
-				patient2merge.description_gender,
+				patient2merge['description_gender'],
 				patient2merge['gender'],
 				patient2merge.get_formatted_dob(format = '%Y %b %d'),
 				patient2keep.ID,
-				patient2keep.description_gender,
+				patient2keep['description_gender'],
 				patient2keep['gender'],
 				patient2keep.get_formatted_dob(format = '%Y %b %d')
 			),
@@ -142,11 +148,11 @@ class cMergePatientsDlg(wxgMergePatientsDlg.wxgMergePatientsDlg):
 			' #%s: %s (%s, %s)'
 		) % (
 			patient2merge.ID,
-			patient2merge.description_gender,
+			patient2merge['description_gender'],
 			patient2merge['gender'],
 			patient2merge.get_formatted_dob(format = '%Y %b %d'),
 			patient2keep.ID,
-			patient2keep.description_gender,
+			patient2keep['description_gender'],
 			patient2keep['gender'],
 			patient2keep.get_formatted_dob(format = '%Y %b %d')
 		)
@@ -556,9 +562,12 @@ def load_persons_from_pracsoft_au():
 
 #============================================================
 def load_persons_from_kvks():
-	kvk_dir = os.path.abspath(os.path.expanduser(gmCfgDB.get4workplace (
+
+	dbcfg = gmCfg.cCfgSQL()
+	kvk_dir = os.path.abspath(os.path.expanduser(dbcfg.get2 (
 		option = 'DE.KVK.spool_dir',
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'workplace',
 		default = '/var/spool/kvkd/'
 		#default = u'/home/ncq/gnumed/'
 	)))
@@ -583,7 +592,7 @@ def load_person_from_vcard_file():
 	dlg = wx.FileDialog (
 		parent = wx.GetApp().GetTopWindow(),
 		message = _('Choose a vCard file:'),
-		defaultDir = gmTools.gmPaths().user_work_dir,
+		defaultDir = os.path.join(gmTools.gmPaths().home_dir, 'gnumed'),
 		wildcard = wildcards,
 		style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
 	)
@@ -943,7 +952,7 @@ class cPersonSearchCtrl(wx.TextCtrl):
 		# - redraw the currently active name upon losing focus
 		#
 		# if we use wx.EVT_KILL_FOCUS we will also receive this event
-		# when closing our application or losing focus to another
+		# when closing our application or loosing focus to another
 		# application which is NOT what we intend to achieve,
 		# however, this is the least ugly way of doing this due to
 		# certain vagaries of wxPython (see the Wiki)
@@ -995,11 +1004,13 @@ class cPersonSearchCtrl(wx.TextCtrl):
 		# invoke external patient sources
 		if keycode == wx.WXK_F2:
 			evt.Skip()
-			search_immediately = gmCfgDB.get4user (
+			dbcfg = gmCfg.cCfgSQL()
+			search_immediately = bool(dbcfg.get2 (
 				option = 'patient_search.external_sources.immediately_search_if_single_source',
 				workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
-				default = False
-			)
+				bias = 'user',
+				default = 0
+			))
 			p = get_person_from_external_sources (
 				parent = wx.GetTopLevelParent(self),
 				search_immediately = search_immediately
@@ -1193,7 +1204,7 @@ def _check_has_dob(patient=None):
 				'You can proceed to work on the patient but\n'
 				'GNUmed will be unable to assist you with\n'
 				'age-related decisions.\n'
-			) % patient.description_gender
+			) % patient['description_gender']
 		)
 
 #------------------------------------------------------------
@@ -1202,9 +1213,11 @@ def _check_birthday(patient=None):
 	if patient['dob'] is None:
 		return
 
-	dob_distance = gmCfgDB.get4user (
+	dbcfg = gmCfg.cCfgSQL()
+	dob_distance = dbcfg.get2 (
 		option = 'patient_search.dob_warn_interval',
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'user',
 		default = '1 week'
 	)
 
@@ -1276,18 +1289,27 @@ class cActivePatientSelector(cPersonSearchCtrl):
 		cPersonSearchCtrl.__init__(self, *args, **kwargs)
 
 		# get configuration
-		self.__always_dismiss_on_search = gmCfgDB.get4user (
-			option = 'patient_search.always_dismiss_previous_patient',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
-			default = False
-		)
-		self.__always_reload_after_search = gmCfgDB.get4user (
-			option = 'patient_search.always_reload_new_patient',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
-			default = False
-		)
-		self.__register_events()
+		cfg = gmCfg.cCfgSQL()
 
+		self.__always_dismiss_on_search = bool ( 
+			cfg.get2 (
+				option = 'patient_search.always_dismiss_previous_patient',
+				workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+				bias = 'user',
+				default = 0
+			)
+		)
+
+		self.__always_reload_after_search = bool (
+			cfg.get2 (
+				option = 'patient_search.always_reload_new_patient',
+				workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+				bias = 'user',
+				default = 0
+			)
+		)
+
+		self.__register_events()
 	#--------------------------------------------------------
 	# utility methods
 	#--------------------------------------------------------
@@ -1295,7 +1317,7 @@ class cActivePatientSelector(cPersonSearchCtrl):
 
 		curr_pat = gmPerson.gmCurrentPatient()
 		if curr_pat.connected:
-			name = curr_pat.description
+			name = curr_pat['description']
 			if curr_pat.locked:
 				name = _('%(name)s (locked)') % {'name': name}
 		else:
@@ -1379,6 +1401,8 @@ if __name__ == "__main__":
 
 	if len(sys.argv) > 1:
 		if sys.argv[1] == 'test':
+			gmI18N.activate_locale()
+			gmI18N.install_domain()
 
 			app = wx.PyWidgetTester(size = (200, 40))
 #			app.SetWidget(cSelectPersonFromListDlg, -1)

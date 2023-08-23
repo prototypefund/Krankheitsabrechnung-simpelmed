@@ -4,7 +4,7 @@ copyright: authors
 """
 #============================================================
 __author__ = "K.Hilbert"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import logging, sys
 
@@ -14,7 +14,6 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmDateTime
@@ -39,13 +38,14 @@ from Gnumed.wxpython import gmMedicationWidgets
 from Gnumed.wxpython import gmEditArea
 from Gnumed.wxpython import gmEMRStructWidgets
 from Gnumed.wxpython import gmEncounterWidgets
+from Gnumed.wxpython import gmFamilyHistoryWidgets
 from Gnumed.wxpython import gmVaccWidgets
 from Gnumed.wxpython import gmDocumentWidgets
 from Gnumed.wxpython import gmGuiHelpers
 from Gnumed.wxpython import gmPregWidgets
+from Gnumed.wxpython import gmHabitWidgets
 from Gnumed.wxpython import gmHospitalStayWidgets
 from Gnumed.wxpython import gmProcedureWidgets
-from Gnumed.wxpython import gmFamilyHistoryWidgets
 
 
 _log = logging.getLogger('gm.patient')
@@ -454,6 +454,8 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 				self._LCTRL_documents.SetItemTextColour(idx, wx.Colour('RED'))
 	#-----------------------------------------------------
 	def _calc_documents_list_item_tooltip(self, data):
+		emr = gmPerson.gmCurrentPatient().emr
+
 		if isinstance(data, gmDocuments.cDocument):
 			return data.format()
 
@@ -552,6 +554,8 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 
 	#-----------------------------------------------------
 	def _calc_encounters_list_item_tooltip(self, data):
+		emr = gmPerson.gmCurrentPatient().emr
+
 		if isinstance(data, gmEMRStructItems.cEncounter):
 			return data.format (
 				with_vaccinations = False,
@@ -565,7 +569,6 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 			key, val = list(data.items())[0]
 			if key == 'wlist':
 				return val
-
 			if key == 'stay':
 				return None
 
@@ -714,7 +717,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 			data[sort_key] = [label, vacc]
 		del vaccs
 
-		for abuse in [ a for a in emr.abused_substances if a['use_type'] == gmMedication.USE_TYPE_PREVIOUSLY_ADDICTED ]:
+		for abuse in [ a for a in emr.abused_substances if a['harmful_use_type'] == 3 ]:
 			sort_key = '%s::%s' % (gmDateTime.pydt_strftime(abuse['last_checked_when'], format = date_format4sorting), abuse['substance'])
 			label = _('Hx of addiction: %s') % abuse['substance']
 			sort_key_list.append(sort_key)
@@ -791,7 +794,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 				gmEMRStructWidgets.edit_health_issue(parent = self, issue = data)
 				return
 			if isinstance(data, gmFamilyHistory.cFamilyHistory):
-				gmFamilyHistoryWidgets.edit_family_history(parent = self, family_history = data)
+				FamilyHistoryWidgets.edit_family_history(parent = self, family_history = data)
 				return
 			if isinstance(data, gmEMRStructItems.cHospitalStay):
 				gmHospitalStayWidgets.edit_hospital_stay(parent = self, hospital_stay = data)
@@ -808,7 +811,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 			gmDispatcher.send(signal = 'display_widget', name = 'gmEMRBrowserPlugin')
 			return
 		if isinstance(data, gmFamilyHistory.cFamilyHistory):
-			gmFamilyHistoryWidgets.manage_family_history(parent = self)
+			FamilyHistoryWidgets.manage_family_history(parent = self)
 			return
 		if isinstance(data, gmEMRStructItems.cHospitalStay):
 			gmHospitalStayWidgets.manage_hospital_stays(parent = self)
@@ -833,12 +836,12 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 
 		# harmful substance use ?
 		abuses = emr.abused_substances
-		if len([ a for a in abuses if a['use_type'] in gmMedication.USE_TYPES_ACTIVE_MISUSE ]) > 0:
+		if len([ a for a in abuses if a['harmful_use_type'] in [1, 2] ]) > 0:
 			list_items.append(_('active substance abuse'))
 			data_items.append('\n'.join([ a.format(left_margin=0, date_format='%Y %b %d', single_line=True) for a in abuses ]))
 
 		# list by product or substance:
-		intakes = emr.get_current_medications(include_inactive = False, order_by = 'substance')
+		intakes = emr.get_current_medications(include_inactive = False, include_unapproved = True, order_by = 'substance')
 		multi_products_already_seen = []
 		for intake in intakes:
 			drug = intake.containing_drug
@@ -851,11 +854,11 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 				))
 				data_items.append(intake)
 			else:
-				if intake['drug_product'] in multi_products_already_seen:
+				if intake['product'] in multi_products_already_seen:
 					continue
-				multi_products_already_seen.append(intake['drug_product'])
+				multi_products_already_seen.append(intake['product'])
 				list_items.append(_('%s %s%s') % (
-					intake['drug_product'],
+					intake['product'],
 					drug['l10n_preparation'],
 					gmTools.coalesce(intake['schedule'], '', ': %s')
 				))
@@ -877,8 +880,8 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 			atcs.append(data['atc_substance'])
 #		if data['atc_drug'] is not None:
 #			atcs.append(data['atc_drug'])
-#		allg = emr.is_allergic_to(atcs = atcs, inns = (data['substance'],), drug = data['drug_product'])
-		allg = emr.is_allergic_to(atcs = atcs, inns = [data['substance']])
+#		allg = emr.is_allergic_to(atcs = tuple(atcs), inns = (data['substance'],), drug = data['product'])
+		allg = emr.is_allergic_to(atcs = tuple(atcs), inns = (data['substance'],))
 		if allg is False:
 			allg = None
 		return data.format(single_line = False, allergy = allg, show_all_product_components = True)
@@ -932,7 +935,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 
 		ident = patient.emergency_contact_in_database
 		if ident is not None:
-			list_items.append(_('emergency: %s') % ident.description_gender)
+			list_items.append(_('emergency: %s') % ident['description_gender'])
 			list_data.append(ident)
 
 		if patient['emergency_contact'] is not None:
@@ -983,7 +986,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 
 		if isinstance(data, gmPerson.cPerson):
 			return '%s\n\n%s' % (
-				data.description_gender,
+				data['description_gender'],
 				'\n'.join([
 					'%s: %s%s' % (
 						c['l10n_comm_type'],
@@ -1001,7 +1004,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 			ident = data.identity
 			return '%s: %s\n\n%s%s' % (
 				data['short_alias'],
-				ident.description_gender,
+				ident['description_gender'],
 				'\n'.join([
 					'%s: %s%s' % (
 						c['l10n_comm_type'],
@@ -1051,7 +1054,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 		list_data = []
 		for problem in problems:
 			if problem['type'] == 'issue':
-				issue = gmEMRStructItems.cHealthIssue.from_problem(problem)
+				issue = emr.problem2issue(problem)
 				if issue['pk_health_issue'] in epi_issues:
 					continue	# skip duplicates (issue/episode)
 				last_encounter = emr.get_last_encounter(issue_id = issue['pk_health_issue'])
@@ -1061,7 +1064,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 					last = last_encounter['last_affirmed'].strftime('%m/%Y')
 				list_items.append('%s: %s' % (problem['problem'], last))
 			elif problem['type'] == 'episode':
-				epi = gmEMRStructItems.cEpisode.from_problem(problem)
+				epi = emr.problem2episode(problem)
 				last_encounter = emr.get_last_encounter(episode_id = epi['pk_episode'])
 				if last_encounter is None:
 					last = epi['episode_modified_when'].strftime('%m/%Y')
@@ -1090,18 +1093,19 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 		self._LCTRL_problems.set_data(data = list_data)
 
 	#-----------------------------------------------------
-	def _calc_problem_list_item_tooltip(self, data) -> str:
+	def _calc_problem_list_item_tooltip(self, data):
 
 		if isinstance(data, gmExternalCare.cExternalCareItem):
-			tt = '\n'.join(data.format (
+			return '\n'.join(data.format (
 				with_health_issue = True,
 				with_address = True,
 				with_comms = True
 			))
-			return tt
+
+		emr = gmPerson.gmCurrentPatient().emr
 
 		if data['type'] == 'issue':
-			issue = gmEMRStructItems.cHealthIssue.from_problem(data)
+			issue = emr.problem2issue(data)
 			tt = issue.format (
 				patient = gmPerson.gmCurrentPatient(),
 				with_medications = False,
@@ -1115,7 +1119,7 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 			return tt
 
 		if data['type'] == 'episode':
-			epi = gmEMRStructItems.cEpisode.from_problem(data)
+			epi = emr.problem2episode(data)
 			tt = epi.format (
 				patient = gmPerson.gmCurrentPatient(),
 				with_encounters = False,
@@ -1134,15 +1138,15 @@ class cPatientOverviewPnl(wxgPatientOverviewPnl.wxgPatientOverviewPnl, gmRegetMi
 	#-----------------------------------------------------
 	def _on_problem_activated(self, event):
 		data = self._LCTRL_problems.get_selected_item_data(only_one = True)
-		if data:
+		if data is not None:
 			# <ctrl> down ?
 			if wx.GetKeyState(wx.WXK_CONTROL):
+				emr = gmPerson.gmCurrentPatient().emr
 				if data['type'] == 'issue':
-					gmEMRStructWidgets.edit_health_issue(parent = self, issue = gmEMRStructItems.cHealthIssue.from_problem(data))
+					gmEMRStructWidgets.edit_health_issue(parent = self, issue = emr.problem2issue(data))
 					return
-
 				if data['type'] == 'episode':
-					gmEMRStructWidgets.edit_episode(parent = self, episode = gmEMRStructItems.cEpisode.from_problem(data))
+					gmEMRStructWidgets.edit_episode(parent = self, episode = emr.problem2episode(data))
 					return
 
 		gmDispatcher.send(signal = 'display_widget', name = 'gmEMRBrowserPlugin')

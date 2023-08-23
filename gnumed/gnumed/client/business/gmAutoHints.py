@@ -14,7 +14,6 @@ import logging
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmTools
@@ -30,7 +29,7 @@ _log = logging.getLogger('gm.hints')
 _SQL_get_dynamic_hints = "SELECT * FROM ref.v_auto_hints WHERE %s"
 
 class cDynamicHint(gmBusinessDBObject.cBusinessDBObject):
-	"""Represents a dynamic hint to be run against the database."""
+	"""Represents dynamic hints to be run against the database."""
 
 	_cmd_fetch_payload = _SQL_get_dynamic_hints % "pk_auto_hint = %s"
 	_cmds_store_payload = [
@@ -245,9 +244,9 @@ _SQL_get_suppressed_hints = "SELECT * FROM clin.v_suppressed_hints WHERE %s"
 class cSuppressedHint(gmBusinessDBObject.cBusinessDBObject):
 	"""Represents suppressed dynamic hints per patient."""
 
-	_cmd_fetch_payload:str = _SQL_get_suppressed_hints % "pk_suppressed_hint = %s"
-	_cmds_store_payload:list = []
-	_updatable_fields:list = []
+	_cmd_fetch_payload = _SQL_get_suppressed_hints % "pk_suppressed_hint = %s"
+	_cmds_store_payload = []
+	_updatable_fields = []
 	#--------------------------------------------------------
 	def format(self):
 		txt = '%s               [#%s]\n' % (

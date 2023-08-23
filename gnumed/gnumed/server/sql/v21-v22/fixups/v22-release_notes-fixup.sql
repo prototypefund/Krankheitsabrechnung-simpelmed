@@ -17,20 +17,30 @@ INSERT INTO dem.message_inbox (
 ) VALUES (
 	(select pk from dem.staff where db_user = 'any-doc'),
 	(select pk_type from dem.v_inbox_item_type where type = 'memo' and category = 'administrative'),
-	'Release Notes for GNUmed 1.8.9 (database v22.19)',
-	'GNUmed 1.8.9 Release Notes:
+	'Release Notes for GNUmed 1.8.15 (database v22.25)',
+	'GNUmed 1.8.15 Release Notes:
 
-	1.8.9
+	1.8.15
 
-FIX: mime handling: py3 adjustments in file magic [thanks Andreas]
-FIX: bills: exception on generating invoice PDF [thanks l-ray]
-FIX: about: exception in about dialog [thanks aimee]
+IMPROVED: person search: query speed
 
-	22.19
+	1.8.14
 
-FIX: bootstrapper: no more IS OF, use pg_typeof in v2->v3 transition [thanks Lennart]
-FIX: bootstrapper: CHAR -> TEXT cast in v19+ schema hashing on recent PGs
+FIX: plugins: exception on raising configured but unloaded plugin
+
+IMPROVED: SOAP: on patient change ask if unsaved SOAP [thanks Marc]
+IMPROVED: DB: setup connections for auto_explain in --debug mode
+
+	22.25
+
+IMPROVED: identity/names: indices
+
+	22.24
+
+IMPROVED: blobs: indices [thanks Marc]
+
+FIX: waiting list: failure in function moving entries
 ');
 
 -- --------------------------------------------------------------
-select gm.log_script_insertion('v22-release_notes-fixup.sql', '22.19@1.8.9');
+select gm.log_script_insertion('v22-release_notes-fixup.sql', '22.25@1.8.15');

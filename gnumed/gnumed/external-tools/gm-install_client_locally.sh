@@ -3,12 +3,12 @@
 # ===========================================================
 # This script must be run as the user who wants to use the
 # GNUmed client. If you opt for letting the script try to
-# install dependencies it will attempt to use SU for which
+# install dependancies it will attempt to use SU for which
 # you will need to know the root password.
 # ===========================================================
 
 INSTALL_BASE=~/".gnumed/client-installation"
-DL_BASE="https://www.gnumed.de/downloads/client"
+DL_BASE="http://www.gnumed.de/downloads/client"
 
 # ===========================================================
 if test "$LOGNAME" == "root" ; then
@@ -49,7 +49,7 @@ if test "${ARG_ONE}" == "update" ; then
 	echo "Updating the installer itself."
 	echo ""
 	echo "The new version will be in $0.new."
-	wget https://www.gnumed.de/downloads/client/$0 -O $0.new
+	wget http://www.gnumed.de/downloads/client/$0 -O $0.new
 	chmod +x $0.new
 	exit 0
 fi
@@ -218,7 +218,7 @@ else
 fi
 
 
-# check dependencies
+# check dependancies
 echo ""
 echo "Checking dependencies ..."
 cd gnumed-client.${TARGET_VER}/external-tools/

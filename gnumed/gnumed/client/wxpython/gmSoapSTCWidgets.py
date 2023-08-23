@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-"""GNUmed StyledTextCtrl subclass for SOAP editing.
+__doc__ = """GNUmed StyledTextCtrl subclass for SOAP editing.
 
-based on: 11/21/2003 - Jeff Grimmett (grimmtooth@softhome.net)
-"""
+based on: 11/21/2003 - Jeff Grimmett (grimmtooth@softhome.net)"""
 #================================================================
 __author__  = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import logging
 import sys
@@ -17,7 +16,6 @@ import wx.stc
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.business import gmSoapDefs
 from Gnumed.wxpython import gmKeywordExpansionWidgets
 from Gnumed.wxpython.gmTextCtrl import cUnicodeInsertion_TextCtrlMixin
@@ -52,7 +50,7 @@ class cWxTextCtrlCompatibility_StcMixin():
 	def GetLastPosition(self):
 		return self.Length
 
-	LastPosition = property(GetLastPosition)
+	LastPosition = property(GetLastPosition, lambda x:x)
 
 	#--------------------------------------------------
 	def GetNumberOfLines(self):
@@ -362,7 +360,7 @@ class cSoapSTC(cUnicodeInsertion_TextCtrlMixin, gmKeywordExpansionWidgets.cKeywo
 			soap[cat].append(lines[line_idx])
 		return soap
 
-	soap = property(GetText_as_SOAP)
+	soap = property(GetText_as_SOAP, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_empty(self):
@@ -372,7 +370,7 @@ class cSoapSTC(cUnicodeInsertion_TextCtrlMixin, gmKeywordExpansionWidgets.cKeywo
 				return False
 		return True
 
-	empty = property(_get_empty)
+	empty = property(_get_empty, lambda x:x)
 
 	#-------------------------------------------------------
 	def sort_by_SOAP(self, sort_order=None):
@@ -380,7 +378,7 @@ class cSoapSTC(cUnicodeInsertion_TextCtrlMixin, gmKeywordExpansionWidgets.cKeywo
 
 	#-------------------------------------------------------
 	def append_soap_line(self, soap_cat):
-		#caret_pos = self.CurrentPos
+		caret_pos = self.CurrentPos
 		self.GotoPos(self.Length)
 		self.AddText('\n')
 		self.set_soap_cat_of_line(self.LineCount, soap_cat)
@@ -797,7 +795,7 @@ class cSoapSTC(cUnicodeInsertion_TextCtrlMixin, gmKeywordExpansionWidgets.cKeywo
 			if key.islower():
 				key = key.upper()
 			else:
-				key = key.casefold()
+				key = key.lower()
 			try:
 				soap_category = gmSoapDefs.l10n2soap_cat[key]
 			except KeyError:
@@ -810,7 +808,7 @@ class cSoapSTC(cUnicodeInsertion_TextCtrlMixin, gmKeywordExpansionWidgets.cKeywo
 		if wx.MAJOR_VERSION > 2:
 			evt.Skip()
 			return
-		# on wxp2 we need to explicitly handle WXK_MENU
+		# on wxp2 we need to explicitely handle WXK_MENU
 		# for the context menu to properly work on a key press
 		self.__show_context_menu(self.caret_coords_on_screen())
 
@@ -852,7 +850,7 @@ class cSoapSTC(cUnicodeInsertion_TextCtrlMixin, gmKeywordExpansionWidgets.cKeywo
 
 		# CTRL-T has been pressed last, now another character has been pressed
 		if self.__changing_SOAP_cat:
-			self.__handle_soap_category_key_down(chr(evt.GetUnicodeKey()).casefold(), self.CurrentLine)
+			self.__handle_soap_category_key_down(chr(evt.GetUnicodeKey()).lower(), self.CurrentLine)
 			# somehow put cursor into the changed (and possibly moved) line
 			return
 
@@ -928,39 +926,40 @@ class cSoapSTC(cUnicodeInsertion_TextCtrlMixin, gmKeywordExpansionWidgets.cKeywo
 		evt.Skip()
 
 
-#	def OnStartDrag(self, evt):
-#		#self.log.write("OnStartDrag: %d, %s\n"
-#		#			   % (evt.GetDragAllowMove(), evt.GetDragText()))
-#		if debug and evt.GetPosition() < 250:
-#			evt.SetDragAllowMove(False)		# you can prevent moving of text (only copy)
-#			evt.SetDragText("DRAGGED TEXT") # you can change what is dragged
-#			#evt.SetDragText("")			 # or prevent the drag with empty text
-#
-#
-#	def OnDragOver(self, evt):
-#		#self.log.write(
-#		#	"OnDragOver: x,y=(%d, %d)  pos: %d	DragResult: %d\n"
-#		#	% (evt.GetX(), evt.GetY(), evt.GetPosition(), evt.GetDragResult())
-#		#	)
-#
-#		if debug and evt.GetPosition() < 250:
-#			evt.SetDragResult(wx.DragNone)	 # prevent dropping at the beginning of the buffer
-#
-#
-#	def OnDoDrop(self, evt):
-#		#self.log.write("OnDoDrop: x,y=(%d, %d)	pos: %d	 DragResult: %d\n"
-#		#			   "\ttext: %s\n"
-#		#			   % (evt.GetX(), evt.GetY(), evt.GetPosition(), evt.GetDragResult(),
-#		#				  evt.GetDragText()))
-#
-#		if debug and evt.GetPosition() < 500:
-#			evt.SetDragText("DROPPED TEXT")	 # Can change text if needed
-#			#evt.SetDragResult(wx.DragNone)	 # Can also change the drag operation, but it
-#											 # is probably better to do it in OnDragOver so
-#											 # there is visual feedback
-#
-#			#evt.SetPosition(25)			 # Can also change position, but I'm not sure why
-#											 # you would want to...
+	def OnStartDrag(self, evt):
+		#self.log.write("OnStartDrag: %d, %s\n"
+		#			   % (evt.GetDragAllowMove(), evt.GetDragText()))
+
+		if debug and evt.GetPosition() < 250:
+			evt.SetDragAllowMove(False)		# you can prevent moving of text (only copy)
+			evt.SetDragText("DRAGGED TEXT") # you can change what is dragged
+			#evt.SetDragText("")			 # or prevent the drag with empty text
+
+
+	def OnDragOver(self, evt):
+		#self.log.write(
+		#	"OnDragOver: x,y=(%d, %d)  pos: %d	DragResult: %d\n"
+		#	% (evt.GetX(), evt.GetY(), evt.GetPosition(), evt.GetDragResult())
+		#	)
+
+		if debug and evt.GetPosition() < 250:
+			evt.SetDragResult(wx.DragNone)	 # prevent dropping at the beginning of the buffer
+
+
+	def OnDoDrop(self, evt):
+		#self.log.write("OnDoDrop: x,y=(%d, %d)	pos: %d	 DragResult: %d\n"
+		#			   "\ttext: %s\n"
+		#			   % (evt.GetX(), evt.GetY(), evt.GetPosition(), evt.GetDragResult(),
+		#				  evt.GetDragText()))
+
+		if debug and evt.GetPosition() < 500:
+			evt.SetDragText("DROPPED TEXT")	 # Can change text if needed
+			#evt.SetDragResult(wx.DragNone)	 # Can also change the drag operation, but it
+											 # is probably better to do it in OnDragOver so
+											 # there is visual feedback
+
+			#evt.SetPosition(25)			 # Can also change position, but I'm not sure why
+											 # you would want to...
 
 
 	def OnModified(self, evt):
@@ -979,17 +978,17 @@ class cSoapSTC(cUnicodeInsertion_TextCtrlMixin, gmKeywordExpansionWidgets.cKeywo
 
 	def transModType(self, modType):
 		st = ""
-		table = [(wx.stc.STC_MOD_INSERTTEXT, "InsertText"),
-				 (wx.stc.STC_MOD_DELETETEXT, "DeleteText"),
-				 (wx.stc.STC_MOD_CHANGESTYLE, "ChangeStyle"),
-				 (wx.stc.STC_MOD_CHANGEFOLD, "ChangeFold"),
-				 (wx.stc.STC_PERFORMED_USER, "UserFlag"),
-				 (wx.stc.STC_PERFORMED_UNDO, "Undo"),
-				 (wx.stc.STC_PERFORMED_REDO, "Redo"),
-				 (wx.stc.STC_LASTSTEPINUNDOREDO, "Last-Undo/Redo"),
-				 (wx.stc.STC_MOD_CHANGEMARKER, "ChangeMarker"),
-				 (wx.stc.STC_MOD_BEFOREINSERT, "B4-Insert"),
-				 (wx.stc.STC_MOD_BEFOREDELETE, "B4-Delete")
+		table = [(stc.STC_MOD_INSERTTEXT, "InsertText"),
+				 (stc.STC_MOD_DELETETEXT, "DeleteText"),
+				 (stc.STC_MOD_CHANGESTYLE, "ChangeStyle"),
+				 (stc.STC_MOD_CHANGEFOLD, "ChangeFold"),
+				 (stc.STC_PERFORMED_USER, "UserFlag"),
+				 (stc.STC_PERFORMED_UNDO, "Undo"),
+				 (stc.STC_PERFORMED_REDO, "Redo"),
+				 (stc.STC_LASTSTEPINUNDOREDO, "Last-Undo/Redo"),
+				 (stc.STC_MOD_CHANGEMARKER, "ChangeMarker"),
+				 (stc.STC_MOD_BEFOREINSERT, "B4-Insert"),
+				 (stc.STC_MOD_BEFOREDELETE, "B4-Delete")
 				 ]
 
 		for flag,text in table:
@@ -1024,8 +1023,7 @@ def runTest(frame, nb):
 
 	else:
 		p = wx.Panel(nb, -1, style=wx.NO_FULL_REPAINT_ON_RESIZE)
-		#ed = cSoapSTC(p, -1, log)
-		ed = cSoapSTC(p, -1, None)
+		ed = cSoapSTC(p, -1, log)
 		s = wx.BoxSizer(wx.HORIZONTAL)
 		s.Add(ed, 1, wx.EXPAND)
 		p.SetSizer(s)
@@ -1039,13 +1037,13 @@ def runTest(frame, nb):
 	#ed.SetUseAntiAliasing(False)	 
 	#ed.SetViewEOL(True)
 
-	#ed.CmdKeyClear(wx.stc.STC_KEY_BACK,
-	#				wx.stc.STC_SCMOD_CTRL)
-	#ed.CmdKeyAssign(wx.stc.STC_KEY_BACK,
-	#				 wx.stc.STC_SCMOD_CTRL,
-	#				 wx.stc.STC_CMD_DELWORDLEFT)
+	#ed.CmdKeyClear(stc.STC_KEY_BACK,
+	#				stc.STC_SCMOD_CTRL)
+	#ed.CmdKeyAssign(stc.STC_KEY_BACK,
+	#				 stc.STC_SCMOD_CTRL,
+	#				 stc.STC_CMD_DELWORDLEFT)
 
-	ed.SetText('abcdefgs')
+	ed.SetText(demoText)
 
 	if wx.USE_UNICODE:
 		import codecs
@@ -1053,7 +1051,7 @@ def runTest(frame, nb):
 
 		ed.GotoPos(ed.GetLength())
 		ed.AddText("\n\nwx.StyledTextCtrl can also do Unicode:\n")
-		#uniline = ed.GetCurrentLine()
+		uniline = ed.GetCurrentLine()
 		unitext, l = decode('\xd0\x9f\xd0\xb8\xd1\x82\xd0\xbe\xd0\xbd - '
 							'\xd0\xbb\xd1\x83\xd1\x87\xd1\x88\xd0\xb8\xd0\xb9 '
 							'\xd1\x8f\xd0\xb7\xd1\x8b\xd0\xba \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb3\xd1\x80\xd0\xb0\xd0\xbc\xd0\xbc\xd0\xb8\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x8f!\n\n')
@@ -1061,10 +1059,10 @@ def runTest(frame, nb):
 		ed.AddText(unitext)
 		ed.GotoPos(0)
 	#else:
-	#	 #ed.StyleSetFontEncoding(wx.stc.STC_STYLE_DEFAULT, wx.FONTENCODING_KOI8)
+	#	 #ed.StyleSetFontEncoding(stc.STC_STYLE_DEFAULT, wx.FONTENCODING_KOI8)
 	#	 #text = u'\u041f\u0438\u0442\u043e\u043d - \u043b\u0443\u0447\u0448\u0438\u0439 \u044f\u0437\u044b\u043a \n\u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f!'
 	#	 #text = text.encode('koi8-r')
-	#	 #ed.StyleSetFontEncoding(wx.stc.STC_STYLE_DEFAULT, wx.FONTENCODING_BIG5)
+	#	 #ed.StyleSetFontEncoding(stc.STC_STYLE_DEFAULT, wx.FONTENCODING_BIG5)
 	#	 #text = u'Python \u662f\u6700\u597d\u7684\u7de8\u7a0b\u8a9e\u8a00\uff01'
 	#	 #text = text.encode('big5')
 	#	 ed.GotoPos(ed.GetLength())
@@ -1073,7 +1071,7 @@ def runTest(frame, nb):
 	ed.EmptyUndoBuffer()
 
 	# make some styles
-	ed.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT, "size:%d,face:%s" % (pb, face3))
+	ed.StyleSetSpec(stc.STC_STYLE_DEFAULT, "size:%d,face:%s" % (pb, face3))
 	ed.StyleClearAll()
 	ed.StyleSetSpec(1, "size:%d,bold,face:%s,fore:#0000FF" % (pb, face1))
 	ed.StyleSetSpec(2, "face:%s,italic,fore:#FF0000,size:%d" % (face2, pb))
@@ -1095,16 +1093,16 @@ def runTest(frame, nb):
 
 
 	# line numbers in the margin
-	ed.SetMarginType(0, wx.stc.STC_MARGIN_NUMBER)
+	ed.SetMarginType(0, stc.STC_MARGIN_NUMBER)
 	ed.SetMarginWidth(0, 22)
-	ed.StyleSetSpec(wx.stc.STC_STYLE_LINENUMBER, "size:%d,face:%s" % (pb-2, face1))
+	ed.StyleSetSpec(stc.STC_STYLE_LINENUMBER, "size:%d,face:%s" % (pb-2, face1))
 
 	# setup some markers
-	ed.SetMarginType(1, wx.stc.STC_MARGIN_SYMBOL)
-	ed.MarkerDefine(0, wx.stc.STC_MARK_ROUNDRECT, "#CCFF00", "RED")
-	ed.MarkerDefine(1, wx.stc.STC_MARK_CIRCLE, "FOREST GREEN", "SIENNA")
-	ed.MarkerDefine(2, wx.stc.STC_MARK_SHORTARROW, "blue", "blue")
-	ed.MarkerDefine(3, wx.stc.STC_MARK_ARROW, "#00FF00", "#00FF00")
+	ed.SetMarginType(1, stc.STC_MARGIN_SYMBOL)
+	ed.MarkerDefine(0, stc.STC_MARK_ROUNDRECT, "#CCFF00", "RED")
+	ed.MarkerDefine(1, stc.STC_MARK_CIRCLE, "FOREST GREEN", "SIENNA")
+	ed.MarkerDefine(2, stc.STC_MARK_SHORTARROW, "blue", "blue")
+	ed.MarkerDefine(3, stc.STC_MARK_ARROW, "#00FF00", "#00FF00")
 
 	# put some markers on some lines
 	ed.MarkerAdd(17, 0)
@@ -1115,45 +1113,45 @@ def runTest(frame, nb):
 
 
 	# and finally, an indicator or two
-	ed.IndicatorSetStyle(0, wx.stc.STC_INDIC_SQUIGGLE)
+	ed.IndicatorSetStyle(0, stc.STC_INDIC_SQUIGGLE)
 	ed.IndicatorSetForeground(0, wx.RED)
-	ed.IndicatorSetStyle(1, wx.stc.STC_INDIC_DIAGONAL)
+	ed.IndicatorSetStyle(1, stc.STC_INDIC_DIAGONAL)
 	ed.IndicatorSetForeground(1, wx.BLUE)
-	ed.IndicatorSetStyle(2, wx.stc.STC_INDIC_STRIKE)
+	ed.IndicatorSetStyle(2, stc.STC_INDIC_STRIKE)
 	ed.IndicatorSetForeground(2, wx.RED)
 
-	ed.StartStyling(836, wx.stc.STC_INDICS_MASK)
-	ed.SetStyling(10, wx.stc.STC_INDIC0_MASK)
-	ed.SetStyling(8, wx.stc.STC_INDIC1_MASK)
-	ed.SetStyling(10, wx.stc.STC_INDIC2_MASK | wx.stc.STC_INDIC1_MASK)
+	ed.StartStyling(836, stc.STC_INDICS_MASK)
+	ed.SetStyling(10, stc.STC_INDIC0_MASK)
+	ed.SetStyling(8, stc.STC_INDIC1_MASK)
+	ed.SetStyling(10, stc.STC_INDIC2_MASK | stc.STC_INDIC1_MASK)
 
 
 	# some test stuff...
-#	if debug:
-#		print("GetTextLength(): ", ed.GetTextLength(), len(ed.GetText()))
-#		print("GetText(): ", repr(ed.GetText()))
-#		print()
-#		print("GetStyledText(98, 104): ", repr(ed.GetStyledText(98, 104)), len(ed.GetStyledText(98, 104)))
-#		print()
-#		print("GetCurLine(): ", repr(ed.GetCurLine()))
-#		ed.GotoPos(5)
-#		print("GetCurLine(): ", repr(ed.GetCurLine()))
-#		print()
-#		print("GetLine(1): ", repr(ed.GetLine(1)))
-#		print()
-#		ed.SetSelection(25, 35)
-#		print("GetSelectedText(): ", repr(ed.GetSelectedText()))
-#		print("GetTextRange(25, 35): ", repr(ed.GetTextRange(25, 35)))
-#		print("FindText(0, max, 'indicators'): ", end=' ')
-#		print(ed.FindText(0, ed.GetTextLength(), "indicators"))
-#		if wx.USE_UNICODE:
-#			end = ed.GetLength()
-#			start = ed.PositionFromLine(uniline)
-#			print("GetTextRange(%d, %d): " % (start, end), end=' ')
-#			print(repr(ed.GetTextRange(start, end)))
-#
-#
-#	wx.CallAfter(ed.GotoPos, 0)
+	if debug:
+		print("GetTextLength(): ", ed.GetTextLength(), len(ed.GetText()))
+		print("GetText(): ", repr(ed.GetText()))
+		print()
+		print("GetStyledText(98, 104): ", repr(ed.GetStyledText(98, 104)), len(ed.GetStyledText(98, 104)))
+		print()
+		print("GetCurLine(): ", repr(ed.GetCurLine()))
+		ed.GotoPos(5)
+		print("GetCurLine(): ", repr(ed.GetCurLine()))
+		print()
+		print("GetLine(1): ", repr(ed.GetLine(1)))
+		print()
+		ed.SetSelection(25, 35)
+		print("GetSelectedText(): ", repr(ed.GetSelectedText()))
+		print("GetTextRange(25, 35): ", repr(ed.GetTextRange(25, 35)))
+		print("FindText(0, max, 'indicators'): ", end=' ')
+		print(ed.FindText(0, ed.GetTextLength(), "indicators"))
+		if wx.USE_UNICODE:
+			end = ed.GetLength()
+			start = ed.PositionFromLine(uniline)
+			print("GetTextRange(%d, %d): " % (start, end), end=' ')
+			print(repr(ed.GetTextRange(start, end)))
+
+
+	wx.CallAfter(ed.GotoPos, 0)
 	return p
 
 
@@ -1161,7 +1159,7 @@ def runTest(frame, nb):
 overview = """\
 <html><body>
 Once again, no docs yet.  <b>Sorry.</b>	 But <a href="data/stc.h.html">this</a>
-and <a href="https://www.scintilla.org/ScintillaDoc.html">this</a> should
+and <a href="http://www.scintilla.org/ScintillaDoc.html">this</a> should
 be helpful.
 </body><html>
 """

@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-
-"""GNUmed KOrganizer link"""
+#=====================================================
+# GNUmed KOrganizer link
 #=====================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
 __license__ = "GPL v2 or later"
 
+import os, sys
+
 from Gnumed.wxpython import gmPlugin, gmDemographicsWidgets
 from Gnumed.pycommon import gmExceptions, gmShellAPI
 from Gnumed.wxpython import gmAccessPermissionWidgets
-
-if __name__ == '__main__':
-	_ = lambda x:x
 
 #======================================================================
 class gmKOrganizerPlugin(gmPlugin.cNotebookPlugin):
@@ -49,5 +48,4 @@ class gmKOrganizerPlugin(gmPlugin.cNotebookPlugin):
 	#--------------------------------------------------------
 	def can_receive_focus(self):
 		return True
-
 #======================================================================

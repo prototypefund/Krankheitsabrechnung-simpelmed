@@ -5,7 +5,6 @@ __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
 __license__ = "GPL v2 or later"
 
 
-import os
 import os.path
 import sys
 import logging
@@ -17,19 +16,17 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmPrinting
 from Gnumed.pycommon import gmDateTime
-from Gnumed.pycommon import gmMimeLib
-from Gnumed.pycommon import gmCfgINI
 from Gnumed.pycommon import gmShellAPI
+from Gnumed.pycommon import gmMimeLib
+from Gnumed.pycommon import gmCfg2
 
 from Gnumed.business import gmForms
 from Gnumed.business import gmPerson
-from Gnumed.business import gmStaff
 from Gnumed.business import gmExternalCare
 from Gnumed.business import gmPraxis
 
@@ -49,100 +46,6 @@ _ID_FORM_DISPOSAL_ARCHIVE_ONLY = range(4)
 
 #============================================================
 # generic form generation and handling convenience functions
-#------------------------------------------------------------
-__ODT_FILE_PREAMBLE = """GNUmed generic document template
-
-Some context data has been added below for your copy/paste convenience.
-
-Before entering text you should switch the "paragraph type" from "Pre-formatted Text" to "Standard".
-=============================================================================
-"""
-def print_generic_document(parent=None, jobtype:str=None, episode=None):
-	"""Call LibreOffice Writer with a generated (fake) ODT file.
-
-	Once Writer is closed, the ODT is imported if different from its initial content.
-
-	Note:
-		The file passed to LO _must_ reside in a directory the parents of
-		which are all R-X by the user or else LO will throw up its arms
-		in despair and fall back to the user's home dir upon saving.
-
-		So,
-
-			/tmp/user/$UID/some-file.odt
-
-		will *not* work (because .../user/... is "drwx--x--x root.root") while
-
-			/home/$USER/some/dir/some-file.odt
-
-		does.
-	"""
-	sandbox = os.path.join(gmTools.gmPaths().user_tmp_dir, 'libreoffice')
-	gmTools.mkdir(sandbox)
-	fpath = gmTools.get_unique_filename(suffix = '.txt', tmp_dir = sandbox)
-	doc_file = open(fpath, mode = 'wt')
-	doc_file.write(__ODT_FILE_PREAMBLE)
-	doc_file.write(_('Today: %s') % gmDateTime.pydt_now_here().strftime('%c'))
-	doc_file.write('\n\n')
-	prax = gmPraxis.gmCurrentPraxisBranch()
-	doc_file.write('Praxis:\n')
-	doc_file.write(prax.format())
-	doc_file.write('\n')
-	doc_file.write('Praxis branch:\n')
-	doc_file.write('\n'.join(prax.org_unit.format (
-		with_address = True,
-		with_org = True,
-		with_comms = True
-	)))
-	doc_file.write('\n\n')
-	pat = gmPerson.gmCurrentPatient(gmPerson.cPatient(12))
-	if pat.connected:
-		doc_file.write('Patient:\n')
-		doc_file.write(pat.get_description_gender())
-		doc_file.write('\n\n')
-		for adr in pat.get_addresses():
-			doc_file.write(adr.format(single_line = False, verbose = True, show_type = True))
-		doc_file.write('\n\n')
-		for chan in pat.get_comm_channels():
-			doc_file.werite(chan.format())
-		doc_file.write('\n\n')
-	doc_file.write('Provider:\n')
-	doc_file.write('\n'.join(gmStaff.gmCurrentProvider().get_staff().format()))
-	doc_file.write('\n\n-----------------------------------------------------------------------------\n\n')
-	doc_file.close()
-
-	# convert txt -> odt
-	success, ret_code, stdout = gmShellAPI.run_process (
-		cmd_line = [
-			'lowriter',
-			'--convert-to', 'odt',
-			'--outdir', os.path.split(fpath)[0],
-			fpath
-		],
-		verbose = True
-	)
-	if success:
-		fpath = gmTools.fname_stem_with_path(fpath) + '.odt'
-	else:
-		_log.warning('cannot convert .txt to .odt')
-	md5_before = gmTools.file2md5(fpath)
-	gmShellAPI.run_process(cmd_line = ['lowriter', fpath], verbose = True)
-	md5_after = gmTools.file2md5(fpath)
-	if md5_before == md5_after:
-		gmDispatcher.send(signal = 'statustext', msg = _('Document not modified. Discarding.'), beep = False)
-		return
-
-	if not pat.connected:
-		shutil.move(fpath, gmTools.gmPaths().user_work_dir)
-		gmDispatcher.send(signal = 'statustext', msg = _('No patient. Moved file into %s') % gmTools.gmPaths().user_work_dir, beep = False)
-		return
-
-	pat.export_area.add_file (
-		filename = fpath,
-		hint = _('Generic letter, written at %s') % gmDateTime.pydt_now_here().strftime('%Y %b %d  %H:%M')
-	)
-	gmDispatcher.send(signal = 'display_widget', name = 'gmExportAreaPlugin')
-
 #------------------------------------------------------------
 def print_doc_from_template(parent=None, jobtype=None, episode=None, edit_form=None):
 
@@ -257,7 +160,7 @@ def generate_form_from_template(parent=None, template_types=None, edit=None, tem
 	except KeyError:
 		_log.exception('cannot instantiate document template [%s]', template)
 		gmGuiHelpers.gm_show_error (
-			aMessage = _('Invalid document template [%s - %s (%s)]') % (template['name_long'], template['external_version'], template['engine']),
+			aMessage = _('Invalid document template [%s - %s (%s)]') % (name, ver, template['engine']),
 			aTitle = _('Generating document from template')
 		)
 		wx.EndBusyCursor()
@@ -359,7 +262,7 @@ def act_on_generated_forms(parent=None, forms=None, jobtype=None, episode_name=N
 		if len(files2print) == 0:
 			return True
 		# print
-		_cfg = gmCfgINI.gmCfgData()
+		_cfg = gmCfg2.gmCfgData()
 		printed = gmPrinting.print_files(filenames = files2print, jobtype = jobtype, verbose = _cfg.get(option = 'debug'))
 		if not printed:
 			gmGuiHelpers.gm_show_error (
@@ -576,7 +479,7 @@ def manage_form_templates(parent=None, template_types=None, active_only=False, e
 			) % (template['name_long'], template['external_version'])
 		)
 		if delete:
-			# FIXME: make this a privileged operation ?
+			# FIXME: make this a priviledged operation ?
 			gmForms.delete_form_template(template = template)
 			return True
 		return False
@@ -804,7 +707,7 @@ class cFormTemplateEAPnl(wxgFormTemplateEditAreaPnl.wxgFormTemplateEditAreaPnl, 
 		dlg = wx.FileDialog (
 			parent = self,
 			message = _('Choose a form template file'),
-			defaultDir = gmTools.gmPaths().user_work_dir,
+			defaultDir = os.path.expanduser(os.path.join('~', 'gnumed')),
 			defaultFile = '',
 			wildcard = '|'.join(wildcards),
 			style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
@@ -837,7 +740,7 @@ class cFormTemplateEAPnl(wxgFormTemplateEditAreaPnl.wxgFormTemplateEditAreaPnl, 
 		dlg = wx.FileDialog (
 			parent = self,
 			message = _('Enter a filename to save the template to'),
-			defaultDir = gmTools.gmPaths().user_work_dir,
+			defaultDir = os.path.expanduser(os.path.join('~', 'gnumed')),
 			defaultFile = '',
 			wildcard = '|'.join(wildcards),
 			style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
@@ -877,7 +780,7 @@ class cReceiverSelectionDlg(wxgReceiverSelectionDlg.wxgReceiverSelectionDlg):
 		adrs = self.__patient.get_addresses()
 		self.__populate_address_list(addresses = adrs)
 
-		self._TCTRL_final_name.SetValue(self.__patient.description.strip())
+		self._TCTRL_final_name.SetValue(self.__patient['description'].strip())
 
 		self.Layout()
 
@@ -891,8 +794,8 @@ class cReceiverSelectionDlg(wxgReceiverSelectionDlg.wxgReceiverSelectionDlg):
 	#------------------------------------------------------------
 	def __populate_candidates_list(self):
 
-		list_items = [[_('Patient'), self.__patient.description_gender.strip()]]
-		list_data = [(self.__patient.description.strip(), self.__patient.get_addresses(), '', None)]
+		list_items = [[_('Patient'), self.__patient['description_gender'].strip()]]
+		list_data = [(self.__patient['description'].strip(), self.__patient.get_addresses(), '', None)]
 
 		candidate_type = _('Emergency contact')
 		if self.__patient['emergency_contact'] is not None:
@@ -901,15 +804,15 @@ class cReceiverSelectionDlg(wxgReceiverSelectionDlg.wxgReceiverSelectionDlg):
 			list_data.append((name, [], '', None))
 		contact = self.__patient.emergency_contact_in_database
 		if contact is not None:
-			list_items.append([candidate_type, contact.description_gender])
-			list_data.append((contact.description.strip(), contact.get_addresses(), '', None))
+			list_items.append([candidate_type, contact['description_gender']])
+			list_data.append((contact['description'].strip(), contact.get_addresses(), '', None))
 
 		candidate_type = _('Primary doctor')
 		prov = self.__patient.primary_provider
 		if prov is not None:
 			ident = prov.identity
-			list_items.append([candidate_type, '%s: %s' % (prov['short_alias'], ident.description_gender)])
-			list_data.append((ident.description.strip(), ident.get_addresses(), _('in-praxis primary provider'), None))
+			list_items.append([candidate_type, '%s: %s' % (prov['short_alias'], ident['description_gender'])])
+			list_data.append((ident['description'].strip(), ident.get_addresses(), _('in-praxis primary provider'), None))
 
 		candidate_type = _('This praxis')
 		branches = gmPraxis.get_praxis_branches(order_by = 'branch')
@@ -1151,13 +1054,13 @@ class cReceiverSelectionDlg(wxgReceiverSelectionDlg.wxgReceiverSelectionDlg):
 	def _get_name(self):
 		return self._TCTRL_final_name.GetValue().strip()
 
-	name = property(_get_name)
+	name = property(_get_name, lambda x:x)
 
 	#------------------------------------------------------------
 	def _get_address(self):
 		return self._PRW_other_address.address
 
-	address = property(_get_address)
+	address = property(_get_address, lambda x:x)
 
 #============================================================
 # main
@@ -1170,22 +1073,12 @@ if __name__ == '__main__':
 	#----------------------------------------
 	def test_cFormTemplateEAPnl():
 		app = wx.PyWidgetTester(size = (400, 300))
-		cFormTemplateEAPnl(app.frame, -1, template = gmForms.cFormTemplate(aPK_obj=4))
+		pnl = cFormTemplateEAPnl(app.frame, -1, template = gmForms.cFormTemplate(aPK_obj=4))
 		app.frame.Show(True)
 		app.MainLoop()
 		return
-
-	#----------------------------------------
-	def test_print_generic_document():
-		#gmStaff.set_current_provider_to_logged_on_user()
-		from Gnumed.pycommon import gmPG2
-		gmPG2.request_login_params(setup_pool = True)
-		gmPraxis.activate_first_praxis_branch()
-		print_generic_document()	#parent=None, jobtype=None, episode=None
-
 	#----------------------------------------
 	if (len(sys.argv) > 1) and (sys.argv[1] == 'test'):
-		#test_cFormTemplateEAPnl()
-		test_print_generic_document()
+		test_cFormTemplateEAPnl()
 
 #============================================================

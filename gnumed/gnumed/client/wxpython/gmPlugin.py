@@ -4,7 +4,7 @@
 """
 #==================================================================
 __author__ = "H.Herb, I.Haywood, K.Hilbert"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 import os
 import sys
@@ -17,10 +17,10 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmGuiBroker
-from Gnumed.pycommon import gmCfgDB
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
 
@@ -28,7 +28,7 @@ from Gnumed.business import gmPerson
 from Gnumed.business import gmPraxis
 
 
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 _log = logging.getLogger('gm.ui')
 
@@ -285,7 +285,7 @@ def instantiate_plugin(aPackage='xxxDEFAULTxxx', plugin_name='xxxDEFAULTxxx'):
 	- this knows nothing of databases, all it does is instantiate a named plugin
 
 	There will be a general 'gui' directory for large GUI
-	components: prescriptions, etc., then several others for more
+	components: prescritions, etc., then several others for more
 	specific types: export/import filters, crypto algorithms
 	guibroker, dbbroker are broker objects provided
 	defaults are the default set of plugins to be loaded
@@ -391,9 +391,11 @@ def GetPluginLoadList(option, plugin_dir = '', defaults = None, workplace=None):
 	p_list = None
 
 	if option is not None:
-		p_list = gmCfgDB.get4workplace (
+		dbcfg = gmCfg.cCfgSQL()
+		p_list = dbcfg.get2 (
 			option = option,
 			workplace = workplace,
+			bias = 'workplace',
 			default = defaults
 		)
 
@@ -407,8 +409,14 @@ def GetPluginLoadList(option, plugin_dir = '', defaults = None, workplace=None):
 			return defaults
 	else:
 		p_list = defaults
+
 	# store for current user/current workplace
-	gmCfgDB.set(option = option, value = p_list, workplace = workplace)
+	dbcfg.set (
+		option = option,
+		value = p_list,
+		workplace = workplace
+	)
+
 	_log.debug("plugin load list stored: %s" % str(p_list))
 	return p_list
 

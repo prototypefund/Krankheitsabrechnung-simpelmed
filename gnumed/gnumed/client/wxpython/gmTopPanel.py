@@ -1,11 +1,13 @@
-"""GNUmed top banner
-"""
+# GNUmed
+
 #===========================================================
 __author__  = "R.Terry <rterry@gnumed.net>, I.Haywood <i.haywood@ugrad.unimelb.edu.au>, K.Hilbert <Karsten.Hilbert@gmx.net>"
 __license__ = "GPL v2 or later"
 
 
 import sys
+import os.path
+import datetime as pyDT
 import logging
 import decimal
 
@@ -13,25 +15,32 @@ import decimal
 import wx
 
 
+from Gnumed.pycommon import gmGuiBroker
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
-from Gnumed.pycommon import gmCfgDB
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmDateTime
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmExceptions
 
 from Gnumed.business import gmPerson
+from Gnumed.business import gmEMRStructItems
+from Gnumed.business import gmAllergy
 from Gnumed.business import gmLOINC
+from Gnumed.business import gmClinicalCalculator
 from Gnumed.business import gmPathLab
 from Gnumed.business import gmPraxis
 
 from Gnumed.wxpython import gmGuiHelpers
+from Gnumed.wxpython import gmDemographicsWidgets
 from Gnumed.wxpython import gmAllergyWidgets
+from Gnumed.wxpython import gmPatSearchWidgets
+from Gnumed.wxpython import gmEMRStructWidgets
+from Gnumed.wxpython import gmPatPicWidgets
 
 
 _log = logging.getLogger('gm.ui')
-if __name__ == '__main__':
-	_ = lambda x:x
 
 #===========================================================
 from Gnumed.wxGladeWidgets import wxgTopPnl
@@ -42,6 +51,8 @@ class cTopPnl(wxgTopPnl.wxgTopPnl):
 
 		wxgTopPnl.wxgTopPnl.__init__(self, *args, **kwargs)
 
+		self.__gb = gmGuiBroker.GuiBroker()
+
 		self.curr_pat = gmPerson.gmCurrentPatient()
 
 		self.__init_ui()
@@ -49,7 +60,7 @@ class cTopPnl(wxgTopPnl.wxgTopPnl):
 
 	#-------------------------------------------------------
 	def __init_ui(self):
-		cfg = gmCfgINI.gmCfgData()
+		cfg = gmCfg2.gmCfgData()
 		if cfg.get(option = 'slave'):
 			self._TCTRL_patient_selector.SetEditable(0)
 			self._TCTRL_patient_selector.SetToolTip(None)
@@ -143,9 +154,11 @@ class cTopPnl(wxgTopPnl.wxgTopPnl):
 	#-------------------------------------------------------
 	def __get_lab_panel(self):
 		# get panel to use
-		pk_panel = gmCfgDB.get4user (
+		dbcfg = gmCfg.cCfgSQL()
+		pk_panel = dbcfg.get2 (
 			option = u'horstspace.top_panel.lab_panel',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		)
 		if pk_panel is None:
 			return None
@@ -301,12 +314,12 @@ class cTopPnl(wxgTopPnl.wxgTopPnl):
 		# patient is dead
 		if self.curr_pat['deceased'] is not None:
 			tt += _('Died: %s\n') % gmDateTime.pydt_strftime(self.curr_pat['deceased'], '%d %b %Y')
-			tt += _('At age: %s\n') % self.curr_pat.medical_age
+			tt += _('At age: %s\n') % self.curr_pat['medical_age']
 			age = '%s  %s - %s (%s)' % (
 				self.curr_pat.gender_symbol,
 				self.curr_pat.get_formatted_dob(format = '%d %b %Y'),
 				gmDateTime.pydt_strftime(self.curr_pat['deceased'], '%d %b %Y'),
-				self.curr_pat.medical_age
+				self.curr_pat['medical_age']
 			)
 			if self.curr_pat['dob_is_estimated']:
 				tt += _(' (date of birth and age are estimated)\n')
@@ -321,9 +334,9 @@ class cTopPnl(wxgTopPnl.wxgTopPnl):
 		if self.curr_pat.get_formatted_dob(format = '%m-%d', honor_estimation = False) == now.strftime('%m-%d'):
 			template = _('%(sex)s  %(dob)s (%(age)s today !)')
 			tt += _("\nToday is the patient's birthday !\n\n")
-			tt += _('Age: %s\n') % self.curr_pat.medical_age
+			tt += _('Age: %s\n') % self.curr_pat['medical_age']
 		else:
-			tt += _('Age: %s, birthday:\n') % self.curr_pat.medical_age
+			tt += _('Age: %s, birthday:\n') % self.curr_pat['medical_age']
 			if self.curr_pat.current_birthday_passed is True:
 				template = '%(sex)s  %(dob)s%(l_arr)s (%(age)s)'
 				tt += ' ' + _('last: %s ago (this year)') % gmDateTime.format_apparent_age_medically (
@@ -348,7 +361,7 @@ class cTopPnl(wxgTopPnl.wxgTopPnl):
 		age = template % {
 			'sex': self.curr_pat.gender_symbol,
 			'dob': self.curr_pat.get_formatted_dob(format = '%d %b %Y'),
-			'age': self.curr_pat.medical_age,
+			'age': self.curr_pat['medical_age'],
 			'r_arr': gmTools.u_arrow2right,
 			'l_arr': gmTools.u_left_arrow
 		}
@@ -433,7 +446,8 @@ class cTopPnl(wxgTopPnl.wxgTopPnl):
 
 #===========================================================	
 if __name__ == "__main__":
-	app = wx.PyWidgetTester(size = (400, 200))
-	#app.SetWidget(cMainTopPanel, -1)
-	app.SetWidget(cTopPnl, -1)
+	app = wxPyWidgetTester(size = (400, 200))
+	app.SetWidget(cMainTopPanel, -1)
+	app.SetWidget(cTopPanel, -1)
 	app.MainLoop()
+#===========================================================

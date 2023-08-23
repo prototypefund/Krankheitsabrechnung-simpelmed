@@ -22,8 +22,10 @@ import lxml.etree as lxml_etree
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 	from Gnumed.pycommon import gmLog2
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
 from Gnumed.business import gmPerson
@@ -89,7 +91,6 @@ class cDTO_AmtsBmp(gmPerson.cDTO_person):
 		if egk_id is None:
 			_log.debug('cannot search for patient by eGK ID')
 			return None
-
 		candidates = gmPerson.get_persons_by_external_id (
 			external_id = egk_id,
 			external_id_type = egk_tag,
@@ -98,7 +99,6 @@ class cDTO_AmtsBmp(gmPerson.cDTO_person):
 		if len(candidates) != 1:
 			_log.debug('cannot uniquely identify person by eGK ID [%s]', egk_id)
 			return None
-
 		return candidates[0]
 
 #============================================================

@@ -18,7 +18,9 @@ from xml.etree import ElementTree as etree
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain('gnumed')
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmShellAPI
 from Gnumed.business import gmMedication
@@ -192,7 +194,7 @@ class cGelbeListeCSVFile(object):
 	def _get_has_unknown_fields(self):
 		return (gmTools.default_csv_reader_rest_key in self.csv_fieldnames)
 
-	has_unknown_fields = property(_get_has_unknown_fields)
+	has_unknown_fields = property(_get_has_unknown_fields, lambda x:x)
 
 #============================================================
 class cGelbeListeWindowsInterface(cDrugDataSourceInterface):
@@ -331,9 +333,7 @@ class cGelbeListeWindowsInterface(cDrugDataSourceInterface):
 			if len(drug['wirkstoffe']) == 1:
 				atc = drug['atc']
 			for wirkstoff in drug['wirkstoffe']:
-				#new_substances.append(gmMedication.create_substance_dose(substance = wirkstoff, atc = atc, amount = amount, unit = unit))
-				print(atc)
-				pass
+				new_substances.append(gmMedication.create_substance_dose(substance = wirkstoff, atc = atc, amount = amount, unit = unit))
 
 		selected_drugs.close()
 
@@ -388,8 +388,7 @@ class cGelbeListeWindowsInterface(cDrugDataSourceInterface):
 			if len(entry['wirkstoffe']) == 1:
 				atc = entry['atc']
 			for wirkstoff in entry['wirkstoffe']:
-				#new_substances.append(gmMedication.create_substance_dose(substance = wirkstoff, atc = atc, amount = amount, unit = unit))
-				pass
+				new_substances.append(gmMedication.create_substance_dose(substance = wirkstoff, atc = atc, amount = amount, unit = unit))
 
 		return new_drugs, new_substances
 	#--------------------------------------------------------
@@ -434,7 +433,7 @@ class cGelbeListeWindowsInterface(cDrugDataSourceInterface):
 
 		if cmd is None:
 			name = gmTools.coalesce (
-				substance['drug_product'],
+				substance['product'],
 				substance['substance']
 			)
 			cmd = '%s -NAME %s' % (self.path_to_binary, name)
@@ -490,8 +489,9 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 		_log.debug('GNUmed -> FreeDiams "exchange-in" file: %s', self.__gm2fd_filename)
 		self.__fd2gm_filename = gmTools.get_unique_filename(prefix = r'freediams2gm-', suffix = r'.xml')
 		_log.debug('GNUmed <-> FreeDiams "exchange-out"/"prescription" file: %s', self.__fd2gm_filename)
-		# this file can be modified by the user as needed (therefore in user_config_dir):
-		self.__fd4gm_config_file = os.path.join(gmTools.gmPaths().user_config_dir, 'freediams4gm.conf')
+		paths = gmTools.gmPaths()
+		# this file can be modified by the user as needed:
+		self.__fd4gm_config_file = os.path.join(paths.home_dir, '.gnumed', 'freediams4gm.conf')
 		_log.debug('FreeDiams config file for GNUmed use: %s', self.__fd4gm_config_file)
 
 		self.path_to_binary = None
@@ -527,7 +527,7 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 		)
 	#--------------------------------------------------------
 	def switch_to_frontend(self, blocking=False, mode='interactions'):
-		"""https://ericmaeker.fr/FreeMedForms/di-manual/en/html/ligne_commandes.html"""
+		"""http://ericmaeker.fr/FreeMedForms/di-manual/en/html/ligne_commandes.html"""
 
 		_log.debug('calling FreeDiams in [%s] mode', mode)
 
@@ -649,7 +649,7 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 		"""FreeDiams calls this exchange-out or prescription file.
 
 			CIS stands for Unique Speciality Identifier (eg bisoprolol 5 mg, gel).
-			CIS is AFSSAPS specific, but pharmacist can retrieve drug name with the CIS.
+			CIS is AFSSAPS specific, but pharmacist can retreive drug name with the CIS.
 			AFSSAPS is the French FDA.
 
 			CIP stands for Unique Presentation Identifier (eg 30 pills plaq)
@@ -684,7 +684,7 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 			GNUmed will pass the substance in <TextualDrugName
 			and will also pass <INN>True</INN>.
 
-			Eric:	Nop, this is not useful because pure textual drugs
+			Eric:	Nop, this is not usefull because pure textual drugs
 					are not processed but just shown.
 		"""
 		# virginize file
@@ -698,13 +698,16 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 				return False
 			emr = self.patient.emr
 			substance_intakes = emr.get_current_medications (
-				include_inactive = False
+				include_inactive = False,
+				include_unapproved = True
 			)
 
 		drug_snippets = []
 
 		# process FD drugs
 		fd_intakes = [ i for i in substance_intakes if (
+			(i['intake_is_approved_of'] is True)
+				and
 			(i['external_code_type_product'] is not None)
 				and
 			(i['external_code_type_product'].startswith('FreeDiams::'))
@@ -714,7 +717,7 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 		for intake in fd_intakes:
 			# this will leave only one entry per drug
 			# but FreeDiams knows the components ...
-			intakes_pooled_by_product[intake['drug_product']] = intake
+			intakes_pooled_by_product[intake['product']] = intake
 		del fd_intakes
 
 		drug_snippet = """<Prescription>
@@ -730,20 +733,21 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 				gmTools.xml_escape_string(text = intake['external_code_product'].strip()),
 				gmTools.xml_escape_string(text = intake['external_code_product'].strip()),
 				last_db_id,
-				gmTools.xml_escape_string(text = intake['drug_product'].strip())
+				gmTools.xml_escape_string(text = intake['product'].strip())
 			))
 
 		# process non-FD drugs
 		non_fd_intakes = [ i for i in substance_intakes if (
-			(
+			(i['intake_is_approved_of'] is True)
+			and (
 				(i['external_code_type_product'] is None)
 					or
 				(not i['external_code_type_product'].startswith('FreeDiams::'))
 			)
 		)]
 
-		non_fd_product_intakes = [ i for i in non_fd_intakes if i['drug_product'] is not None ]
-		non_fd_substance_intakes = [ i for i in non_fd_intakes if i['drug_product'] is None ]
+		non_fd_product_intakes = [ i for i in non_fd_intakes if i['product'] is not None ]
+		non_fd_substance_intakes = [ i for i in non_fd_intakes if i['product'] is None ]
 		del non_fd_intakes
 
 		drug_snippet = """<Prescription>
@@ -771,7 +775,7 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 
 		intakes_pooled_by_product = {}
 		for intake in non_fd_product_intakes:
-			prod = '%s %s' % (intake['drug_product'], intake['l10n_preparation'])
+			prod = '%s %s' % (intake['product'], intake['l10n_preparation'])
 			try:
 				intakes_pooled_by_product[prod].append(intake)
 			except KeyError:
@@ -941,7 +945,7 @@ class cFreeDiamsInterface(cDrugDataSourceInterface):
 		prescription = docs.add_prescription (
 			encounter = emr.active_encounter['pk_encounter'],
 			episode = emr.add_episode (
-				episode_name = gmMedication.DEFAULT_MEDICATION_HISTORY_EPISODE,
+				episode_name = DEFAULT_MEDICATION_HISTORY_EPISODE,
 				is_open = False
 			)['pk_episode']
 		)
@@ -1334,7 +1338,7 @@ if __name__ == "__main__":
 		mmi.import_drugs()
 	#--------------------------------------------------------
 	def test_mmi_interaction_check():
-		mmi = cGelbeListeWineInterface()
+		mmi = cGelbeListeInterface()
 		print(mmi)
 		print("interface definition:", mmi.version)
 		# Metoprolol + Hct vs Citalopram
@@ -1355,7 +1359,7 @@ if __name__ == "__main__":
 		gmPerson.set_active_patient(patient = gmPerson.cPerson(aPK_obj = 12))
 		fd = cFreeDiamsInterface()
 		fd.patient = gmPerson.gmCurrentPatient()
-		fd.check_interactions(substances = fd.patient.emr.get_current_medications())
+		fd.check_interactions(substances = fd.patient.emr.get_current_medications(include_unapproved = True))
 
 	#--------------------------------------------------------
 	# MMI/Gelbe Liste

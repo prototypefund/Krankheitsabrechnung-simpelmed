@@ -1,19 +1,12 @@
 #!/bin/bash
 
 # - should be run as root
-if test $(id -u) -ne 0 ; then
-	echo ""
-	echo " >>> This script needs to run as root, using <sudo>, or with sufficient privileges. <<<"
-	echo ""
-	exit 1
-fi
-
 # - command line options:
 #   - "quiet"
 
-VERSIONS_TO_DROP="2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21"
-PREV_VER="22"
-VER="23"
+VERSIONS_TO_DROP="2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20"
+PREV_VER="21"
+VER="22"
 QUIET="$1"
 
 

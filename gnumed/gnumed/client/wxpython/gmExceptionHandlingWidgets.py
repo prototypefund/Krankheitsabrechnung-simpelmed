@@ -1,7 +1,7 @@
 """GNUmed exception handling widgets."""
 # ========================================================================
 __author__  = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import logging
 import traceback
@@ -15,12 +15,9 @@ import re as regex
 import wx
 
 
-if __name__ == '__main__':
-	sys.path.insert(0, '../../')
-	_ = lambda x:x
-
 from Gnumed.pycommon import gmDispatcher
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmExceptions
@@ -219,7 +216,7 @@ def handle_uncaught_exception_wx(t, v, tb):
 		return
 
 	# other exceptions
-	_cfg = gmCfgINI.gmCfgData()
+	_cfg = gmCfg2.gmCfgData()
 	if _cfg.get(option = 'debug') is False:
 		_log.error('enabling debug mode')
 		_cfg.set_option(option = 'debug', value = True)
@@ -241,8 +238,7 @@ def handle_uncaught_exception_wx(t, v, tb):
 	name, ext = os.path.splitext(name)
 	new_name = os.path.expanduser(os.path.join (
 		'~',
-		'.local',
-		'gnumed',
+		'.gnumed',
 		'error_logs',
 		'%s_%s%s' % (name, pyDT.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), ext)
 	))
@@ -437,7 +433,7 @@ sender email  : %s
 	dlg.DestroyLater()
 
 	wx.BeginBusyCursor()
-	_cfg = gmCfgINI.gmCfgData()
+	_cfg = gmCfg2.gmCfgData()
 	try:
 		gmNetworkTools.compose_and_send_email (
 			sender = '%s <%s>' % (_staff_name, gmNetworkTools.default_mail_sender),

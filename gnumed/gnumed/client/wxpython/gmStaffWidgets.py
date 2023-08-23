@@ -1,22 +1,21 @@
 """GNUmed staff management widgets."""
 #=========================================================================
 __author__  = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import logging
-import sys
 
 
 import wx
 
 
-if __name__ == '__main__':
-	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmTools
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmMatchProvider
+
 from Gnumed.business import gmPerson
 from Gnumed.business import gmStaff
+
 from Gnumed.wxpython import gmGuiHelpers
 from Gnumed.wxpython import gmAuthWidgets
 from Gnumed.wxpython import gmPhraseWheel
@@ -240,7 +239,7 @@ class cAddPatientAsStaffDlg(wxgAddPatientAsStaffDlg.wxgAddPatientAsStaffDlg):
 		self._TXT_person.SetValue(txt)
 		txt = name['firstnames'][:2] + name['lastnames'][:2]
 		self._TXT_short_alias.SetValue(txt)
-		self._TXT_account.SetValue(txt.casefold())
+		self._TXT_account.SetValue(txt.lower())
 	#--------------------------------------------------------
 	# event handlers
 	#--------------------------------------------------------

@@ -3,15 +3,11 @@
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
 __license__ = "GPL v2 or later"
 
-import sys
-import os
-import time
-import logging
+import sys, os, shutil, os.path, types, time, logging
 
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmPG2
@@ -56,7 +52,7 @@ class cDocumentFolder:
 	# internal helper
 	#--------------------------------------------------------
 	def _pkey_exists(self):
-		"""Does this primary key (= patient) exist ?
+		"""Does this primary key exist ?
 
 		- true/false/None
 		"""
@@ -106,7 +102,7 @@ class cDocumentFolder:
 			return None
 		return cDocumentPart(aPK_obj = rows[0][0])
 
-	latest_mugshot = property(get_latest_mugshot)
+	latest_mugshot = property(get_latest_mugshot, lambda x:x)
 
 	#--------------------------------------------------------
 	def get_mugshot_list(self, latest_only=True):
@@ -172,7 +168,7 @@ class cDocumentFolder:
 	def get_unsigned_documents(self):
 		args = {'pat': self.pk_patient}
 		cmd = _SQL_get_document_fields % """
-			pk_doc = ANY (
+			pk_doc IN (
 				SELECT DISTINCT ON (b_vo.pk_doc) b_vo.pk_doc
 				FROM blobs.v_obj4doc_no_data b_vo
 				WHERE
@@ -187,35 +183,44 @@ class cDocumentFolder:
 	#--------------------------------------------------------
 	def get_documents(self, doc_type=None, pk_episodes=None, encounter=None, order_by=None, exclude_unsigned=False, pk_types=None):
 		"""Return list of documents."""
+
 		args = {
 			'pat': self.pk_patient,
 			'type': doc_type,
 			'enc': encounter
 		}
 		where_parts = ['pk_patient = %(pat)s']
+
 		if doc_type is not None:
 			try:
 				int(doc_type)
 				where_parts.append('pk_type = %(type)s')
 			except (TypeError, ValueError):
 				where_parts.append('pk_type = (SELECT pk FROM blobs.doc_type WHERE name = %(type)s)')
-		if pk_types:
-			where_parts.append('pk_type = ANY(%(pk_types)s)')
-			args['pk_types'] = pk_types
-		if pk_episodes:
-			where_parts.append('pk_episode = ANY(%(epis)s)')
-			args['epis'] = pk_episodes
+
+		if pk_types is not None:
+			where_parts.append('pk_type IN %(pk_types)s')
+			args['pk_types'] = tuple(pk_types)
+
+		if (pk_episodes is not None) and (len(pk_episodes) > 0):
+			where_parts.append('pk_episode IN %(epis)s')
+			args['epis'] = tuple(pk_episodes)
+
 		if encounter is not None:
 			where_parts.append('pk_encounter = %(enc)s')
+
 		if exclude_unsigned:
-			where_parts.append('pk_doc = ANY(SELECT b_vo.pk_doc FROM blobs.v_obj4doc_no_data b_vo WHERE b_vo.pk_patient = %(pat)s AND b_vo.reviewed IS TRUE)')
+			where_parts.append('pk_doc IN (SELECT b_vo.pk_doc FROM blobs.v_obj4doc_no_data b_vo WHERE b_vo.pk_patient = %(pat)s AND b_vo.reviewed IS TRUE)')
+
 		if order_by is None:
 			order_by = 'ORDER BY clin_when'
+
 		cmd = "%s\n%s" % (_SQL_get_document_fields % ' AND '.join(where_parts), order_by)
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
+
 		return [ cDocument(row = {'pk_field': 'pk_doc', 'idx': idx, 'data': r}) for r in rows ]
 
-	documents = property(get_documents)
+	documents = property(get_documents, lambda x:x)
 
 	#--------------------------------------------------------
 	def add_document(self, document_type=None, encounter=None, episode=None, link_obj=None):
@@ -241,7 +246,7 @@ class cDocumentFolder:
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 		return [ gmOrganization.cOrgUnit(row = {'data': r, 'idx': idx, 'pk_field': 'pk_org_unit'}) for r in rows ]
 
-	all_document_org_units = property(_get_all_document_org_units)
+	all_document_org_units = property(_get_all_document_org_units, lambda x:x)
 
 #============================================================
 _SQL_get_document_part_fields = "select * from blobs.v_obj4doc_no_data where %s"
@@ -411,7 +416,7 @@ insert into blobs.reviewed_doc_objs (
 		)
 		self._payload[self._idx['seq_idx']] = rows[0][0]
 		self._is_modified = True
-		return self.save_payload()
+		self.save_payload()
 
 	#--------------------------------------------------------
 	def reattach(self, pk_doc=None):
@@ -543,7 +548,7 @@ insert into blobs.reviewed_doc_objs (
 		suffix = '.dat'
 		if self._payload[self._idx['filename']] is not None:
 			tmp, suffix = os.path.splitext (
-				gmTools.fname_sanitize(self._payload[self._idx['filename']]).casefold()
+				gmTools.fname_sanitize(self._payload[self._idx['filename']]).lower()
 			)
 			if suffix == '':
 				suffix = '.dat'
@@ -704,7 +709,7 @@ class cDocument(gmBusinessDBObject.cBusinessDBObject):
 		try: del self.__has_unreviewed_parts
 		except AttributeError: pass
 
-		return super().refetch_payload(ignore_changes = ignore_changes, link_obj = link_obj)
+		return super(cDocument, self).refetch_payload(ignore_changes = ignore_changes, link_obj = link_obj)
 
 	#--------------------------------------------------------
 	def get_descriptions(self, max_lng=250):
@@ -745,7 +750,7 @@ class cDocument(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': [self.pk_obj]}], get_col_idx = True)
 		return [ cDocumentPart(row = {'pk_field': 'pk_obj', 'idx': idx, 'data': r}) for r in rows ]
 
-	parts = property(_get_parts)
+	parts = property(_get_parts, lambda x:x)
 
 	#--------------------------------------------------------
 	def add_part(self, file=None, link_obj=None):
@@ -817,8 +822,7 @@ class cDocument(gmBusinessDBObject.cBusinessDBObject):
 	#--------------------------------------------------------
 	def _get_has_unreviewed_parts(self):
 		try:
-			return self.__has_unreviewed_parts			# pylint: disable=access-member-before-definition
-
+			return self.__has_unreviewed_parts
 		except AttributeError:
 			pass
 
@@ -826,9 +830,10 @@ class cDocument(gmBusinessDBObject.cBusinessDBObject):
 		args = {'pk': self.pk_obj}
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}])
 		self.__has_unreviewed_parts = rows[0][0]
+
 		return self.__has_unreviewed_parts
 
-	has_unreviewed_parts = property(_get_has_unreviewed_parts)
+	has_unreviewed_parts = property(_get_has_unreviewed_parts, lambda x:x)
 
 	#--------------------------------------------------------
 	def set_reviewed(self, technically_abnormal=None, clinically_relevant=None):
@@ -950,7 +955,7 @@ class cDocument(gmBusinessDBObject.cBusinessDBObject):
 		from Gnumed.business import gmEMRStructItems
 		return gmEMRStructItems.cHospitalStay(self._payload[self._idx['pk_hospital_stay']])
 
-	hospital_stay = property(_get_hospital_stay)
+	hospital_stay = property(_get_hospital_stay, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_org_unit(self):
@@ -958,21 +963,21 @@ class cDocument(gmBusinessDBObject.cBusinessDBObject):
 			return None
 		return gmOrganization.cOrgUnit(self._payload[self._idx['pk_org_unit']])
 
-	org_unit = property(_get_org_unit)
+	org_unit = property(_get_org_unit, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_procedures(self):
 		from Gnumed.business.gmEMRStructItems import get_procedures4document
 		return get_procedures4document(pk_document = self.pk_obj)
 
-	procedures = property(_get_procedures)
+	procedures = property(_get_procedures, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_bills(self):
 		from Gnumed.business.gmBilling import get_bills4document
 		return get_bills4document(pk_document = self.pk_obj)
 
-	bills = property(_get_bills)
+	bills = property(_get_bills, lambda x:x)
 
 #------------------------------------------------------------
 def create_document(document_type=None, encounter=None, episode=None, link_obj=None):
@@ -1028,8 +1033,8 @@ def search_for_documents(patient_id=None, type_id=None, external_reference=None,
 		where_parts.append('pk_episode = %(pk_epi)s')
 
 	if pk_types is not None:
-		where_parts.append('pk_type = ANY(%(pk_types)s)')
-		args['pk_types'] = pk_types
+		where_parts.append('pk_type IN %(pk_types)s')
+		args['pk_types'] = tuple(pk_types)
 
 	cmd = _SQL_get_document_fields % ' AND '.join(where_parts)
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
@@ -1137,8 +1142,8 @@ def get_document_type_pk(document_type=None):
 
 #------------------------------------------------------------
 def map_types2pk(document_types=None):
-	args = {'types': document_types}
-	cmd = 'SELECT pk_doc_type, coalesce(l10n_type, type) as desc FROM blobs.v_doc_type WHERE l10n_type = ANY(%(types)s) OR type = ANY(%(types)s)'
+	args = {'types': tuple(document_types)}
+	cmd = 'SELECT pk_doc_type, coalesce(l10n_type, type) as desc FROM blobs.v_doc_type WHERE l10n_type IN %(types)s OR type IN %(types)s'
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 	return rows
 
@@ -1285,15 +1290,14 @@ if __name__ == '__main__':
 		#photo = doc_folder.get_latest_mugshot()
 		#print type(photo), photo
 
-		docs = doc_folder.get_documents(pk_types = [16])
+		docs = doc_folder.get_documents()
 		for doc in docs:
 			#print type(doc), doc
 			#print doc.parts
 			#print doc.format_single_line()
 			print('--------------------------')
-			#print(doc.format(single_line = True))
+			print(doc.format(single_line = True))
 			print(doc.format())
-			#print(doc['pk_type'])
 
 	#--------------------------------------------------------
 	def test_save_to_file():
@@ -1337,8 +1341,8 @@ if __name__ == '__main__':
 		#--------------------------------
 
 		pk = 12
-#		from Gnumed.business.gmPerson import cPatient
-#		pat = cPatient(pk)
+		from Gnumed.business.gmPerson import cPatient
+		pat = cPatient(pk)
 		doc_folder = cDocumentFolder(aPKey = pk)
 		for doc in doc_folder.documents:
 			for part in doc.parts:

@@ -2,7 +2,7 @@
 
 A class, extending wx.TextCtrl, which has a drop-down pick list,
 automatically filled based on the inital letters typed. Based on the
-interface of Richard Terry's Visual Basic client.
+interface of Richard Terry's Visual Basic client
 
 This is based on seminal work by Ian Haywood <ihaywood@gnu.org>
 """
@@ -11,8 +11,7 @@ __author__  = "K.Hilbert <Karsten.Hilbert@gmx.net>, I.Haywood, S.J.Tan <sjtan@bi
 __license__ = "GPL"
 
 # stdlib
-import sys
-import re as regex
+import string, types, time, sys, re as regex, os.path
 
 
 # 3rd party
@@ -23,8 +22,6 @@ import wx.lib.mixins.listctrl as listmixins
 # GNUmed specific
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
-
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
 
@@ -39,6 +36,7 @@ color_prw_valid = None				# this is used by code outside this module
 
 #default_phrase_separators = r'[;/|]+'
 default_phrase_separators = r';+'
+default_spelling_word_separators = r'[\W\d_]+'
 
 # those can be used by the <accepted_chars> phrasewheel parameter
 NUMERIC = '0-9'
@@ -87,7 +85,7 @@ class cPhraseWheelListCtrl(wx.ListCtrl, listmixins.ListCtrlAutoWidthMixin):
 		self.__data = items
 		pos = len(items) + 1
 		for item in items:
-			self.InsertItem(pos, label=item['list_label'])
+			row_num = self.InsertItem(pos, label=item['list_label'])
 	#--------------------------------------------------------
 	def GetSelectedItemData(self):
 		sel_idx = self.GetFirstSelected()
@@ -143,6 +141,10 @@ class cPhraseWheelBase(wx.TextCtrl):
 		item from the dropdown picklist
 	@type navigate_after_selection: boolean
 
+	@param speller: if not None used to spellcheck the current input
+		and to retrieve suggested replacements/completions
+	@type speller: None or a L{enchant Dict<enchant>} descendant
+
 	@param picklist_delay: this much time of user inactivity must have
 		passed before the input related smarts kick in and the drop
 		down pick list is shown
@@ -159,6 +161,8 @@ class cPhraseWheelBase(wx.TextCtrl):
 		self.final_regex = '.*'
 		self.final_regex_error_msg = _('The content is invalid. It must match the regular expression: [%%s]. <%s>') % self.__class__.__name__
 		self.navigate_after_selection = False
+		self.speller = None
+		self.speller_word_separators = default_spelling_word_separators
 		self.picklist_delay = 150		# milliseconds
 
 		# state tracking
@@ -342,6 +346,57 @@ class cPhraseWheelBase(wx.TextCtrl):
 		if self.matcher is not None:
 			self.matcher.unset_context(context=context)
 	#--------------------------------------------------------
+	# spell-checking
+	#--------------------------------------------------------
+	def enable_default_spellchecker(self):
+		# FIXME: use Debian's wgerman-medical as "personal" wordlist if available
+		try:
+			import enchant
+		except ImportError:
+			self.speller = None
+			return False
+
+		try:
+			self.speller = enchant.DictWithPWL(None, os.path.expanduser(os.path.join('~', '.gnumed', 'spellcheck', 'wordlist.pwl')))
+		except enchant.DictNotFoundError:
+			self.speller = None
+			return False
+
+		return True
+	#---------------------------------------------------------
+	def _get_suggestions_from_spell_checker(self, val):
+		if self.speller is None:
+			return None
+
+		# get the last word
+		last_word = self.__speller_word_separators.split(val)[-1]
+		if last_word.strip() == '':
+			return None
+
+		try:
+			suggestions = self.speller.suggest(last_word)
+		except Exception:
+			_log.exception('had to disable (enchant) spell checker')
+			self.speller = None
+			return None
+
+		if len(suggestions) == 0:
+			return None
+
+		input2match_without_last_word = val[:val.rindex(last_word)]
+		return [ input2match_without_last_word + suggestion for suggestion in suggestions ]
+	#--------------------------------------------------------
+	def _set_speller_word_separators(self, word_separators):
+		if word_separators is None:
+			self.__speller_word_separators = regex.compile(default_spelling_word_separators, flags = regex.UNICODE)
+		else:
+			self.__speller_word_separators = regex.compile(word_separators, flags = regex.UNICODE)
+
+	def _get_speller_word_separators(self):
+		return self.__speller_word_separators.pattern
+
+	speller_word_separators = property(_get_speller_word_separators, _set_speller_word_separators)
+	#--------------------------------------------------------
 	# internal API
 	#--------------------------------------------------------
 	# picklist handling
@@ -356,8 +411,11 @@ class cPhraseWheelBase(wx.TextCtrl):
 			self.__use_fake_popup = False
 		except NotImplementedError:
 			self.__use_fake_popup = True
+
 			# on MacOSX wx.PopupWindow is not implemented, so emulate it
+			add_picklist_to_sizer = True
 			szr_dropdown = wx.BoxSizer(wx.VERTICAL)
+
 			# using wx.MiniFrame
 			self.__dropdown_needs_relative_position = False
 			self._picklist_dropdown = wx.MiniFrame (
@@ -368,6 +426,7 @@ class cPhraseWheelBase(wx.TextCtrl):
 			scroll_win = wx.ScrolledWindow(parent = self._picklist_dropdown, style = wx.NO_BORDER)
 			scroll_win.SetSizer(szr_dropdown)
 			list_parent = scroll_win
+
 			# using wx.Window
 			#self.__dropdown_needs_relative_position = True
 			#self._picklist_dropdown = wx.ScrolledWindow(parent=parent, style = wx.RAISED_BORDER)
@@ -523,6 +582,19 @@ class cPhraseWheelBase(wx.TextCtrl):
 		if self.matcher is not None:
 			matched, self._current_match_candidates = self.matcher.getMatches(val)
 			self._picklist.SetItems(self._current_match_candidates)
+
+		# no matches:
+		# - none found (perhaps due to a typo)
+		# - or no matcher available
+		# anyway: spellcheck
+		if len(self._current_match_candidates) == 0:
+			suggestions = self._get_suggestions_from_spell_checker(val)
+			if suggestions is not None:
+				self._current_match_candidates = [
+					{'list_label': suggestion, 'field_label': suggestion, 'data': None}
+						for suggestion in suggestions
+				]
+				self._picklist.SetItems(self._current_match_candidates)
 
 	#--------------------------------------------------------
 	# tooltip handling
@@ -985,7 +1057,7 @@ class cPhraseWheelBase(wx.TextCtrl):
 #>
 #> Can you be a bit more specific on this ?
 
-#searching ones own previous text entered  would usually be instring but
+#seaching ones own previous text entered  would usually be instring but
 #weighted (ie the phrases you use the most auto filter to the top)
 
 #Searching a drug database for a   drug product name is usually more
@@ -1093,6 +1165,7 @@ class cPhraseWheel(cPhraseWheelBase):
 		# no exact match found
 		if self.selection_only:
 			gmDispatcher.send(signal = 'statustext', msg = self.selection_only_error_msg)
+			is_valid = False
 			return False
 
 		return True
@@ -1122,7 +1195,7 @@ class cMultiPhraseWheel(cPhraseWheelBase):
 		self.phrase_separators = default_phrase_separators
 		self.left_part = ''
 		self.right_part = ''
-
+		self.speller = None
 	#---------------------------------------------------------
 	def GetData(self, can_create=False, as_instance=False):
 
@@ -1133,7 +1206,10 @@ class cMultiPhraseWheel(cPhraseWheelBase):
 				return self._data2instance()
 
 		return list(self._data.values())
-
+	#---------------------------------------------------------
+	def enable_default_spellchecker(self):
+		self.speller = None
+		return True
 	#---------------------------------------------------------
 	def list2data_dict(self, data_items=None):
 
@@ -1153,6 +1229,9 @@ class cMultiPhraseWheel(cPhraseWheelBase):
 		return data_dict
 	#---------------------------------------------------------
 	# internal API
+	#---------------------------------------------------------
+	def _get_suggestions_from_speller(self, val):
+		return None
 	#---------------------------------------------------------
 	def _adjust_data_after_text_update(self):
 		# the textctrl display must already be set properly
@@ -1264,7 +1343,7 @@ class cMultiPhraseWheel(cPhraseWheelBase):
 	def _get_displayed_strings(self):
 		return [ p.strip() for p in self.__phrase_separators.split(self.GetValue().strip()) if p.strip() != '' ]
 
-	displayed_strings = property(_get_displayed_strings)
+	displayed_strings = property(_get_displayed_strings, lambda x:x)
 #============================================================
 # main
 #------------------------------------------------------------
@@ -1275,6 +1354,10 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain='gnumed')
 
 	from Gnumed.pycommon import gmPG2, gmMatchProvider
 
@@ -1376,10 +1459,28 @@ if __name__ == '__main__':
 		app.MainLoop()
 
 		return True
+	#--------------------------------------------------------
+	def test_spell_checking_prw():
+		app = wx.PyWidgetTester(size = (200, 50))
 
+		global prw
+		prw = cPhraseWheel(app.frame, -1)
+
+		prw.add_callback_on_set_focus(callback=display_values_set_focus)
+		prw.add_callback_on_modified(callback=display_values_modified)
+		prw.add_callback_on_lose_focus(callback=display_values_lose_focus)
+		prw.add_callback_on_selection(callback=display_values_selected)
+
+		prw.enable_default_spellchecker()
+
+		app.frame.Show(True)
+		app.MainLoop()
+
+		return True
 	#--------------------------------------------------------
 	#test_prw_fixed_list()
 	#test_prw_sql2()
+	#test_spell_checking_prw()
 	test_prw_patients()
 
 #==================================================

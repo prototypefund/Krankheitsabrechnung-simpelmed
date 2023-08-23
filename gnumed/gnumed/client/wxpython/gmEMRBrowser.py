@@ -6,7 +6,9 @@ __license__ = "GPL v2 or later"
 # std lib
 import sys
 import os.path
+import io
 import logging
+import datetime as pydt
 
 
 # 3rd party
@@ -14,12 +16,10 @@ import wx
 import wx.lib.mixins.treemixin as treemixin
 
 
-if __name__ == '__main__':
-	sys.path.insert(0, '../../')
-	_ = lambda x:x
-
 # GNUmed libs
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmDispatcher
+from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmLog2
@@ -29,6 +29,7 @@ from Gnumed.exporters import gmPatientExporter
 from Gnumed.business import gmGenericEMRItem
 from Gnumed.business import gmEMRStructItems
 from Gnumed.business import gmPerson
+from Gnumed.business import gmSOAPimporter
 from Gnumed.business import gmPersonSearch
 from Gnumed.business import gmSoapDefs
 from Gnumed.business import gmClinicalRecord
@@ -36,6 +37,7 @@ from Gnumed.business import gmClinicalRecord
 from Gnumed.wxpython import gmGuiHelpers
 from Gnumed.wxpython import gmEMRStructWidgets
 from Gnumed.wxpython import gmEncounterWidgets
+from Gnumed.wxpython import gmSOAPWidgets
 from Gnumed.wxpython import gmAllergyWidgets
 from Gnumed.wxpython import gmDemographicsWidgets
 from Gnumed.wxpython import gmNarrativeWidgets
@@ -70,7 +72,7 @@ def export_emr_to_ascii(parent=None):
 
 	# get file name
 	wc = "%s (*.txt)|*.txt|%s (*)|*" % (_("text files"), _("all files"))
-	defdir = os.path.join(gmTools.gmPaths().user_work_dir, pat.subdir_name)
+	defdir = os.path.abspath(os.path.expanduser(os.path.join('~', 'gnumed', pat.subdir_name)))
 	gmTools.mkdir(defdir)
 	fname = '%s-%s_%s.txt' % (_('emr-export'), pat['lastnames'], pat['firstnames'])
 	dlg = wx.FileDialog (
@@ -89,7 +91,7 @@ def export_emr_to_ascii(parent=None):
 
 	_log.debug('exporting EMR to [%s]', fname)
 
-	output_file = open(fname, mode = 'wt', encoding = 'utf8', errors = 'replace')
+	output_file = io.open(fname, mode = 'wt', encoding = 'utf8', errors = 'replace')
 	exporter = gmPatientExporter.cEmrExport(patient = pat)
 	exporter.set_output_file(output_file)
 	exporter.dump_constraints()
@@ -270,18 +272,18 @@ class cEMRTree(wx.TreeCtrl, treemixin.ExpansionState):
 		self.SetItemData(root_item, None)
 		self.SetItemHasChildren(root_item, True)
 
-		self.__root_tooltip = self.__pat.description_gender + '\n'
+		self.__root_tooltip = self.__pat['description_gender'] + '\n'
 		if self.__pat['deceased'] is None:
 			self.__root_tooltip += ' %s (%s)\n\n' % (
 				self.__pat.get_formatted_dob(format = '%d %b %Y'),
-				self.__pat.medical_age
+				self.__pat['medical_age']
 			)
 		else:
 			template = ' %s - %s (%s)\n\n'
 			self.__root_tooltip += template % (
 				self.__pat.get_formatted_dob(format = '%d.%b %Y'),
 				gmDateTime.pydt_strftime(self.__pat['deceased'], '%Y %b %d'),
-				self.__pat.medical_age
+				self.__pat['medical_age']
 			)
 		self.__root_tooltip += gmTools.coalesce(self.__pat['comment'], '', '%s\n\n')
 		doc = self.__pat.primary_provider
@@ -305,7 +307,7 @@ class cEMRTree(wx.TreeCtrl, treemixin.ExpansionState):
 				)
 			if self.__pat['pk_emergency_contact'] is not None:
 				contact = self.__pat.emergency_contact_in_database
-				self.__root_tooltip += ' %s\n' % contact.description_gender
+				self.__root_tooltip += ' %s\n' % contact['description_gender']
 		self.__root_tooltip = self.__root_tooltip.strip('\n')
 		if self.__root_tooltip == '':
 			self.__root_tooltip = ' '
@@ -1354,9 +1356,9 @@ class cEMRTree(wx.TreeCtrl, treemixin.ExpansionState):
 
 			# both no grouping: alpha on description
 			if (item1['grouping'] is None) and (item2['grouping'] is None):
-				if item1['description'].casefold() < item2['description'].casefold():
+				if item1['description'].lower() < item2['description'].lower():
 					return -1
-				if item1['description'].casefold() > item2['description'].casefold():
+				if item1['description'].lower() > item2['description'].lower():
 					return 1
 				return 0
 
@@ -1367,10 +1369,10 @@ class cEMRTree(wx.TreeCtrl, treemixin.ExpansionState):
 			if item1['grouping'] > item2['grouping']:
 				return 1
 
-			if item1['description'].casefold() < item2['description'].casefold():
+			if item1['description'].lower() < item2['description'].lower():
 				return -1
 
-			if item1['description'].casefold() > item2['description'].casefold():
+			if item1['description'].lower() > item2['description'].lower():
 				return 1
 
 			return 0
@@ -1560,7 +1562,7 @@ class cEMRJournalPluginPnl(wxgEMRJournalPluginPnl.wxgEMRJournalPluginPnl):
 		else:
 			fname = exporter.save_to_file_by_mod_time(patient = gmPerson.gmCurrentPatient())
 
-		f = open(fname, mode = 'rt', encoding = 'utf-8-sig', errors = 'replace')
+		f = io.open(fname, mode = 'rt', encoding = 'utf8', errors = 'replace')
 		for line in f:
 			self._TCTRL_journal.AppendText(line)
 		f.close()
@@ -1850,6 +1852,11 @@ class cEMRListJournalPluginPnl(wxgEMRListJournalPluginPnl.wxgEMRListJournalPlugi
 		self.repopulate_ui()
 
 	#--------------------------------------------------------
+	def _on_order_by_item_time_selected(self, event):
+		event.Skip()
+		self.repopulate_ui()
+
+	#--------------------------------------------------------
 	def _on_edit_button_pressed(self, event):
 		event.Skip()
 
@@ -1877,8 +1884,7 @@ if __name__ == '__main__':
 
 	# display standalone browser
 	application = wx.PyWidgetTester(size=(800,600))
-	#emr_browser = cEMRBrowserPanel(application.frame, -1)
-	emr_browser = None
+	emr_browser = cEMRBrowserPanel(application.frame, -1)
 	emr_browser.refresh_tree()
 
 	application.frame.Show(True)

@@ -6,13 +6,14 @@
 # Licence: GPL v2 or later
 #===================================================================
 __author__ = "Ian Haywood"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 # stdlib
 import sys
 import os
 import re
 import logging
+import io
 
 
 _log = logging.getLogger('gm.bootstrapper')
@@ -57,7 +58,7 @@ class Psql:
 	#---------------------------------------------------------------
 	def run (self, filename):
 		"""
-		filename: a file, containing semicolon-separated SQL commands
+		filename: a file, containg semicolon-separated SQL commands
 		"""
 		_log.debug('processing [%s]', filename)
 		curs = self.conn.cursor()
@@ -67,7 +68,7 @@ class Psql:
 		_log.debug('session auth: %s', start_auth)
 
 		if os.access (filename, os.R_OK):
-			sql_file = open(filename, mode = 'rt', encoding = 'utf-8-sig')
+			sql_file = io.open(filename, mode = 'rt', encoding = 'utf8')
 		else:
 			_log.error("cannot open file [%s]", filename)
 			return 1
@@ -146,10 +147,10 @@ class Psql:
 							else:
 								_log.error(self.fmt_msg(error))
 								if hasattr(error, 'diag'):
-									for prop in dir(error.diag):			# pylint: disable=no-member
+									for prop in dir(error.diag):
 										if prop.startswith('__'):
 											continue
-										val = getattr(error.diag, prop)		# pylint: disable=no-member
+										val = getattr(error.diag, prop)
 										if val is None:
 											continue
 										_log.error('PG diags %s: %s', prop, val)
@@ -187,7 +188,7 @@ if __name__ == '__main__':
 	if sys.argv[1] != 'test':
 		sys.exit()
 
-	#conn = PgSQL.connect(user='gm-dbo', database = 'gnumed')
-	#psql = Psql(conn)
-	#psql.run(sys.argv[1])
-	#conn.close()
+	conn = PgSQL.connect(user='gm-dbo', database = 'gnumed')
+	psql = Psql(conn)
+	psql.run(sys.argv[1])
+	conn.close()

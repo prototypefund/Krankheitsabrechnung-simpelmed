@@ -6,21 +6,7 @@ license: GPL v2 or later
 
 intake regimen:
 
-	beim Aufstehen / Frühstück / Mittag / abends / zum Schlafengehen
-
-	"19 Uhr"
-
-	"Mittwochs"			(Alendronsäure)
-
-	"1x/Monat"			(Alendronsäure)
-
-	"Mo Di Mi Do Fr Sa So" (Falithrom)
-
-	"Tag 1: 4, Tag 2: 3, Tag 3: 2, Tag 4: 1"	(Prednisonstoß)
-
-	"1T:4, 1T:3, 2T:2, 3T:1, 4T:1/2"			(Prednisonstoß)
-
-	"bei Bedarf"
+	beim Aufstehen / Frühstück / Mittag / abends / zum Schlafengehen / "19 Uhr" / "Mittwochs" / "1x/Monat" / "Mo Di Mi Do Fr Sa So" (Falithrom) / bei Bedarf
 """
 #============================================================
 __author__ = "K.Hilbert <Karsten.Hilbert@gmx.net>"
@@ -35,7 +21,6 @@ import datetime as pydt
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x  # make pyflakes happy
 	from Gnumed.pycommon import gmI18N
 	gmI18N.activate_locale()
 	gmI18N.install_domain('gnumed')
@@ -57,8 +42,8 @@ _log = logging.getLogger('gm.meds')
 #============================================================
 DEFAULT_MEDICATION_HISTORY_EPISODE = _('Medication history')
 
-URL_renal_insufficiency = 'https://www.dosing.de/nierebck.php'
-URL_renal_insufficiency_search_template = 'https://www.google.com/search?q=site:dosing.de+%s'
+URL_renal_insufficiency = 'http://www.dosing.de'
+URL_renal_insufficiency_search_template = 'http://www.google.com/search?hl=de&source=hp&q=site%%3Adosing.de+%s&btnG=Google-Suche'
 
 URL_long_qt = 'https://www.crediblemeds.org'
 
@@ -66,29 +51,12 @@ URL_long_qt = 'https://www.crediblemeds.org'
 # https://dcgma.org/uaw/meldung.php
 URL_drug_adr_german_default = 'https://nebenwirkungen.pei.de'
 
-
-(
-	USE_TYPE_MEDICATION,
-	USE_TYPE_NON_HARMFUL,
-	USE_TYPE_PRESENTLY_HARMFUL,
-	USE_TYPE_PRESENTLY_ADDICTED, USE_TYPE_PREVIOUSLY_ADDICTED
-) = (
-	None, 0, 1, 2, 3
-)
-
-USE_TYPES_ACTIVE_MISUSE = [
-	USE_TYPE_PRESENTLY_HARMFUL,
-	USE_TYPE_PRESENTLY_ADDICTED
-]
-
-
-
 #============================================================
 def _on_substance_intake_modified():
 	"""Always relates to the active patient."""
 	gmHooks.run_hook_script(hook = 'after_substance_intake_modified')
 
-gmDispatcher.connect(_on_substance_intake_modified, 'clin.intake_mod_db')
+gmDispatcher.connect(_on_substance_intake_modified, 'clin.substance_intake_mod_db')
 
 #============================================================
 def drug2renal_insufficiency_url(search_term=None):
@@ -141,6 +109,8 @@ def drug2renal_insufficiency_url(search_term=None):
 		else:
 			terms.append(name)
 
+	#url_template = 'http://www.google.de/#q=site%%3Adosing.de+%s'
+	#url = url_template % '+OR+'.join(terms)
 	url = URL_renal_insufficiency_search_template % '+OR+'.join(terms)
 
 	_log.debug('renal insufficiency URL: %s', url)
@@ -203,7 +173,8 @@ class cSubstance(gmBusinessDBObject.cBusinessDBObject):
 
 	#--------------------------------------------------------
 	def save_payload(self, conn=None):
-		success, data = super().save_payload(conn = conn)
+		success, data = super(self.__class__, self).save_payload(conn = conn)
+
 		if not success:
 			return (success, data)
 
@@ -214,6 +185,7 @@ class cSubstance(gmBusinessDBObject.cBusinessDBObject):
 					substance = self._payload[self._idx['substance']].strip(),
 					atc = atc
 				)
+
 		return (success, data)
 
 	#--------------------------------------------------------
@@ -227,7 +199,7 @@ class cSubstance(gmBusinessDBObject.cBusinessDBObject):
 	# properties
 	#--------------------------------------------------------
 	def _set_loincs(self, loincs):
-		args = {'pk_subst': self.pk_obj, 'loincs': loincs}
+		args = {'pk_subst': self.pk_obj, 'loincs': tuple(loincs)}
 		# insert new entries
 		for loinc in loincs:
 			cmd = """INSERT INTO ref.lnk_loinc2substance (fk_substance, loinc)
@@ -240,7 +212,7 @@ class cSubstance(gmBusinessDBObject.cBusinessDBObject):
 			gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}])
 
 		# delete old entries
-		cmd = 'DELETE FROM ref.lnk_loinc2substance WHERE fk_substance = %(pk_subst)s AND loinc <> ALL(%(loincs)s)'
+		cmd = """DELETE FROM ref.lnk_loinc2substance WHERE fk_substance = %(pk_subst)s AND loinc NOT IN %(loincs)s"""
 		gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}])
 
 	loincs = property(lambda x:x, _set_loincs)
@@ -250,7 +222,7 @@ class cSubstance(gmBusinessDBObject.cBusinessDBObject):
 		cmd = """
 			SELECT EXISTS (
 				SELECT 1
-				FROM clin.v_intakes
+				FROM clin.v_substance_intakes
 				WHERE pk_substance = %(pk)s
 				LIMIT 1
 			)"""
@@ -259,7 +231,7 @@ class cSubstance(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 		return rows[0][0]
 
-	is_in_use_by_patients = property(_get_is_in_use_by_patients)
+	is_in_use_by_patients = property(_get_is_in_use_by_patients, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_drug_component(self):
@@ -275,7 +247,7 @@ class cSubstance(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 		return rows[0][0]
 
-	is_drug_component = property(_get_is_drug_component)
+	is_drug_component = property(_get_is_drug_component, lambda x:x)
 
 #------------------------------------------------------------
 def get_substances(order_by=None, return_pks=False):
@@ -290,7 +262,7 @@ def get_substances(order_by=None, return_pks=False):
 	return [ cSubstance(row = {'data': r, 'idx': idx, 'pk_field': 'pk_substance'}) for r in rows ]
 
 #------------------------------------------------------------
-def create_substance(link_obj=None, substance=None, atc=None):
+def create_substance(substance=None, atc=None):
 	if atc is not None:
 		atc = atc.strip()
 
@@ -299,7 +271,7 @@ def create_substance(link_obj=None, substance=None, atc=None):
 		'atc': atc
 	}
 	cmd = "SELECT pk FROM ref.substance WHERE lower(description) = lower(%(desc)s)"
-	rows, idx = gmPG2.run_ro_queries(link_obj = link_obj, queries = [{'cmd': cmd, 'args': args}])
+	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}])
 
 	if len(rows) == 0:
 		cmd = """
@@ -310,12 +282,12 @@ def create_substance(link_obj=None, substance=None, atc=None):
 					(SELECT code FROM ref.atc WHERE term = %(desc)s LIMIT 1)
 				)
 			) RETURNING pk"""
-		rows, idx = gmPG2.run_rw_queries(link_obj = link_obj, queries = [{'cmd': cmd, 'args': args}], return_data = True, get_col_idx = False)
+		rows, idx = gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}], return_data = True, get_col_idx = False)
 
 	if atc is not None:
-		gmATC.propagate_atc(link_obj = link_obj, substance = substance.strip(), atc = atc)
+		gmATC.propagate_atc(substance = substance.strip(), atc = atc)
 
-	return cSubstance(aPK_obj = rows[0]['pk'], link_obj = link_obj)
+	return cSubstance(aPK_obj = rows[0]['pk'])
 
 #------------------------------------------------------------
 def create_substance_by_atc(substance=None, atc=None, link_obj=None):
@@ -361,7 +333,7 @@ def delete_substance(pk_substance=None):
 				AND
 			-- must not currently be used with a patient
 			NOT EXISTS (
-				SELECT 1 FROM clin.v_intakes
+				SELECT 1 FROM clin.v_substance_intakes
 				WHERE pk_substance = %(pk)s
 				LIMIT 1
 			)
@@ -446,7 +418,7 @@ class cSubstanceDose(gmBusinessDBObject.cBusinessDBObject):
 		cmd = """
 			SELECT EXISTS (
 				SELECT 1
-				FROM clin.v_intakes
+				FROM clin.v_substance_intakes
 				WHERE pk_dose = %(pk)s
 				LIMIT 1
 			)"""
@@ -455,7 +427,7 @@ class cSubstanceDose(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 		return rows[0][0]
 
-	is_in_use_by_patients = property(_get_is_in_use_by_patients)
+	is_in_use_by_patients = property(_get_is_in_use_by_patients, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_drug_component(self):
@@ -470,7 +442,7 @@ class cSubstanceDose(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 		return rows[0][0]
 
-	is_drug_component = property(_get_is_drug_component)
+	is_drug_component = property(_get_is_drug_component, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_formatted_units(self, short=True):
@@ -480,7 +452,7 @@ class cSubstanceDose(gmBusinessDBObject.cBusinessDBObject):
 			short = short
 		)
 
-	formatted_units = property(_get_formatted_units)
+	formatted_units = property(_get_formatted_units, lambda x:x)
 
 #------------------------------------------------------------
 def get_substance_doses(order_by=None, return_pks=False):
@@ -562,7 +534,7 @@ def delete_substance_dose(pk_dose=None):
 				AND
 			-- must not currently be used with a patient
 			NOT EXISTS (
-				SELECT 1 FROM clin.v_intakes
+				SELECT 1 FROM clin.v_substance_intakes
 				WHERE pk_dose = %(pk_dose)s
 				LIMIT 1
 			)
@@ -622,15 +594,15 @@ class cSubstanceDoseMatchProvider(gmMatchProvider.cMatchProvider_SQL2):
 	def getMatchesByPhrase(self, aFragment):
 		"""Return matches for aFragment at start of phrases."""
 
-		if cSubstanceDoseMatchProvider._pattern.match(aFragment):
-			self._queries = [cSubstanceDoseMatchProvider._regex_query]
+		if cSubstanceMatchProvider._pattern.match(aFragment):
+			self._queries = [cSubstanceMatchProvider._regex_query]
 			fragment_condition = """substance ILIKE %(subst)s
 				AND
 			amount::text ILIKE %(amount)s"""
 			self._args['subst'] = '%s%%' % regex.sub(r'\s*\d+$', '', aFragment)
 			self._args['amount'] = '%s%%' % regex.sub(r'^\D+\s*', '', aFragment)
 		else:
-			self._queries = [cSubstanceDoseMatchProvider._normal_query]
+			self._queries = [cSubstanceMatchProvider._normal_query]
 			fragment_condition = "ILIKE %(fragment)s"
 			self._args['fragment'] = "%s%%" % aFragment
 
@@ -640,8 +612,8 @@ class cSubstanceDoseMatchProvider(gmMatchProvider.cMatchProvider_SQL2):
 	def getMatchesByWord(self, aFragment):
 		"""Return matches for aFragment at start of words inside phrases."""
 
-		if cSubstanceDoseMatchProvider._pattern.match(aFragment):
-			self._queries = [cSubstanceDoseMatchProvider._regex_query]
+		if cSubstanceMatchProvider._pattern.match(aFragment):
+			self._queries = [cSubstanceMatchProvider._regex_query]
 
 			subst = regex.sub(r'\s*\d+$', '', aFragment)
 			subst = gmPG2.sanitize_pg_regex(expression = subst, escape_all = False)
@@ -653,7 +625,7 @@ class cSubstanceDoseMatchProvider(gmMatchProvider.cMatchProvider_SQL2):
 			self._args['subst'] = "( %s)|(^%s)" % (subst, subst)
 			self._args['amount'] = '%s%%' % regex.sub(r'^\D+\s*', '', aFragment)
 		else:
-			self._queries = [cSubstanceDoseMatchProvider._normal_query]
+			self._queries = [cSubstanceMatchProvider._normal_query]
 			fragment_condition = "~* %(fragment)s"
 			aFragment = gmPG2.sanitize_pg_regex(expression = aFragment, escape_all = False)
 			self._args['fragment'] = "( %s)|(^%s)" % (aFragment, aFragment)
@@ -664,15 +636,15 @@ class cSubstanceDoseMatchProvider(gmMatchProvider.cMatchProvider_SQL2):
 	def getMatchesBySubstr(self, aFragment):
 		"""Return matches for aFragment as a true substring."""
 
-		if cSubstanceDoseMatchProvider._pattern.match(aFragment):
-			self._queries = [cSubstanceDoseMatchProvider._regex_query]
+		if cSubstanceMatchProvider._pattern.match(aFragment):
+			self._queries = [cSubstanceMatchProvider._regex_query]
 			fragment_condition = """substance ILIKE %(subst)s
 				AND
 			amount::text ILIKE %(amount)s"""
 			self._args['subst'] = '%%%s%%' % regex.sub(r'\s*\d+$', '', aFragment)
 			self._args['amount'] = '%s%%' % regex.sub(r'^\D+\s*', '', aFragment)
 		else:
-			self._queries = [cSubstanceDoseMatchProvider._normal_query]
+			self._queries = [cSubstanceMatchProvider._normal_query]
 			fragment_condition = "ILIKE %(fragment)s"
 			self._args['fragment'] = "%%%s%%" % aFragment
 
@@ -798,7 +770,7 @@ class cProductOrSubstanceMatchProvider(gmMatchProvider.cMatchProvider_SQL2):
 					amount,
 					unit,
 					dose_unit
-				FROM clin.v_intakes
+				FROM clin.v_substance_intakes
 			) AS normalized_intakes
 			WHERE description %%(fragment_condition)s
 
@@ -1213,7 +1185,7 @@ class cDrugComponent(gmBusinessDBObject.cBusinessDBObject):
 			self.formatted_units
 		))
 		lines.append(_('Component of %s (%s)') % (
-			self._payload[self._idx['drug_product']],
+			self._payload[self._idx['product']],
 			self._payload[self._idx['l10n_preparation']]
 		))
 		if self._payload[self._idx['is_fake_product']]:
@@ -1265,25 +1237,25 @@ class cDrugComponent(gmBusinessDBObject.cBusinessDBObject):
 	def _get_containing_drug(self):
 		return cDrugProduct(aPK_obj = self._payload[self._idx['pk_drug_product']])
 
-	containing_drug = property(_get_containing_drug)
+	containing_drug = property(_get_containing_drug, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_in_use_by_patients(self):
 		return self._payload[self._idx['is_in_use']]
 
-	is_in_use_by_patients = property(_get_is_in_use_by_patients)
+	is_in_use_by_patients = property(_get_is_in_use_by_patients, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_substance_dose(self):
 		return cSubstanceDose(aPK_obj = self._payload[self._idx['pk_dose']])
 
-	substance_dose =  property(_get_substance_dose)
+	substance_dose =  property(_get_substance_dose, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_substance(self):
 		return cSubstance(aPK_obj = self._payload[self._idx['pk_substance']])
 
-	substance =  property(_get_substance)
+	substance =  property(_get_substance, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_formatted_units(self, short=True):
@@ -1293,7 +1265,7 @@ class cDrugComponent(gmBusinessDBObject.cBusinessDBObject):
 			self._payload[self._idx['l10n_preparation']]
 		)
 
-	formatted_units = property(_get_formatted_units)
+	formatted_units = property(_get_formatted_units, lambda x:x)
 
 #------------------------------------------------------------
 def get_drug_components(return_pks=False):
@@ -1461,7 +1433,7 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 		"""
 	]
 	_updatable_fields = [
-		'drug_product',
+		'product',
 		'preparation',
 		'atc',
 		'is_fake_product',
@@ -1473,7 +1445,7 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 	def format(self, left_margin=0, include_component_details=False):
 		lines = []
 		lines.append('%s (%s)' % (
-			self._payload[self._idx['drug_product']],
+			self._payload[self._idx['product']],
 			self._payload[self._idx['l10n_preparation']]
 			)
 		)
@@ -1508,7 +1480,7 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 
 	#--------------------------------------------------------
 	def save_payload(self, conn=None):
-		success, data = super().save_payload(conn = conn)
+		success, data = super(self.__class__, self).save_payload(conn = conn)
 
 		if not success:
 			return (success, data)
@@ -1518,7 +1490,7 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 			if atc != '':
 				gmATC.propagate_atc (
 					link_obj = conn,
-					substance = self._payload[self._idx['drug_product']].strip(),
+					substance = self._payload[self._idx['product']].strip(),
 					atc = atc
 				)
 
@@ -1530,7 +1502,7 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 			return False
 
 		pk_doses2keep = [ s['pk_dose'] for s in substance_doses ]
-		_log.debug('setting components of "%s" from doses: %s', self._payload[self._idx['drug_product']], pk_doses2keep)
+		_log.debug('setting components of "%s" from doses: %s', self._payload[self._idx['product']], pk_doses2keep)
 
 		args = {'pk_drug_product': self._payload[self._idx['pk_drug_product']]}
 		queries = []
@@ -1555,13 +1527,13 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 			queries.append({'cmd': cmd, 'args': args.copy()})
 
 		# DELETE those that don't belong anymore
-		args['doses2keep'] = pk_doses2keep
+		args['doses2keep'] = tuple(pk_doses2keep)
 		cmd = """
 			DELETE FROM ref.lnk_dose2drug
 			WHERE
 				fk_drug_product = %(pk_drug_product)s
 					AND
-				fk_dose <> ALL(%(doses2keep)s)"""
+				fk_dose NOT IN %(doses2keep)s"""
 		queries.append({'cmd': cmd, 'args': args})
 		gmPG2.run_rw_queries(link_obj = link_obj, queries = queries)
 		self.refetch_payload(link_obj = link_obj)
@@ -1612,7 +1584,7 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 						fk_dose = %(pk_dose)s
 							AND
 						NOT EXISTS (
-							SELECT 1 FROM clin.v_intakes
+							SELECT 1 FROM clin.v_substance_intakes
 							WHERE pk_dose = %(pk_dose)s
 							LIMIT 1
 						)"""
@@ -1674,59 +1646,59 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 	def _get_external_code(self):
 		return self._payload[self._idx['external_code']]
 
-	external_code = property(_get_external_code)
+	external_code = property(_get_external_code, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_external_code_type(self):
 		# FIXME: maybe evaluate fk_data_source ?
 		return self._payload[self._idx['external_code_type']]
 
-	external_code_type = property(_get_external_code_type)
+	external_code_type = property(_get_external_code_type, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_components(self):
 		cmd = _SQL_get_drug_components % 'pk_drug_product = %(product)s'
-		args = {'drug_product': self._payload[self._idx['pk_drug_product']]}
+		args = {'product': self._payload[self._idx['pk_drug_product']]}
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 		return [ cDrugComponent(row = {'data': r, 'idx': idx, 'pk_field': 'pk_component'}) for r in rows ]
 
-	components = property(_get_components)
+	components = property(_get_components, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_components_as_doses(self):
 		pk_doses = [ c['pk_dose'] for c in self._payload[self._idx['components']] ]
 		if len(pk_doses) == 0:
 			return []
-		cmd = _SQL_get_substance_dose % 'pk_dose = ANY(%(pks)s)'
-		args = {'pks': pk_doses}
+		cmd = _SQL_get_substance_dose % 'pk_dose IN %(pks)s'
+		args = {'pks': tuple(pk_doses)}
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 		return [ cSubstanceDose(row = {'data': r, 'idx': idx, 'pk_field': 'pk_dose'}) for r in rows ]
 
-	components_as_doses = property(_get_components_as_doses)
+	components_as_doses = property(_get_components_as_doses, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_components_as_substances(self):
 		pk_substances = [ c['pk_substance'] for c in self._payload[self._idx['components']] ]
 		if len(pk_substances) == 0:
 			return []
-		cmd = _SQL_get_substance % 'pk_substance = ANY(%(pks)s)'
-		args = {'pks': pk_substances}
+		cmd = _SQL_get_substance % 'pk_substance IN %(pks)s'
+		args = {'pks': tuple(pk_substances)}
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 		return [ cSubstance(row = {'data': r, 'idx': idx, 'pk_field': 'pk_substance'}) for r in rows ]
 
-	components_as_substances = property(_get_components_as_substances)
+	components_as_substances = property(_get_components_as_substances, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_fake_product(self):
 		return self._payload[self._idx['is_fake_product']]
 
-	is_fake_product = property(_get_is_fake_product)
+	is_fake_product = property(_get_is_fake_product, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_vaccine(self):
 		return self._payload[self._idx['is_vaccine']]
 
-	is_vaccine = property(_get_is_vaccine)
+	is_vaccine = property(_get_is_vaccine, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_in_use_by_patients(self):
@@ -1742,7 +1714,7 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 		return rows[0][0]
 
-	is_in_use_by_patients = property(_get_is_in_use_by_patients)
+	is_in_use_by_patients = property(_get_is_in_use_by_patients, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_in_use_as_vaccine(self):
@@ -1753,7 +1725,7 @@ class cDrugProduct(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 		return rows[0][0]
 
-	is_in_use_as_vaccine = property(_get_is_in_use_as_vaccine)
+	is_in_use_as_vaccine = property(_get_is_in_use_as_vaccine, lambda x:x)
 
 #------------------------------------------------------------
 def get_drug_products(return_pks=False):
@@ -1797,8 +1769,8 @@ def create_drug_product(product_name=None, preparation=None, return_existing=Fal
 		conn_commit = link_obj.commit
 		conn_close = link_obj.close
 	else:
-		conn_commit = lambda *x: None
-		conn_close = lambda *x: None
+		conn_commit = lambda *x:None
+		conn_close = lambda *x:None
 	cmd = 'INSERT INTO ref.drug_product (description, preparation) VALUES (%(prod_name)s, %(prep)s) RETURNING pk'
 	args = {'prod_name': product_name, 'prep': preparation}
 	rows, idx = gmPG2.run_rw_queries(link_obj = link_obj, queries = [{'cmd': cmd, 'args': args}], return_data = True, get_col_idx = False)
@@ -1848,7 +1820,7 @@ def delete_drug_product(pk_drug_product=None):
 				AND
 			NOT EXISTS (
 				SELECT 1
-				FROM clin.v_intakes
+				FROM clin.v_substance_intakes
 				WHERE pk_drug_product = %(pk)s
 				LIMIT 1
 			)"""
@@ -1860,7 +1832,7 @@ def delete_drug_product(pk_drug_product=None):
 			pk = %(pk)s
 				AND
 			NOT EXISTS (
-				SELECT 1 FROM clin.v_intakes
+				SELECT 1 FROM clin.v_substance_intakes
 				WHERE pk_drug_product = %(pk)s
 				LIMIT 1
 			)"""
@@ -1868,178 +1840,77 @@ def delete_drug_product(pk_drug_product=None):
 	gmPG2.run_rw_queries(queries = queries)
 
 #============================================================
-# substance intake regimen
+# substance intakes
 #------------------------------------------------------------
-_SQL_get_intake_regimen = 'SELECT * FROM clin.v_intake_regimen WHERE %s'
+_SQL_get_substance_intake = "SELECT * FROM clin.v_substance_intakes WHERE %s"
 
-class cIntakeRegimen(gmBusinessDBObject.cBusinessDBObject):
-	"""Represents an intake regimen, either active or inactive."""
+class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
+	"""Represents a substance currently taken by a patient."""
 
-	_cmd_fetch_payload = _SQL_get_intake_regimen % 'pk_intake_regimen = %s'
+	_cmd_fetch_payload = _SQL_get_substance_intake % 'pk_substance_intake = %s'
 	_cmds_store_payload = [
-		""" UPDATE clin.intake_regimen SET
-				clin_when = %(started)s,
+		"""UPDATE clin.substance_intake SET
+				-- if .comment_on_start = '?' then .started will be mapped to NULL
+				-- in the view, also, .started CANNOT be NULL any other way so far,
+				-- so do not attempt to set .clin_when if .started is NULL
+				clin_when = (
+					CASE
+						WHEN %(started)s IS NULL THEN clin_when
+						ELSE %(started)s
+					END
+				)::timestamp with time zone,
 				comment_on_start = gm.nullify_empty_string(%(comment_on_start)s),
-				planned_duration = %(planned_duration)s,
 				discontinued = %(discontinued)s,
 				discontinue_reason = gm.nullify_empty_string(%(discontinue_reason)s),
-				narrative = gm.nullify_empty_string(%(schedule)s),
-				fk_encounter = %(pk_encounter)s,
+				schedule = gm.nullify_empty_string(%(schedule)s),
+				aim = gm.nullify_empty_string(%(aim)s),
+				narrative = gm.nullify_empty_string(%(notes)s),
+				intake_is_approved_of = %(intake_is_approved_of)s,
+				harmful_use_type = %(harmful_use_type)s,
 				fk_episode = %(pk_episode)s,
-				fk_dose = %(pk_dose)s,
-				fk_drug_product = %(pk_drug_product)s,
-				fk_intake = %(pk_intake)s
+				-- only used to document "last checked" such that
+				-- .clin_when -> .started does not have to change meaning
+				fk_encounter = %(pk_encounter)s,
+
+				is_long_term = (
+					case
+						when (
+							(%(is_long_term)s is False)
+								and
+							(%(duration)s is NULL)
+						) is True then null
+						else %(is_long_term)s
+					end
+				)::boolean,
+
+				duration = (
+					case
+						when %(is_long_term)s is True then null
+						else %(duration)s
+					end
+				)::interval
 			WHERE
-				pk = %(pk_intake_regimen)s
+				pk = %(pk_substance_intake)s
 					AND
-				xmin = %(xmin_intake_regimen)s
+				xmin = %(xmin_substance_intake)s
 			RETURNING
-				xmin AS xmin_intake_regimen
-				-- also return columns which are calculated in the view used by
-				-- the initial SELECT such that they will further on contain their
-				-- updated value:
-				--, ...
+				xmin as xmin_substance_intake
 		"""
 	]
-	# view columns that can be updated:
 	_updatable_fields = [
 		'started',
 		'comment_on_start',
-		'planned_duration',
 		'discontinued',
 		'discontinue_reason',
+		'intake_is_approved_of',
+		'schedule',
+		'duration',
+		'aim',
+		'is_long_term',
+		'notes',
+		'pk_episode',
 		'pk_encounter',
-		'pk_episode',
-		'pk_dose',
-		'pk_drug_product',
-		'pk_intake',
-		'schedule'
-	]
-	#--------------------------------------------------------
-#	def format(self):
-#		return u'%s' % self
-
-	#--------------------------------------------------------
-	def _get_parsed_schedule(self):
-		tests = [
-			# lead, trail
-			'	1-1-1-1 ',
-			# leading dose
-			'1-1-1-1',
-			'22-1-1-1',
-			'1/3-1-1-1',
-			'/4-1-1-1'
-		]
-		pattern = "^(\d\d|/\d|\d/\d|\d)[\s-]{1,5}\d{0,2}[\s-]{1,5}\d{0,2}[\s-]{1,5}\d{0,2}$"
-		for test in tests:
-			print(test.strip(), ":", regex.match(pattern, test.strip()))
-
-#------------------------------------------------------------
-def get_intake_regimen(order_by=None):
-	if order_by is None:
-		order_by = u'true'
-	else:
-		order_by = u'true ORDER BY %s' % order_by
-	cmd = _SQL_get_intake_regimen % order_by
-	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd}], get_col_idx = True)
-	return [ cIntakeRegimen(row = {'data': r, 'idx': idx, 'pk_field': 'pk_intake_regimen'}) for r in rows ]
-
-#------------------------------------------------------------
-def create_intake_regimen(pk_intake=None, started=None, pk_encounter=None, pk_episode=None, schedule=None, discontinued=None, link_obj=None):
-	cols = [
-		'fk_intake',
-		'clin_when',
-		'fk_encounter',
-		'fk_episode',
-		'narrative'
-	]
-	vals = [
-		'%(pk_intake)s',
-		'%(started)s',
-		'%(pk_encounter)s',
-		'%(pk_episode)s',
-		'gm.nullify_empty_string(%(schedule)s)'
-	]
-	query_args = {
-		'pk_intake': pk_intake,
-		'started': started,
-		'pk_encounter': pk_encounter,
-		'pk_episode': pk_episode,
-		'schedule': schedule
-	}
-	if discontinued:
-		cols.append('discontinued')
-		vals.append('%(discontinued)s')
-		query_args['discontinued'] = discontinued
-	cmd = u"""
-		INSERT INTO clin.intake_regimen (
-			%s
-		) VALUES (
-			%s
-		)
-		RETURNING pk
-	""" % (', '.join(cols), ', '.join(vals))
-	rows, idx = gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': query_args}], return_data = True, get_col_idx = False, link_obj = link_obj)
-	return cIntakeRegimen(aPK_obj = rows[0]['pk'], link_obj = link_obj)
-
-#------------------------------------------------------------
-def delete_intake_regimen(pk_intake_regimen=None, link_obj=None):
-	args = {'pk': pk_intake_regimen}
-	cmd = 'DELETE FROM clin.intake_regimen WHERE pk = %(pk)s'
-	gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}], link_obj = link_obj)
-	return True
-
-#------------------------------------------------------------
-
-#------------------------------------------------------------
-# widget code
-#------------------------------------------------------------
-#def edit_xxx(parent=None, xxx=None, single_entry=False, presets=None):
-#	pass
-
-#------------------------------------------------------------
-#def delete_intake_regimen():
-#	pass
-
-#------------------------------------------------------------
-#def manage_xxx():
-#	pass
-
-#------------------------------------------------------------
-# remember to add in clinical item generic workflows and generic clinical item formatting
-
-#============================================================
-# substance intakes
-#------------------------------------------------------------
-_SQL_get_substance_intake = "SELECT * FROM clin.v_intakes WHERE %s"
-
-class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
-	"""Represents a substance having been/being taken by a patient."""
-
-	_cmd_fetch_payload = _SQL_get_substance_intake % 'pk_intake = %s'
-	_cmds_store_payload = [
-		"""UPDATE clin.intake SET
-				clin_when = %(last_checked_when)s,
-				notes4patient = gm.nullify_empty_string(%(notes4patient)s),
-				narrative = gm.nullify_empty_string(%(notes4provider)s),
-				use_type = %(use_type)s,
-				fk_episode = %(pk_episode)s,
-				fk_encounter = %(pk_encounter)s
-			WHERE
-				pk = %(pk_intake)s
-					AND
-				xmin = %(xmin_intake)s
-			RETURNING
-				xmin as xmin_intake
-		"""
-	]
-	_updatable_fields = [
-		'last_checked_when',
-		'notes4patient',
-		'notes4provider'
-		'use_type',
-		'pk_episode',
-		'pk_encounter'
+		'harmful_use_type'
 	]
 
 	#--------------------------------------------------------
@@ -2054,207 +1925,235 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 		).split('\n')
 
 	#--------------------------------------------------------
-	def format(self, left_margin=0, date_format='%Y %b %d', single_line=True, allergy=None, show_all_product_components=False, include_metadata=True, include_instructions=False, include_loincs=False, eol='\n'):
+	def format(self, left_margin=0, date_format='%Y %b %d', single_line=True, allergy=None, show_all_product_components=False, include_metadata=True, include_instructions=False, include_loincs=False):
 
 		# medication
-		if self._payload[self._idx['use_type']] is None:
+		if self._payload[self._idx['harmful_use_type']] is None:
 			if single_line:
 				return self.format_as_single_line(left_margin = left_margin, date_format = date_format)
-
 			return self.format_as_multiple_lines (
 				left_margin = left_margin,
 				date_format = date_format,
 				allergy = allergy,
 				show_all_product_components = show_all_product_components,
-				include_instructions = include_instructions,
-				eol = eol
+				include_instructions = include_instructions
 			)
 
 		# abuse
 		if single_line:
 			return self.format_as_single_line_abuse(left_margin = left_margin, date_format = date_format)
 
-		return self.format_as_multiple_lines_abuse(left_margin = left_margin, date_format = date_format, include_metadata = include_metadata, eol = eol)
+		return self.format_as_multiple_lines_abuse(left_margin = left_margin, date_format = date_format, include_metadata = include_metadata)
 
 	#--------------------------------------------------------
 	def format_as_single_line_abuse(self, left_margin=0, date_format='%Y %b %d'):
 		return '%s%s: %s (%s)' % (
 			' ' * left_margin,
 			self._payload[self._idx['substance']],
-			self.use_type_string,
+			self.harmful_use_type_string,
 			gmDateTime.pydt_strftime(self._payload[self._idx['last_checked_when']], '%b %Y')
 		)
 
 	#--------------------------------------------------------
 	def format_as_single_line(self, left_margin=0, date_format='%Y %b %d'):
 
-		if self._payload[self._idx['planned_duration']] is not None:
-			duration = gmDateTime.format_interval (
-				self._payload[self._idx['planned_duration']],
-				accuracy_wanted = gmDateTime.acc_days
-			)
-		elif self._payload[self._idx['discontinued']] is not None:
-			duration = gmDateTime.pydt_strftime(self._payload[self._idx['discontinued']], date_format)
+		if self._payload[self._idx['is_currently_active']]:
+			if self._payload[self._idx['duration']] is None:
+				duration = gmTools.bool2subst (
+					self._payload[self._idx['is_long_term']],
+					_('long-term'),
+					_('short-term'),
+					_('?short-term')
+				)
+			else:
+				duration = gmDateTime.format_interval (
+					self._payload[self._idx['duration']],
+					accuracy_wanted = gmDateTime.acc_days
+				)
 		else:
-			duration = _('?')
-		line = '%s%s (%s %s): %s %s%s' % (
+			duration = gmDateTime.pydt_strftime(self._payload[self._idx['discontinued']], date_format)
+
+		line = '%s%s (%s %s): %s %s%s (%s)' % (
 			' ' * left_margin,
 			self.medically_formatted_start,
 			gmTools.u_arrow2right,
 			duration,
 			self._payload[self._idx['substance']],
 			self._payload[self._idx['amount']],
-			self.formatted_units
+			self.formatted_units,
+			gmTools.bool2subst(self._payload[self._idx['is_currently_active']], _('ongoing'), _('inactive'), _('?ongoing'))
 		)
 
 		return line
 
 	#--------------------------------------------------------
-	def format_as_multiple_lines_abuse(self, left_margin=0, date_format='%Y %b %d', include_metadata=True, eol='\n'):
-		lines = []
+	def format_as_multiple_lines_abuse(self, left_margin=0, date_format='%Y %b %d', include_metadata=True):
+
+		txt = ''
 		if include_metadata:
-			lines.append(_('Substance abuse entry                                              [#%s]') % self._payload[self._idx['pk_intake']])
-		lines.append(' ' + _('Substance: %s [#%s]%s') % (
+			txt = _('Substance abuse entry                                              [#%s]\n') % self._payload[self._idx['pk_substance_intake']]
+		txt += ' ' + _('Substance: %s [#%s]%s\n') % (
 			self._payload[self._idx['substance']],
 			self._payload[self._idx['pk_substance']],
 			gmTools.coalesce(self._payload[self._idx['atc_substance']], '', ' ATC %s')
-		))
-		lines.append(' ' + _('Use type: %s') % self.use_type_string)
-		lines.append(' ' + _('Last checked: %s') % gmDateTime.pydt_strftime(self._payload[self._idx['last_checked_when']], '%Y %b %d'))
-		if self._payload[self._idx['discontinued']]:
-			lines.append(_(' Discontinued %s') % (
+		)
+		txt += ' ' + _('Use type: %s\n') % self.harmful_use_type_string
+		txt += ' ' + _('Last checked: %s\n') % gmDateTime.pydt_strftime(self._payload[self._idx['last_checked_when']], '%Y %b %d')
+		if self._payload[self._idx['discontinued']] is not None:
+			txt += _(' Discontinued %s\n') % (
 				gmDateTime.pydt_strftime (
 					self._payload[self._idx['discontinued']],
 					format = date_format,
 					accuracy = gmDateTime.acc_days
 				)
-			))
-		if self._payload[self._idx['notes4provider']]:
-			lines.append(_(' Notes: %s') % self._payload[self._idx['notes4provider']])
+			)
+		txt += gmTools.coalesce(self._payload[self._idx['notes']], '', _(' Notes: %s\n'))
 		if include_metadata:
-			lines.append('')
-			lines.append(_('Revision: #%(row_ver)s, %(mod_when)s by %(mod_by)s.') % {
+			txt += '\n'
+			txt += _('Revision: #%(row_ver)s, %(mod_when)s by %(mod_by)s.') % {
 				'row_ver': self._payload[self._idx['row_version']],
 				'mod_when': gmDateTime.pydt_strftime(self._payload[self._idx['modified_when']]),
 				'mod_by': self._payload[self._idx['modified_by']]
-			})
-		if eol is None:
-			return lines
+			}
 
-		return eol.join(lines)
+		return txt
 
 	#--------------------------------------------------------
-	def format_as_multiple_lines(self, left_margin:int=0, date_format:str='%Y %b %d', allergy=None, show_all_product_components:bool=False, include_instructions:bool=False, include_loincs:bool=False, eol='\n'):# -> list | str:
-		lines = []
-		# header
-		status = _('inactive')
-		if self._payload[self._idx['discontinued']] is None:
-			status = _('active')
-		elif self._payload[self._idx['discontinued']] > gmDateTime.pydt_now_here():
-			status = _('active')
-		lines.append(_('Substance intake entry (%s)   [#%s]                     ') % (
-			status,
-			self._payload[self._idx['pk_intake']]
-		))
-		# caveat
-		if allergy:
+	def format_as_multiple_lines(self, left_margin=0, date_format='%Y %b %d', allergy=None, show_all_product_components=False, include_instructions=False, include_loincs=False):
+
+		txt = _('Substance intake entry (%s, %s)   [#%s]                     \n') % (
+			gmTools.bool2subst (
+				boolean = self._payload[self._idx['is_currently_active']],
+				true_return = gmTools.bool2subst (
+					boolean = self._payload[self._idx['seems_inactive']],
+					true_return = _('active, needs check'),
+					false_return = _('active'),
+					none_return = _('assumed active')
+				),
+				false_return = _('inactive')
+			),
+			gmTools.bool2subst (
+				boolean = self._payload[self._idx['intake_is_approved_of']],
+				true_return = _('approved'),
+				false_return = _('unapproved')
+			),
+			self._payload[self._idx['pk_substance_intake']]
+		)
+
+		if allergy is not None:
 			certainty = gmTools.bool2subst(allergy['definite'], _('definite'), _('suspected'))
-			lines.append('')
-			lines.append(' !! ---- Cave ---- !!')
-			lines.append(' %s (%s): %s (%s)' % (
+			txt += '\n'
+			txt += ' !! ---- Cave ---- !!\n'
+			txt += ' %s (%s): %s (%s)\n' % (
 				allergy['l10n_type'],
 				certainty,
 				allergy['descriptor'],
 				gmTools.coalesce(allergy['reaction'], '')[:40]
-			))
-			lines.append('')
-		# what
-		lines.append(' ' + _('Substance: %s   [#%s]') % (self._payload[self._idx['substance']], self._payload[self._idx['pk_substance']]))
-		if self._payload[self._idx['l10n_preparation']]:
-			lines.append(' ' + _('Preparation: %s') % self._payload[self._idx['l10n_preparation']])
-		if self._payload[self._idx['amount']]:
-			lines.append(' ' + _('Amount per dose: %s %s') % (
-				self._payload[self._idx['amount']],
-				self._get_formatted_units(short = False)
-			))
-		# codes
-		if self._payload[self._idx['atc_substance']]:
-			lines.append(_(' ATC (substance): %s') % self._payload[self._idx['atc_substance']])
-		if include_loincs and self._payload[self._idx['loincs']]:
-			lines.append('%s %s' % (' ' * left_margin, _('LOINCs to monitor:')))
-			lines.extend(['%s%s%s%s' % (
-				' ' * (left_margin + 1),
-				l['loinc'],
-				gmTools.coalesce(l['max_age_str'], '', ': ' + _('once within %s')),
-				gmTools.coalesce(l['comment'], '', ' (%s)')
-			) for l in self._payload[self._idx['loincs']]
-		])
-		lines.append('')
-		lines.append('')
-		# drug product
-		product = self.containing_drug
-		if product:
-			lines.append(_(' Product name: %s   [#%s]') % (self._payload[self._idx['drug_product']], self._payload[self._idx['pk_drug_product']]))
-			if self._payload[self._idx['atc_drug']]:
-				lines.append(_(' ATC (drug): %s') % self._payload[self._idx['atc_drug']])
-			if show_all_product_components and (len(product['components']) > 1):
+			)
+			txt += '\n'
+
+		txt += ' ' + _('Substance: %s   [#%s]\n') % (self._payload[self._idx['substance']], self._payload[self._idx['pk_substance']])
+		txt += ' ' + _('Preparation: %s\n') % self._payload[self._idx['l10n_preparation']]
+		txt += ' ' + _('Amount per dose: %s %s') % (
+			self._payload[self._idx['amount']],
+			self._get_formatted_units(short = False)
+		)
+		txt += '\n'
+		txt += gmTools.coalesce(self._payload[self._idx['atc_substance']], '', _(' ATC (substance): %s\n'))
+		if include_loincs and (len(self._payload[self._idx['loincs']]) > 0):
+			loincs = """
+%s %s
+%s  %s""" 	% (
+				(' ' * left_margin),
+				_('LOINCs to monitor:'),
+				(' ' * left_margin),
+				('\n' + (' ' * (left_margin + 1))).join ([
+					'%s%s%s' % (
+						l['loinc'],
+						gmTools.coalesce(l['max_age_str'], '', ': ' + _('once within %s')),
+						gmTools.coalesce(l['comment'], '', ' (%s)')
+					) for l in self._payload[self._idx['loincs']]
+				])
+			)
+		txt += '\n'
+
+		txt += '\n'
+
+		txt += _(' Product name: %s   [#%s]\n') % (self._payload[self._idx['product']], self._payload[self._idx['pk_drug_product']])
+		txt += gmTools.coalesce(self._payload[self._idx['atc_drug']], '', _(' ATC (drug): %s\n'))
+		if show_all_product_components:
+			product = self.containing_drug
+			if len(product['components']) > 1:
 				for comp in product['components']:
 					if comp['pk_substance'] == self._payload[self._idx['substance']]:
 						continue
-					lines.append('  ' + _('Other component: %s %s %s') % (
+					txt += ('  ' + _('Other component: %s %s %s\n') % (
 						comp['substance'],
 						comp['amount'],
 						format_units(comp['unit'], comp['dose_unit'])
 					))
-					if comp['intake_instructions']:
-						lines.append('   ' + _('Intake: %s') % comp['intake_instructions'])
-					if include_loincs and comp['loincs']:
-						lines.append('   ' + _('LOINCs to monitor:'))
-						lines.extend(['    %s%s%s' % (
+					txt += gmTools.coalesce(comp['intake_instructions'], '', '   ' + _('Intake: %s') + '\n')
+					if include_loincs and (len(comp['loincs']) > 0):
+						txt += ('   ' + _('LOINCs to monitor:') + '\n')
+						txt += '\n'.join([ '    %s%s%s' % (
 							l['loinc'],
 							gmTools.coalesce(l['max_age_str'], '', ': %s'),
 							gmTools.coalesce(l['comment'], '', ' (%s)')
 						) for l in comp['loincs'] ])
-			lines.append('')
-		# regimen
-		if self._payload[self._idx['schedule']]:
-			lines.append(_(' Regimen: %s') % self._payload[self._idx['schedule']])
-		if self._payload[self._idx['planned_duration']] is None:
-			duration = ''
+
+		txt += '\n'
+
+		txt += gmTools.coalesce(self._payload[self._idx['schedule']], '', _(' Regimen: %s\n'))
+
+		if self._payload[self._idx['is_long_term']]:
+			duration = ' %s %s' % (gmTools.u_arrow2right, gmTools.u_infinity)
 		else:
-			duration = ' %s %s' % (gmTools.u_arrow2right, gmDateTime.format_interval(self._payload[self._idx['planned_duration']], gmDateTime.acc_days))
-		lines.append(_(' Started %s%s') % (self.medically_formatted_start, duration))
-		if self._payload[self._idx['discontinued']]:
-			lines.append(_(' Discontinued %s') % (
+			if self._payload[self._idx['duration']] is None:
+				duration = ''
+			else:
+				duration = ' %s %s' % (gmTools.u_arrow2right, gmDateTime.format_interval(self._payload[self._idx['duration']], gmDateTime.acc_days))
+
+		txt += _(' Started %s%s%s\n') % (
+			self.medically_formatted_start,
+			duration,
+			gmTools.bool2subst(self._payload[self._idx['is_long_term']], _(' (long-term)'), _(' (short-term)'), '')
+		)
+
+		if self._payload[self._idx['discontinued']] is not None:
+			txt += _(' Discontinued %s\n') % (
 				gmDateTime.pydt_strftime (
 					self._payload[self._idx['discontinued']],
 					format = date_format,
 					accuracy = gmDateTime.acc_days
 				)
-			))
-		if self._payload[self._idx['discontinue_reason']]:
-			lines.append(_(' Reason: %s') % self._payload[self._idx['discontinue_reason']])
-		lines.append('')
-		# further notes
-		lines.append(_(' Episode: %s')% self._payload[self._idx['episode']])
-		if self._payload[self._idx['health_issue']]:
-			lines.append(_(' Health issue: %s') % self._payload[self._idx['health_issue']])
-		if self._payload[self._idx['notes4provider']]:
-			lines.append(_(' Provider notes: %s') % self._payload[self._idx['notes4provider']])
-		if self._payload[self._idx['notes4patient']]:
-			lines.append(_(' Patient advice: %s') % self._payload[self._idx['notes4patient']])
-		if self._payload[self._idx['intake_instructions']]:
-			lines.append(' ' + _('Intake: %s') % self._payload[self._idx['intake_instructions']])
-		lines.append('')
-		lines.append(_('Revision: #%(row_ver)s, %(mod_when)s by %(mod_by)s.') % {
+			)
+			txt += gmTools.coalesce(self._payload[self._idx['discontinue_reason']], '', _(' Reason: %s\n'))
+
+		txt += '\n'
+
+		txt += gmTools.coalesce(self._payload[self._idx['aim']], '', _(' Aim: %s\n'))
+		txt += gmTools.coalesce(self._payload[self._idx['episode']], '', _(' Episode: %s\n'))
+		txt += gmTools.coalesce(self._payload[self._idx['health_issue']], '', _(' Health issue: %s\n'))
+		txt += gmTools.coalesce(self._payload[self._idx['notes']], '', _(' Advice: %s\n'))
+		if self._payload[self._idx['intake_instructions']] is not None:
+			txt += (' '+ (_('Intake: %s') % self._payload[self._idx['intake_instructions']]) + '\n')
+		if len(self._payload[self._idx['loincs']]) > 0:
+			txt += (' ' + _('LOINCs to monitor:') + '\n')
+			txt += '\n'.join([ '  %s%s%s' % (
+				l['loinc'],
+				gmTools.coalesce(l['max_age_str'], '', ': %s'),
+				gmTools.coalesce(l['comment'], '', ' (%s)')
+			) for l in self._payload[self._idx['loincs']] ])
+
+		txt += '\n'
+
+		txt += _('Revision: #%(row_ver)s, %(mod_when)s by %(mod_by)s.') % {
 			'row_ver': self._payload[self._idx['row_version']],
 			'mod_when': gmDateTime.pydt_strftime(self._payload[self._idx['modified_when']]),
 			'mod_by': self._payload[self._idx['modified_by']]
-		})
-		if eol is None:
-			return lines
+		}
 
-		return eol.join(lines)
+		return txt
 
 	#--------------------------------------------------------
 	def turn_into_allergy(self, encounter_id=None, allergy_type='allergy'):
@@ -2265,7 +2164,7 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 			encounter_id = encounter_id
 		)
 		allg['substance'] = gmTools.coalesce (
-			self._payload[self._idx['drug_product']],
+			self._payload[self._idx['product']],
 			self._payload[self._idx['substance']]
 		)
 		allg['reaction'] = self._payload[self._idx['discontinue_reason']]
@@ -2287,25 +2186,25 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 
 	#--------------------------------------------------------
 	def delete(self):
-		return delete_substance_intake(pk_intake = self._payload[self._idx['pk_intake']])
+		return delete_substance_intake(pk_intake = self._payload[self._idx['pk_substance_intake']])
 
 	#--------------------------------------------------------
 	# properties
 	#--------------------------------------------------------
-	def _get_use_type_string(self):
+	def _get_harmful_use_type_string(self):
 
-		if self._payload[self._idx['use_type']] is None:
+		if self._payload[self._idx['harmful_use_type']] is None:
 			return _('medication, not abuse')
-		if self._payload[self._idx['use_type']] == 0:
+		if self._payload[self._idx['harmful_use_type']] == 0:
 			return _('no or non-harmful use')
-		if self._payload[self._idx['use_type']] == 1:
+		if self._payload[self._idx['harmful_use_type']] == 1:
 			return _('presently harmful use')
-		if self._payload[self._idx['use_type']] == 2:
+		if self._payload[self._idx['harmful_use_type']] == 2:
 			return _('presently addicted')
-		if self._payload[self._idx['use_type']] == 3:
+		if self._payload[self._idx['harmful_use_type']] == 3:
 			return _('previously addicted')
 
-	use_type_string = property(_get_use_type_string)
+	harmful_use_type_string = property(_get_harmful_use_type_string)
 
 	#--------------------------------------------------------
 	def _get_external_code(self):
@@ -2316,7 +2215,7 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 
 		return drug.external_code
 
-	external_code = property(_get_external_code)
+	external_code = property(_get_external_code, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_external_code_type(self):
@@ -2327,7 +2226,7 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 
 		return drug.external_code_type
 
-	external_code_type = property(_get_external_code_type)
+	external_code_type = property(_get_external_code_type, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_containing_drug(self):
@@ -2336,7 +2235,7 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 
 		return cDrugProduct(aPK_obj = self._payload[self._idx['pk_drug_product']])
 
-	containing_drug = property(_get_containing_drug)
+	containing_drug = property(_get_containing_drug, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_formatted_units(self, short=True):
@@ -2347,7 +2246,7 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 			short = short
 		)
 
-	formatted_units = property(_get_formatted_units)
+	formatted_units = property(_get_formatted_units, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_medically_formatted_start(self):
@@ -2391,7 +2290,7 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 			)
 		)
 
-	medically_formatted_start = property(_get_medically_formatted_start)
+	medically_formatted_start = property(_get_medically_formatted_start, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_medically_formatted_start_end_of_stopped(self, now):
@@ -2424,10 +2323,10 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 			duration_taken_str = gmDateTime.format_interval (duration_taken, gmDateTime.acc_days)
 
 		# format duration planned
-		if self._payload[self._idx['planned_duration']] is None:
+		if self._payload[self._idx['duration']] is None:
 			duration_planned_str = ''
 		else:
-			duration_planned_str = _(' [planned: %s]') % gmDateTime.format_interval(self._payload[self._idx['planned_duration']], gmDateTime.acc_days)
+			duration_planned_str = _(' [planned: %s]') % gmDateTime.format_interval(self._payload[self._idx['duration']], gmDateTime.acc_days)
 
 		# format end
 		end = gmDateTime.pydt_strftime(self._payload[self._idx['discontinued']], '%Y %b %d', 'utf8', gmDateTime.acc_days)
@@ -2516,10 +2415,13 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 			if self._payload[self._idx['started']] is not None:
 				duration_documented = self._payload[self._idx['discontinued']] - self._payload[self._idx['started']]
 				durations.append(_('%s (documented)') % gmDateTime.format_interval(duration_documented, gmDateTime.acc_days))
-		if self._payload[self._idx['planned_duration']] is not None:
-			durations.append(_('%s (plan)') % gmDateTime.format_interval(self._payload[self._idx['planned_duration']], gmDateTime.acc_days))
+		if self._payload[self._idx['duration']] is not None:
+			durations.append(_('%s (plan)') % gmDateTime.format_interval(self._payload[self._idx['duration']], gmDateTime.acc_days))
 		if len(durations) == 0:
-			duration_str = '?'
+			if self._payload[self._idx['is_long_term']]:
+				duration_str = gmTools.u_infinity
+			else:
+				duration_str = '?'
 		else:
 			duration_str = ', '.join(durations)
 
@@ -2527,13 +2429,13 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 
 		# format end
 		if self._payload[self._idx['discontinued']] is None:
-			if self._payload[self._idx['planned_duration']] is None:
+			if self._payload[self._idx['duration']] is None:
 				end_str = '?'
 			else:
 				if self._payload[self._idx['started']] is None:
 					end_str = '?'
 				else:
-					planned_end = self._payload[self._idx['started']] + self._payload[self._idx['planned_duration']] - pydt.timedelta(days = 1)
+					planned_end = self._payload[self._idx['started']] + self._payload[self._idx['duration']] - pydt.timedelta(days = 1)
 					if planned_end.year == now.year:
 						end_template = '%b %d'
 						if planned_end < now:
@@ -2557,7 +2459,7 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 						planned_end_from_now_str
 					)
 		else:
-			if gmDateTime.pydt_is_today(self._payload[self._idx['discontinued']]):
+			if gmDateTime.is_today(self._payload[self._idx['discontinued']]):
 				end_str = _('today')
 			elif self._payload[self._idx['discontinued']].year == now.year:
 				end_date_template = '%b %d'
@@ -2593,19 +2495,34 @@ class cSubstanceIntakeEntry(gmBusinessDBObject.cBusinessDBObject):
 		# assemble
 		return (' %s ' % gmTools.u_arrow2right_thick).join(arrow_parts)
 
-	medically_formatted_start_end = property(_get_medically_formatted_start_end)
+	medically_formatted_start_end = property(_get_medically_formatted_start_end, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_as_amts_latex(self, strict=True):
 		return format_substance_intake_as_amts_latex(intake = self, strict=strict)
 
-	as_amts_latex = property(_get_as_amts_latex)
+	as_amts_latex = property(_get_as_amts_latex, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_as_amts_data(self, strict=True):
 		return format_substance_intake_as_amts_data(intake = self, strict = strict)
 
-	as_amts_data = property(_get_as_amts_data)
+	as_amts_data = property(_get_as_amts_data, lambda x:x)
+
+	#--------------------------------------------------------
+	def _get_parsed_schedule(self):
+		tests = [
+			# lead, trail
+			'	1-1-1-1 ',
+			# leading dose
+			'1-1-1-1',
+			'22-1-1-1',
+			'1/3-1-1-1',
+			'/4-1-1-1'
+		]
+		pattern = "^(\d\d|/\d|\d/\d|\d)[\s-]{1,5}\d{0,2}[\s-]{1,5}\d{0,2}[\s-]{1,5}\d{0,2}$"
+		for test in tests:
+			print(test.strip(), ":", regex.match(pattern, test.strip()))
 
 #------------------------------------------------------------
 def get_substance_intakes(pk_patient=None, return_pks=False):
@@ -2614,14 +2531,13 @@ def get_substance_intakes(pk_patient=None, return_pks=False):
 		cmd = _SQL_get_substance_intake % 'true'
 	else:
 		cmd = _SQL_get_substance_intake % 'pk_patient = %(pat)s'
-	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
+	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd}], get_col_idx = True)
 	if return_pks:
-		return [ r['pk_intake'] for r in rows ]
-
-	return [ cSubstanceIntakeEntry(row = {'data': r, 'idx': idx, 'pk_field': 'pk_intake'}) for r in rows ]
+		return [ r['pk_substance_intake'] for r in rows ]
+	return [ cSubstanceIntakeEntry(row = {'data': r, 'idx': idx, 'pk_field': 'pk_substance_intake'}) for r in rows ]
 
 #------------------------------------------------------------
-def substance_intake_exists(pk_component=None, pk_identity=None, pk_drug_product=None, pk_dose=None, pk_substance=None):
+def substance_intake_exists(pk_component=None, pk_identity=None, pk_drug_product=None, pk_dose=None):
 
 	if [pk_component, pk_drug_product, pk_dose].count(None) != 2:
 		raise ValueError('only one of pk_component, pk_dose, and pk_drug_product can be non-NULL')
@@ -2669,7 +2585,7 @@ def substance_intake_exists_by_atc(pk_identity=None, atc=None):
 	]
 	cmd = """
 		SELECT EXISTS (
-			SELECT 1 FROM clin.v_intakes
+			SELECT 1 FROM clin.v_substance_intakes
 			WHERE
 				%s
 			LIMIT 1
@@ -2680,41 +2596,85 @@ def substance_intake_exists_by_atc(pk_identity=None, atc=None):
 	return rows[0][0]
 
 #------------------------------------------------------------
-def create_substance_intake(pk_encounter=None, pk_episode=None, pk_substance=None, pk_component=None, pk_drug_product=None):
+def create_substance_intake(pk_component=None, pk_encounter=None, pk_episode=None, pk_drug_product=None):
+
+	if [pk_component, pk_drug_product].count(None) != 1:
+		raise ValueError('only one of pk_component and pk_drug_product can be non-NULL')
+
 	args = {
 		'pk_enc': pk_encounter,
 		'pk_epi': pk_episode,
-		'pk_subst': pk_substance
+		'pk_comp': pk_component,
+		'pk_drug_product': pk_drug_product
 	}
-	cmd = """
-		INSERT INTO clin.intake (
-			fk_encounter,
-			fk_episode,
-			fk_substance
-		) VALUES (
-			%(pk_enc)s,
-			%(pk_epi)s,
-			%(pk_subst)s
-		)
-		RETURNING pk
-	"""
-	rows, idx = gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}], return_data = True)
+
+	if pk_drug_product is not None:
+		cmd = """
+			INSERT INTO clin.substance_intake (
+				fk_encounter,
+				fk_episode,
+				intake_is_approved_of,
+				fk_drug_component
+			) VALUES (
+				%(pk_enc)s,
+				%(pk_epi)s,
+				False,
+				-- select one of the components (the others will be added by a trigger)
+				(SELECT pk FROM ref.lnk_dose2drug WHERE fk_drug_product = %(pk_drug_product)s LIMIT 1)
+			)
+			RETURNING pk"""
+
+	if pk_component is not None:
+		cmd = """
+			INSERT INTO clin.substance_intake (
+				fk_encounter,
+				fk_episode,
+				intake_is_approved_of,
+				fk_drug_component
+			) VALUES (
+				%(pk_enc)s,
+				%(pk_epi)s,
+				False,
+				%(pk_comp)s
+			)
+			RETURNING pk"""
+
+	try:
+		rows, idx = gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}], return_data = True)
+	except gmPG2.dbapi.InternalError as exc:
+		if exc.pgerror is None:
+			raise
+		if 'prevent_duplicate_component' in exc.pgerror:
+			_log.exception('will not create duplicate substance intake entry')
+			gmPG2.log_pg_exception_details(exc)
+			return None
+		raise
+
 	return cSubstanceIntakeEntry(aPK_obj = rows[0][0])
 
 #------------------------------------------------------------
-def delete_substance_intake(pk_intake=None, delete_regimen=False):
-	args = {'pk_intake': pk_intake}
-	queries = []
-	if delete_regimen:
-		queries.append ({
-			'cmd': 'DELETE FROM clin.intake_regimen c_ir WHERE fk_intake = %(pk_intake)s',
-			'args': args
-		})
-	queries.append ({
-		'cmd': 'DELETE FROM clin.intake WHERE pk = %(pk_intake)s',
-		'args': args
-	})
-	gmPG2.run_rw_queries(queries = queries)
+def delete_substance_intake(pk_intake=None, delete_siblings=False):
+	if delete_siblings:
+		cmd = """
+			DELETE FROM clin.substance_intake c_si
+			WHERE
+				c_si.fk_drug_component IN (
+					SELECT r_ld2d.pk FROM ref.lnk_dose2drug r_ld2d
+					WHERE r_ld2d.fk_drug_product = (
+						SELECT c_vsi1.pk_drug_product FROM clin.v_substance_intakes c_vsi1 WHERE c_vsi1.pk_substance_intake = %(pk)s
+					)
+				)
+					AND
+				c_si.fk_encounter IN (
+					SELECT c_e.pk FROM clin.encounter c_e
+					WHERE c_e.fk_patient = (
+						SELECT c_vsi2.pk_patient FROM clin.v_substance_intakes c_vsi2 WHERE c_vsi2.pk_substance_intake = %(pk)s
+					)
+				)"""
+	else:
+		cmd = 'DELETE FROM clin.substance_intake WHERE pk = %(pk)s'
+
+	gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': {'pk': pk_intake}}])
 	return True
 
 #------------------------------------------------------------
@@ -2743,9 +2703,9 @@ def format_substance_intake_as_amts_latex(intake=None, strict=True):
 			cells.append('\\fontsize{10pt}{12pt}\selectfont %s ' % '\\newline '.join(['\\mbox{%s}' % _esc(c['substance']) for c in components]))
 	# product
 	if strict:
-		cells.append(_esc(intake['drug_product'][:50]))
+		cells.append(_esc(intake['product'][:50]))
 	else:
-		cells.append(_esc(intake['drug_product']))
+		cells.append(_esc(intake['product']))
 	# Wirkstärken
 	if len(components) > 3:
 		cells.append('')
@@ -2823,7 +2783,7 @@ def format_substance_intake_as_amts_data(intake=None, strict=True):
 		# relax length checks
 
 	M_fields = []
-	M_fields.append('a="%s"' % intake['drug_product'])
+	M_fields.append('a="%s"' % intake['product'])
 	M_fields.append('fd="%s"' % intake['l10n_preparation'])
 	if intake['schedule'] is not None:
 		M_fields.append('t="%s"' % intake['schedule'])
@@ -2940,7 +2900,7 @@ def format_substance_intake_as_amts_data_v2_0(intake=None, strict=True):
 	else:
 		fields.append('~'.join([c[0][:80] for c in components]))
 	# product
-	fields.append(intake['drug_product'][:50])
+	fields.append(intake['product'][:50])
 	# Wirkstärken
 	if len(components) > 3:
 		fields.append('')
@@ -2968,7 +2928,7 @@ def calculate_amts_data_check_symbol_v2_0(intakes=None):
 	# first char of generic substance or product name
 	first_chars = []
 	for intake in intakes:
-		first_chars.append(intake['drug_product'][0])
+		first_chars.append(intake['product'][0])
 
 	# add up_per page
 	val_sum = 0
@@ -3127,7 +3087,7 @@ def format_substance_intake_notes(emr=None, output_format='latex', table_type=u'
 		lines.append('%s {\\small (%s: {\\tiny %s})} & %s%s & %s\\\\' % (
 			gmTools.tex_escape_string(med['substance']),
 			gmTools.tex_escape_string(med['l10n_preparation']),
-			gmTools.tex_escape_string(med['drug_product']),
+			gmTools.tex_escape_string(med['product']),
 			med['amount'],
 			gmTools.tex_escape_string(med.formatted_units),
 			aim
@@ -3165,20 +3125,20 @@ def format_substance_intake(emr=None, output_format='latex', table_type='by-prod
 	)
 	line_data = {}
 	for med in current_meds:
-		identifier = med['drug_product']
+		identifier = med['product']
 
 		try:
 			line_data[identifier]
 		except KeyError:
-			line_data[identifier] = {'drug_product': '', 'l10n_preparation': '', 'schedule': '', 'notes': [], 'strengths': []}
+			line_data[identifier] = {'product': '', 'l10n_preparation': '', 'schedule': '', 'notes': [], 'strengths': []}
 
-		line_data[identifier]['drug_product'] = identifier
+		line_data[identifier]['product'] = identifier
 		line_data[identifier]['strengths'].append('%s %s%s' % (med['substance'][:20], med['amount'], med.formatted_units))
 		if med['l10n_preparation'] not in identifier:
 			line_data[identifier]['l10n_preparation'] = med['l10n_preparation']
 		sched_parts = []
-		if med['planned_duration'] is not None:
-			sched_parts.append(gmDateTime.format_interval(med['planned_duration'], gmDateTime.acc_days, verbose = True))
+		if med['duration'] is not None:
+			sched_parts.append(gmDateTime.format_interval(med['duration'], gmDateTime.acc_days, verbose = True))
 		if med['schedule'] is not None:
 			sched_parts.append(med['schedule'])
 		line_data[identifier]['schedule'] = ': '.join(sched_parts)
@@ -3193,12 +3153,12 @@ def format_substance_intake(emr=None, output_format='latex', table_type='by-prod
 	line2_template = u'{\\tiny %s}                     & {\\scriptsize %s}\\\\'
 	line3_template = u'                                & {\\scriptsize %s}\\\\'
 	for med in current_meds:
-		identifier = med['drug_product']
+		identifier = med['product']
 		if identifier in already_seen:
 			continue
 		already_seen.append(identifier)
 		lines.append (line1_template % (
-			gmTools.tex_escape_string(line_data[identifier]['drug_product']),
+			gmTools.tex_escape_string(line_data[identifier]['product']),
 			gmTools.tex_escape_string(line_data[identifier]['l10n_preparation']),
 			gmTools.tex_escape_string(line_data[identifier]['schedule'])
 		))
@@ -3312,18 +3272,22 @@ if __name__ == "__main__":
 	if sys.argv[1] != 'test':
 		sys.exit()
 
-	gmDateTime.init()
+	from Gnumed.pycommon import gmLog2
+	#from Gnumed.pycommon import gmI18N
+
+	gmI18N.activate_locale()
+#	gmDateTime.init()
 
 	#--------------------------------------------------------
 	# generic
 	#--------------------------------------------------------
 	def test_create_substance_intake():
-		intake = create_substance_intake (
+		drug = create_substance_intake (
+			pk_component = 2,
 			pk_encounter = 1,
-			pk_episode = 1,
-			pk_substance = 99
+			pk_episode = 1
 		)
-		print(intake)
+		print(drug)
 
 	#--------------------------------------------------------
 	def test_get_substances():
@@ -3334,12 +3298,12 @@ if __name__ == "__main__":
 			print('in use:', s.is_in_use_by_patients)
 			print('is component:', s.is_drug_component)
 
-		s = cSubstance(1)
-		print(s)
-		print(s['loincs'])
-		print(s.format())
-		print('in use:', s.is_in_use_by_patients)
-		print('is component:', s.is_drug_component)
+#		s = cSubstance(1)
+#		print s
+#		print s['loincs']
+#		print s.format()
+#		print 'in use:', s.is_in_use_by_patients
+#		print 'is component:', s.is_drug_component
 
 	#--------------------------------------------------------
 	def test_get_doses():
@@ -3371,52 +3335,6 @@ if __name__ == "__main__":
 				print(c.format())
 				print(c.substance_dose.format())
 				print(c.substance.format())
-			input()
-
-	#--------------------------------------------------------
-	def test_intake_regimen():
-		conn = gmPG2.get_connection(readonly = False)
-#		for reg in get_intake_regimen():
-#			#print reg
-#			print('------------------------------------------------')
-#			#print('\n'.join(reg.format_maximum_information()))
-#			print('\n'.join(reg.format()))
-#			input()
-		start = gmDateTime.pydt_replace(gmDateTime.pydt_now_here(), year = 1965)
-		end = gmDateTime.pydt_replace(start, second = start.second + 1)
-		reg = create_intake_regimen (
-			pk_intake = 1,
-			started = start,
-			pk_encounter = 1,
-			pk_episode = 1,
-			schedule = 'test schedule',
-			discontinued = end,
-			link_obj = conn
-		)
-		print('\n'.join(reg.format()))
-		input()
-		reg['schedule'] = 'every now and then'
-		reg.save(conn=conn)
-		print('\n'.join(reg.format()))
-		input()
-		reg['pk_drug_product'] = 139
-		reg['pk_dose'] = 474
-		reg.save(conn=conn)
-		print('\n'.join(reg.format()))
-		input()
-		print(delete_intake_regimen(pk_intake_regimen = reg['pk_intake_regimen'], link_obj = conn))
-
-		conn.rollback()
-		conn.close()
-
-	#--------------------------------------------------------
-	def test_get_intake_regimen():
-		for i in get_intake_regimen():
-			#print i
-			print('------------------------------------------------')
-			#print('\n'.join(i.format_maximum_information()))
-			print('\n'.join(i.format()))
-			input()
 
 	#--------------------------------------------------------
 	def test_get_intakes():
@@ -3424,27 +3342,6 @@ if __name__ == "__main__":
 			#print i
 			print('------------------------------------------------')
 			print('\n'.join(i.format_maximum_information()))
-
-	#--------------------------------------------------------
-	def test_intake_formatting():
-		i = get_substance_intakes()[0]
-		print('------------------------------------------------')
-		print('\n'.join(i.format_maximum_information()))
-		input()
-		print('------------------------------------------------')
-		print(i.format())
-		input()
-		print('------------------------------------------------')
-		print(i.format_as_single_line())
-		input()
-		print('------------------------------------------------')
-		print(i.format_as_single_line_abuse())
-		input()
-		print('------------------------------------------------')
-		print(i.format_as_multiple_lines())
-		input()
-		print('------------------------------------------------')
-		print(i.format_as_multiple_lines_abuse())
 
 	#--------------------------------------------------------
 	def test_get_habit_drugs():
@@ -3455,13 +3352,12 @@ if __name__ == "__main__":
 	#--------------------------------------------------------
 	def test_drug2renal_insufficiency_url():
 		drug2renal_insufficiency_url(search_term = 'Metoprolol')
-
 	#--------------------------------------------------------
 	def test_medically_formatted_start_end():
-		cmd = "SELECT pk_intake FROM clin.v_intakes"
+		cmd = "SELECT pk_substance_intake FROM clin.v_substance_intakes"
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd}])
 		for row in rows:
-			entry = cSubstanceIntakeEntry(row['pk_intake'])
+			entry = cSubstanceIntakeEntry(row['pk_substance_intake'])
 			print('===============================================================')
 			print(entry.format(left_margin = 1, single_line = False, show_all_product_components = True))
 			print('--------------------------------')
@@ -3479,42 +3375,21 @@ if __name__ == "__main__":
 
 	#--------------------------------------------------------
 	def test_delete_intake():
-		delete_substance_intake(pk_intake = 9, delete_regimen = False)
-
-	#--------------------------------------------------------
-	def test_URLs():
-		import webbrowser
-		import time
-		urls = [
-			URL_renal_insufficiency,
-			URL_renal_insufficiency_search_template % 'Metoprolol',
-			URL_long_qt,
-			URL_drug_adr_german_default
-		]
-		for url in urls:
-			print(url)
-			webbrowser.open(url, new = 2, autoraise = True)
-			input('enter for next')
-			time.sleep(0.1)
+		delete_substance_intake(pk_intake = 1, delete_siblings = True)
 
 	#--------------------------------------------------------
 	# generic
-	test_URLs()
 	#test_drug2renal_insufficiency_url()
 	#test_interaction_check()
 	#test_medically_formatted_start_end()
 
-	gmPG2.request_login_params(setup_pool = True)
 	#test_get_substances()
 	#test_get_doses()
 	#test_get_components()
 	#test_get_drugs()
 	#test_get_intakes()
-	#test_get_intake_regimen()
-	#test_intake_formatting()
-	#test_intake_regimen()
 	#test_create_substance_intake()
-	#test_delete_intake()
+	test_delete_intake()
 
 	#test_get_habit_drugs()
 

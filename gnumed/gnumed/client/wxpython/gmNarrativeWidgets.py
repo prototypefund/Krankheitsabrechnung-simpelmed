@@ -1,10 +1,11 @@
 """GNUmed narrative handling widgets."""
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import sys
 import logging
+import os.path
 import time
 
 
@@ -13,14 +14,20 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+
+from Gnumed.pycommon import gmI18N
+
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
-from Gnumed.pycommon import gmCfgDB
+from Gnumed.pycommon import gmCfg
 
 from Gnumed.business import gmPerson
+from Gnumed.business import gmStaff
 from Gnumed.business import gmEMRStructItems
 from Gnumed.business import gmSoapDefs
 from Gnumed.business import gmPraxis
@@ -31,12 +38,14 @@ from Gnumed.wxpython import gmEMRStructWidgets
 from Gnumed.wxpython import gmEncounterWidgets
 from Gnumed.wxpython import gmRegetMixin
 from Gnumed.wxpython import gmGuiHelpers
+from Gnumed.wxpython import gmVisualProgressNoteWidgets
 from Gnumed.wxpython import gmProgressNotesEAWidgets
 from Gnumed.wxpython.gmPatSearchWidgets import set_active_patient
 
+from Gnumed.exporters import gmPatientExporter
+
 
 _log = logging.getLogger('gm.ui')
-
 #============================================================
 # narrative related widgets
 #------------------------------------------------------------
@@ -202,7 +211,7 @@ class cSoapPluginPnl(wxgSoapPluginPnl.wxgSoapPluginPnl, gmRegetMixin.cRegetOnPai
 			active_problems.append(problem)
 
 			if problem['type'] == 'issue':
-				issue = gmEMRStructItems.cHealthIssue.from_problem(problem)
+				issue = emr.problem2issue(problem)
 				last_encounter = emr.get_last_encounter(issue_id = issue['pk_health_issue'])
 				if last_encounter is None:
 					last = issue['modified_when'].strftime('%m/%Y')
@@ -212,7 +221,7 @@ class cSoapPluginPnl(wxgSoapPluginPnl.wxgSoapPluginPnl, gmRegetMixin.cRegetOnPai
 				list_items.append([last, problem['problem'], gmTools.u_left_arrow_with_tail])
 
 			elif problem['type'] == 'episode':
-				epi = gmEMRStructItems.cEpisode.from_problem(problem)
+				epi = emr.problem2episode(problem)
 				last_encounter = emr.get_last_encounter(episode_id = epi['pk_episode'])
 				if last_encounter is None:
 					last = epi['episode_modified_when'].strftime('%m/%Y')
@@ -400,11 +409,13 @@ class cSoapPluginPnl(wxgSoapPluginPnl.wxgSoapPluginPnl, gmRegetMixin.cRegetOnPai
 		if problem is None:
 			return True
 
-		allow_duplicate_editors = gmCfgDB.get4user (
+		dbcfg = gmCfg.cCfgSQL()
+		allow_duplicate_editors = bool(dbcfg.get2 (
 			option = 'horstspace.soap_editor.allow_same_episode_multiple_times',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user',
 			default = False
-		)
+		))
 		if self._PNL_editors.add_editor(problem = problem, allow_same_problem = allow_duplicate_editors):
 			return True
 
@@ -532,11 +543,13 @@ class cFancySoapEditorPnl(wxgFancySoapEditorPnl.wxgFancySoapEditorPnl):
 		if self.__pat is None:
 			return
 
-#		auto_open_recent_problems = gmCfgDB.get4user (
-#			option = 'horstspace.soap_editor.auto_open_latest_episodes',
-#			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
-#			default = True
-#		)
+		dbcfg = gmCfg.cCfgSQL()
+		auto_open_recent_problems = bool(dbcfg.get2 (
+			option = 'horstspace.soap_editor.auto_open_latest_episodes',
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user',
+			default = True
+		))
 
 		emr = self.__pat.emr
 		recent_epis = emr.active_encounter.get_episodes()
@@ -1212,6 +1225,9 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain = 'gnumed')
 
 	#----------------------------------------
 	def test_cSoapPluginPnl():

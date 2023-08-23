@@ -1,7 +1,7 @@
-"""GNUmed TextCtrl sbuclass."""
+__doc__ = """GNUmed TextCtrl sbuclass."""
 #===================================================
 __author__  = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import logging
 import sys
@@ -13,7 +13,6 @@ import wx.lib.expando
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 
 from Gnumed.pycommon import gmShellAPI
 from Gnumed.wxpython import gmKeywordExpansionWidgets
@@ -108,55 +107,42 @@ _KNOWN_UNICODE_SELECTORS = [
 	# Mac OSX supposedly features built-in support
 ]
 
-found, __UNICODE_SELECTOR_APP = gmShellAPI.find_first_binary(binaries = _KNOWN_UNICODE_SELECTORS)
-if found:
-	_log.debug('found [%s] for unicode character selection', __UNICODE_SELECTOR_APP)
-else:
-	_log.error('no unicode character selection tool found')
-	_log.debug('known tools: %s', _KNOWN_UNICODE_SELECTORS)
-	_log.debug('gm-unicode2clipboard: no arguments passed in')
-	_log.debug('gm-unicode2clipboard: if the clipboard contains new data upon return GNUmed will import the active text control')
-
-
 class cUnicodeInsertion_TextCtrlMixin():
-	"""Insert unicode characters into text control via selection tool."""
+	"""Mixin for inserting unicode characters via selection tool."""
 
-#	_unicode_selector = None
+	_unicode_selector = None
 
 	def __init__(self, *args, **kwargs):
 		if not isinstance(self, (wx.TextCtrl, wx.stc.StyledTextCtrl)):
 			raise TypeError('[%s]: can only be applied to wx.TextCtrl or wx.stc.StyledTextCtrl, not [%s]' % (cUnicodeInsertion_TextCtrlMixin, self.__class__.__name__))
 
-#		if cUnicodeInsertion_TextCtrlMixin._unicode_selector is None:
-#			found, cUnicodeInsertion_TextCtrlMixin._unicode_selector = gmShellAPI.find_first_binary(binaries = _KNOWN_UNICODE_SELECTORS)
-#			if found:
-#				_log.debug('found [%s] for unicode character selection', cUnicodeInsertion_TextCtrlMixin._unicode_selector)
-#			else:
-#				_log.error('no unicode character selection tool found')
+		if cUnicodeInsertion_TextCtrlMixin._unicode_selector is None:
+			found, cUnicodeInsertion_TextCtrlMixin._unicode_selector = gmShellAPI.find_first_binary(binaries = _KNOWN_UNICODE_SELECTORS)
+			if found:
+				_log.debug('found [%s] for unicode character selection', cUnicodeInsertion_TextCtrlMixin._unicode_selector)
+			else:
+				_log.error('no unicode character selection tool found')
 
 	#--------------------------------------------------------
 	def mixin_insert_unicode_character(self):
-#		if cUnicodeInsertion_TextCtrlMixin._unicode_selector is None:
-		if __UNICODE_SELECTOR_APP is None:
+		if cUnicodeInsertion_TextCtrlMixin._unicode_selector is None:
 			return False
 
 		# read clipboard
 		if wx.TheClipboard.IsOpened():
 			_log.error('clipboard already open')
 			return False
-
 		if not wx.TheClipboard.Open():
 			_log.error('cannot open clipboard')
 			return False
-
 		data_obj = wx.TextDataObject()
 		prev_clip = None
 		got_it = wx.TheClipboard.GetData(data_obj)
 		if got_it:
 			prev_clip = data_obj.Text
+
 		# run selector
-		#if not gmShellAPI.run_command_in_shell(command = cUnicodeInsertion_TextCtrlMixin._unicode_selector, blocking = True):
-		if not gmShellAPI.run_command_in_shell(command = __UNICODE_SELECTOR_APP, blocking = True):
+		if not gmShellAPI.run_command_in_shell(command = cUnicodeInsertion_TextCtrlMixin._unicode_selector, blocking = True):
 			wx.TheClipboard.Close()
 			return False
 
@@ -166,9 +152,9 @@ class cUnicodeInsertion_TextCtrlMixin():
 		if not got_it:
 			_log.debug('clipboard does not contain text')
 			return False
-
 		curr_clip = data_obj.Text
-		# insert clip if any
+
+		# insert clip if so
 		if curr_clip == prev_clip:
 			# nothing put into clipboard (that is, clipboard still the same)
 			return False
@@ -229,8 +215,8 @@ class cTextSearch_TextCtrlMixin():
 			)
 
 		# find current match
-		search_term = self.__mixin_find_replace_data.GetFindString().casefold()
-		match_start = self.Value.casefold().find(search_term, self.__mixin_find_replace_last_match_end)
+		search_term = self.__mixin_find_replace_data.GetFindString().lower()
+		match_start = self.Value.lower().find(search_term, self.__mixin_find_replace_last_match_end)
 		if match_start == -1:
 			# wrap around
 			self.__mixin_find_replace_last_match_start = 0
@@ -512,8 +498,7 @@ if __name__ == '__main__':
 	#-----------------------------------------------
 	def test_gm_textctrl():
 		app = wx.PyWidgetTester(size = (200, 50))
-		#tc = 
-		cTextCtrl(app.frame, -1)
+		tc = cTextCtrl(app.frame, -1)
 		#tc.enable_keyword_expansions()
 		#tc.Enable(False)
 		app.frame.Show(True)

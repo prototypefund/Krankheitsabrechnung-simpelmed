@@ -1,4 +1,4 @@
-"""GNUmed client internationalization/localization.
+__doc__ = """GNUmed client internationalization/localization.
 
 All i18n/l10n issues should be handled through this modules.
 
@@ -6,9 +6,9 @@ Theory of operation:
 
 To activate proper locale settings and translation services you need to
 
-	- import this module
-	- call activate_locale()
-	- call install_domain()
+- import this module
+- call activate_locale()
+- call install_domain()
 
 The translating method gettext.gettext() will then be
 installed into the global (!) namespace as _(). Your own
@@ -49,7 +49,7 @@ If none of this works it will fall back to making _() a noop.
 """
 #===========================================================================
 __author__ = "H. Herb <hherb@gnumed.net>, I. Haywood <i.haywood@ugrad.unimelb.edu.au>, K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 
 # stdlib
@@ -64,10 +64,9 @@ import builtins
 import re as regex
 
 
-_log = logging.getLogger('gm.i18n')
+builtins._ = lambda x:x
 
-if __name__ == "__main__":
-	_ = lambda x:x
+_log = logging.getLogger('gm.i18n')
 
 system_locale = ''
 system_locale_level = {}
@@ -106,76 +105,34 @@ def __split_locale_into_levels():
 	_log.debug('system locale levels: %s', system_locale_level)
 
 #---------------------------------------------------------------------------
-def __log_getlocale_categories():
-	_getlocale_categories = {}
-	for category in 'LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION'.split():
-		try:
-			_getlocale_categories[category] = getattr(locale, category)
-		except Exception:
-			pass
-	_log.debug('locale.getlocale(): %s' % str(locale.getlocale()))
-	for category in _getlocale_categories:
-		_log.debug('locale.getlocale(%s): %s' % (category, locale.getlocale(_getlocale_categories[category])))
-
-#---------------------------------------------------------------------------
-def __log_setlocale_categories():
+def __log_locale_settings(message=None):
 	_setlocale_categories = {}
 	for category in 'LC_ALL LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION'.split():
 		try:
 			_setlocale_categories[category] = getattr(locale, category)
 		except Exception:
 			_log.warning('this OS does not have locale.%s', category)
+	_getlocale_categories = {}
+	for category in 'LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION'.split():
+		try:
+			_getlocale_categories[category] = getattr(locale, category)
+		except Exception:
+			pass
+	if message is not None:
+		_log.debug(message)
+
+	_log.debug('current locale settings:')
+	_log.debug('locale.getlocale(): %s' % str(locale.getlocale()))
+	for category in _getlocale_categories:
+		_log.debug('locale.getlocale(%s): %s' % (category, locale.getlocale(_getlocale_categories[category])))
 	for category in _setlocale_categories:
 		_log.debug('(locale.setlocale(%s): %s)' % (category, locale.setlocale(_setlocale_categories[category])))
-
-#---------------------------------------------------------------------------
-def __log_locale_ENV():
-	_log.debug('locale related environment variables (${LANG} is typically used):')
-	for var in 'LANGUAGE LC_ALL LC_CTYPE LANG'.split():
-		try:
-			_log.debug('${%s}=%s' % (var, os.environ[var]))
-		except KeyError:
-			_log.debug('${%s} not set' % (var))
-
-#---------------------------------------------------------------------------
-def __log_localeconv(encoding):
-	_log.debug('database of locale conventions:')
-	data = locale.localeconv()
-	for key in data:
-		if encoding is None:
-			_log.debug('locale.localeconv(%s): %s', key, data[key])
-			continue
-		try:
-			_log.debug('locale.localeconv(%s): %s', key, str(data[key]))
-		except UnicodeDecodeError:
-			_log.debug('locale.localeconv(%s): %s', key, str(data[key], encoding))
-
-#---------------------------------------------------------------------------
-def __log_nl_langinfo(encoding):
 	try:
-		locale.nl_langinfo
-	except Exception:
-		_log.exception('this OS does not support nl_langinfo')
-		return
+		_log.debug('locale.getdefaultlocale() - default (user) locale: %s' % str(locale.getdefaultlocale()))
+	except ValueError:
+		_log.exception('the OS locale setup seems faulty')
 
-	_nl_langinfo_categories = {}
-	for category in 'CODESET D_T_FMT D_FMT T_FMT T_FMT_AMPM RADIXCHAR THOUSEP YESEXPR NOEXPR CRNCYSTR ERA ERA_D_T_FMT ERA_D_FMT ALT_DIGITS'.split():
-		try:
-			_nl_langinfo_categories[category] = getattr(locale, category)
-		except Exception:
-			_log.warning('this OS does not support nl_langinfo category locale.%s' % category)
-	for category in _nl_langinfo_categories:
-		if encoding is None:
-			_log.debug('locale.nl_langinfo(%s): %s' % (category, locale.nl_langinfo(_nl_langinfo_categories[category])))
-			continue
-		try:
-			_log.debug('locale.nl_langinfo(%s): %s', category, str(locale.nl_langinfo(_nl_langinfo_categories[category])))
-		except UnicodeDecodeError:
-			_log.debug('locale.nl_langinfo(%s): %s', category, str(locale.nl_langinfo(_nl_langinfo_categories[category]), encoding))
-
-#---------------------------------------------------------------------------
-def __log_encoding_settings():
-	_log.debug('encoding sanity check (also check "locale.nl_langinfo(CODESET)"):')
+	_log.debug('encoding sanity check (also check "locale.nl_langinfo(CODESET)" below):')
 	pref_loc_enc = locale.getpreferredencoding(do_setlocale = False)
 	loc_enc = locale.getlocale()[1]
 	py_str_enc = sys.getdefaultencoding()
@@ -184,7 +141,7 @@ def __log_encoding_settings():
 	_log.debug('locale.getpreferredencoding(): [%s]' % pref_loc_enc)
 	_log.debug('locale.getlocale()[1]: [%s]' % loc_enc)
 	_log.debug('sys.getfilesystemencoding(): [%s]' % sys_fs_enc)
-	if loc_enc:
+	if loc_enc is not None:
 		loc_enc = loc_enc.upper()
 		loc_enc_compare = loc_enc.replace('-', '')
 	else:
@@ -193,32 +150,50 @@ def __log_encoding_settings():
 		_log.warning('encoding suggested by locale (%s) does not match encoding currently set in locale (%s)' % (pref_loc_enc, loc_enc))
 		_log.warning('this might lead to encoding errors')
 	for enc in [pref_loc_enc, loc_enc, py_str_enc, sys_fs_enc]:
-		if not enc:
-			continue
-		try:
-			codecs.lookup(enc)
-			_log.debug('<codecs> module CAN handle encoding [%s]' % enc)
-		except LookupError:
-			_log.warning('<codecs> module can NOT handle encoding [%s]' % enc)
+		if enc is not None:
+			try:
+				codecs.lookup(enc)
+				_log.debug('<codecs> module CAN handle encoding [%s]' % enc)
+			except LookupError:
+				_log.warning('<codecs> module can NOT handle encoding [%s]' % enc)
 	_log.debug('on Linux you can determine a likely candidate for the encoding by running "locale charmap"')
-	_log.debug('gmI18N.get_encoding(): %s', get_encoding())
-	return loc_enc
 
-#---------------------------------------------------------------------------
-def __log_locale_settings(message=None):
-	if message:
-		_log.debug(message)
-	_log.debug('current locale settings:')
-	__log_getlocale_categories()
-	__log_setlocale_categories()
+	_log.debug('locale related environment variables (${LANG} is typically used):')
+	for var in 'LANGUAGE LC_ALL LC_CTYPE LANG'.split():
+		try:
+			_log.debug('${%s}=%s' % (var, os.environ[var]))
+		except KeyError:
+			_log.debug('${%s} not set' % (var))
+
+	_log.debug('database of locale conventions:')
+	data = locale.localeconv()
+	for key in data:
+		if loc_enc is None:
+			_log.debug('locale.localeconv(%s): %s', key, data[key])
+		else:
+			try:
+				_log.debug('locale.localeconv(%s): %s', key, str(data[key]))
+			except UnicodeDecodeError:
+				_log.debug('locale.localeconv(%s): %s', key, str(data[key], loc_enc))
+	_nl_langinfo_categories = {}
+	for category in 'CODESET D_T_FMT D_FMT T_FMT T_FMT_AMPM RADIXCHAR THOUSEP YESEXPR NOEXPR CRNCYSTR ERA ERA_D_T_FMT ERA_D_FMT ALT_DIGITS'.split():
+		try:
+			_nl_langinfo_categories[category] = getattr(locale, category)
+		except Exception:
+			_log.warning('this OS does not support nl_langinfo category locale.%s' % category)
 	try:
-		_log.debug('locale.getdefaultlocale() - default (user) locale: %s' % str(locale.getdefaultlocale()))
-	except ValueError:
-		_log.exception('the OS locale setup seems faulty')
-	loc_enc = __log_encoding_settings()
-	__log_locale_ENV()
-	__log_localeconv(loc_enc)
-	__log_nl_langinfo(loc_enc)
+		for category in _nl_langinfo_categories:
+			if loc_enc is None:
+				_log.debug('locale.nl_langinfo(%s): %s' % (category, locale.nl_langinfo(_nl_langinfo_categories[category])))
+			else:
+				try:
+					_log.debug('locale.nl_langinfo(%s): %s', category, str(locale.nl_langinfo(_nl_langinfo_categories[category])))
+				except UnicodeDecodeError:
+					_log.debug('locale.nl_langinfo(%s): %s', category, str(locale.nl_langinfo(_nl_langinfo_categories[category]), loc_enc))
+	except Exception:
+		_log.exception('this OS does not support nl_langinfo')
+
+	_log.debug('gmI18N.get_encoding(): %s', get_encoding())
 
 #---------------------------------------------------------------------------
 def _translate_safely(term):
@@ -250,10 +225,10 @@ def _translate_safely(term):
 # external API
 #---------------------------------------------------------------------------
 def activate_locale():
-	"""Get system locale from environment settings and activate it if need be."""
+	"""Get system locale from environment."""
 	global system_locale
 	__log_locale_settings('unmodified startup locale settings (could be [C])')
-	loc = None
+	loc, enc = None, None
 	# activate user-preferred locale
 	try:
 		loc = locale.setlocale(locale.LC_ALL, '')
@@ -262,6 +237,7 @@ def activate_locale():
 		_log.exception('Windows does not support locale.LC_ALL')
 	except Exception:
 		_log.exception('error activating user-default locale')
+		_log.log_stack_trace()
 	__log_locale_settings('locale settings after activating user-default locale')
 	# assume en_EN if we did not find any locale settings
 	if loc in [None, 'C']:
@@ -274,13 +250,9 @@ def activate_locale():
 	return True
 
 #---------------------------------------------------------------------------
-def install_domain(domain:str=None, language:str=None, prefer_local_catalog:bool=False) -> bool:
-	"""Install a text domain suitable for the main script.
+def install_domain(domain=None, language=None, prefer_local_catalog=False):
+	"""Install a text domain suitable for the main script."""
 
-	Args:
-		domain: a named translation domain (typically the base name of the translation file), defaults to the python script's name
-		language: a language code, as in the first part of a locale name, say, en_EN or de_DE, defaults to user locale language
-	"""
 	# text domain directly specified ?
 	if domain is None:
 		_log.info('domain not specified, deriving from script name')
@@ -298,43 +270,20 @@ def install_domain(domain:str=None, language:str=None, prefer_local_catalog:bool
 			_log.debug(' ${%s} = [%s]' % (env_var, tmp))
 	# language codes to try
 	lang_candidates = []
-	# 1) explicit language or default system language
-	if language:
+	# first: explicit language or default system language
+	# language=None: unadulterated default language for user (locale.getlocale()[0] value)
+	# language != None: explicit language setting as passed in by the caller
+	lang_candidates.append(language)
+	if language is not None:
 		_log.info('explicit request for target language [%s]' % language)
-		lang_candidates.append(language)
-		# also try default language for user in case explicit language fails
+		# next: try default language for user if explicit language fails
 		lang_candidates.append(None)
-	else:
-		# default language for user (locale.getlocale()[0] value)
-		lang_candidates.append(None)
-	# 2) try locale.getlocale()[0], if not yet in list
-	#    (this can be strange on, say, Windows: Hungarian_Hungary)
+	# next try locale.getlocale()[0], if different (this can be strange on, say, Windows: Hungarian_Hungary)
 	if locale.getlocale()[0] not in lang_candidates:
 		lang_candidates.append(locale.getlocale()[0])
-	# 3) try locale.get*default*locale()[0], if not yet in list
+	# next try locale.get*default*locale()[0], if different
 	if locale.getdefaultlocale()[0] not in lang_candidates:
 		lang_candidates.append(locale.getdefaultlocale()[0])
-	# 4) add variants
-	lang_variants = []
-	for lang in lang_candidates:
-		if lang is None:
-			continue
-		cand = lang.split('.')[0]
-		if cand not in lang_candidates:
-			_log.debug('new language candidate: %s -> %s', lang, cand)
-			lang_variants.append(cand)
-		cand = lang.split('@')[0]
-		if cand not in lang_candidates:
-			_log.debug('new language candidate: %s -> %s', lang, cand)
-			lang_variants.append(cand)
-		cand = lang.split('_')[0]
-		if cand not in lang_candidates:
-			_log.debug('new language candidate: %s -> %s', lang, cand)
-			lang_variants.append(cand)
-	for lang in lang_variants:
-		if lang in lang_candidates:
-			continue
-		lang_candidates.append(lang)
 	_log.debug('languages to try for translation: %s (None: implicit system default)', lang_candidates)
 	initial_lang = os.getenv('LANG')
 	_log.info('initial ${LANG} setting: %s', initial_lang)
@@ -350,7 +299,7 @@ def install_domain(domain:str=None, language:str=None, prefer_local_catalog:bool
 			lang2log = '$LANG(default)=%s' % initial_lang
 		# setup candidate language
 		if lang_candidate is not None:
-			_log.info('explicitly overriding system locale language [%s] by setting ${LANG} to [%s]', initial_lang, lang_candidate)
+			_log.info('explicitely overriding system locale language [%s] by setting ${LANG} to [%s]', initial_lang, lang_candidate)
 			os.environ['LANG'] = lang_candidate
 			lang2log = '$LANG(explicit)=%s' % lang_candidate
 		if __install_domain(domain = domain, prefer_local_catalog = prefer_local_catalog, language = lang2log):
@@ -365,8 +314,8 @@ def install_domain(domain:str=None, language:str=None, prefer_local_catalog:bool
 
 #---------------------------------------------------------------------------
 def __install_domain(domain, prefer_local_catalog, language='?'):
-	"""<language> only used for logging"""
-	_log.debug('domain=%s, prefer_local_catalog=%s, language=%s', domain, prefer_local_catalog, language)
+	# <language> only used for logging
+
 	# search for message catalog
 	candidate_PO_dirs = []
 	# - locally
@@ -418,13 +367,13 @@ def __install_domain(domain, prefer_local_catalog, language='?'):
 		_log.debug('trying with (base=%s, %s, domain=%s)', candidate_PO_dir, language, domain)
 		_log.debug(' -> %s.mo', os.path.join(candidate_PO_dir, language, domain))
 		if not os.path.exists(candidate_PO_dir):
-			_log.debug('base dir not found')
 			continue
 		try:
 			gettext.install(domain, candidate_PO_dir)
 		except Exception:
 			_log.exception('installing text domain [%s] failed from [%s]', domain, candidate_PO_dir)
 			continue
+		global _
 		# does it translate ?
 		if _(__orig_tag__) == __orig_tag__:
 			_log.debug('does not translate: [%s] => [%s]', __orig_tag__, _(__orig_tag__))
@@ -449,15 +398,15 @@ def get_encoding():
 	still returns None. So in that case try to fallback to
 	locale.getpreferredencoding().
 
-	*sys.getdefaultencoding()*
+	<sys.getdefaultencoding()>
 		- what Python itself uses to convert string <-> unicode
 		  when no other encoding was specified
 		- ascii by default
 		- can be set in site.py and sitecustomize.py
-	*locale.getlocale()[1]*
+	<locale.getlocale()[1]>
 		- what the current locale is *actually* using
 		  as the encoding for text conversion
-	*locale.getpreferredencoding()*
+	<locale.getpreferredencoding()>
 		- what the current locale would *recommend* using
 		  as the encoding for text conversion
 	"""
@@ -480,7 +429,7 @@ def get_encoding():
 		_log.debug('*actual* encoding of locale is None, using encoding *recommended* by locale')
 		_encoding_mismatch_already_logged = True
 
-	return locale.getpreferredencoding(do_setlocale = False)
+	return locale.getpreferredencoding(do_setlocale=False)
 
 #===========================================================================
 # Main
@@ -493,11 +442,7 @@ if __name__ == "__main__":
 	if sys.argv[1] != 'test':
 		sys.exit()
 
-	del _
-
-	sys.path.insert(0, '../../')
-	from Gnumed.pycommon import gmLog2
-	print(gmLog2._logfile_name)
+	logging.basicConfig(level = logging.DEBUG)
 	#----------------------------------------------------------------------
 	def test_strcoll():
 		candidates = [
@@ -518,18 +463,8 @@ if __name__ == "__main__":
 
 		]
 		for cands in candidates:
-			print('')
 			print(cands[0], '<vs>', cands[1], '=', locale.strcoll(cands[0], cands[1]))
-			print(cands[1], '<vs>', cands[0], '=', locale.strcoll(cands[1], cands[0]))
-
-	#----------------------------------------------------------------------
-	def test_translating():
-		txt = 'test without placeholder'
-		print(txt, '->', _(txt))
-		txt = 'test with placeholder: %s'
-		print(txt, '->', _(txt))
-		txt = 'test with placeholder and percent (%) sign: %s'
-		print(txt, '->', _(txt))
+#			print(cands[1], u'<vs>', cands[0], '=', locale.strcoll(cands[1], cands[0]))
 
 	#----------------------------------------------------------------------
 	print("======================================================================")
@@ -544,15 +479,10 @@ if __name__ == "__main__":
 	print("likely encoding:", get_encoding())
 
 	if len(sys.argv) > 2:
-		print('attempting to install domain:', sys.argv[2])
-		print(install_domain(domain = sys.argv[2]))
+		install_domain(domain = sys.argv[2])
 	else:
-		print('attempting to install "default" domain')
-		print(install_domain())
-	print(__orig_tag__)
-	print(_(__orig_tag__))			# type: ignore
+		install_domain()
 
-	test_translating()
 	test_strcoll()
 
 	# ********************************************************************* #
@@ -560,6 +490,6 @@ if __name__ == "__main__":
 	# it is needed to check for successful installation of                  #
 	# the desired message catalog                                           #
 	# ********************************************************************* #
-	tmp = _('Translate this or i18n into <en_EN> will not work properly !') # type: ignore
+	tmp = _('Translate this or i18n into <en_EN> will not work properly !') #
 	# ********************************************************************* #
 	# ********************************************************************* #

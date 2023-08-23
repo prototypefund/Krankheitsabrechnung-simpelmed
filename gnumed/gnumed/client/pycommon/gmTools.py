@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 
-"""GNUmed general tools."""
+__doc__ = """GNUmed general tools."""
 
 #===========================================================================
 __author__ = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 # std libs
 import sys
@@ -15,6 +15,8 @@ import csv
 import tempfile
 import logging
 import hashlib
+import platform
+import subprocess
 import decimal
 import getpass
 import io
@@ -25,7 +27,6 @@ import zipfile
 import datetime as pydt
 import re as regex
 import xml.sax.saxutils as xml_tools
-from typing import Any
 # old:
 import pickle, zlib
 # docutils
@@ -35,7 +36,6 @@ du_core = None
 # GNUmed libs
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmBorg
 
 
@@ -148,9 +148,6 @@ _TB = 1024 * _GB
 _PB = 1024 * _TB
 
 
-_client_version = None
-
-
 _GM_TITLE_PREFIX = 'GMd'
 
 #===========================================================================
@@ -167,17 +164,12 @@ def handle_uncaught_exception_console(t, v, tb):
 #===========================================================================
 # path level operations
 #---------------------------------------------------------------------------
-def mkdir(directory=None, mode=None) -> bool:
+def mkdir(directory=None, mode=None):
 	"""Create directory.
 
 	- creates parent dirs if necessary
 	- does not fail if directory exists
-
-	Args:
-		mode: numeric, say 0o0700 for "-rwx------"
-
-	Returns:
-		True/False based on success
+	<mode>: numeric, say 0o0700  for "-rwx------"
 	"""
 	if os.path.isdir(directory):
 		if mode is None:
@@ -206,52 +198,11 @@ def mkdir(directory=None, mode=None) -> bool:
 	return True
 
 #---------------------------------------------------------------------------
-def create_directory_description_file(directory:str=None, readme:str=None, suffix:str=None) -> bool:
-	"""Create a directory description file.
-
-		Returns:
-			<False> if it cannot create the description file.
-	"""
-	assert (directory is not None), '<directory> must not be None'
-
-	README_fname = '.00-README.GNUmed' + coalesce(suffix, '.dir')
-	README_path = os.path.abspath(os.path.expanduser(os.path.join(directory, README_fname)))
-	_log.debug('%s', README_path)
-	if readme is None:
-		_log.debug('no README text, boilerplate only')
-	try:
-		README = open(README_path, mode = 'wt', encoding = 'utf8')
-	except Exception:
-		return False
-
-	line = 'GNUmed v%s -- %s' % (_client_version, pydt.datetime.now().strftime('%c'))
-	len_sep = len(line)
-	README.write(line)
-	README.write('\n')
-	line = README_path
-	len_sep = max(len_sep, len(line))
-	README.write(line)
-	README.write('\n')
-	README.write('-' * len_sep)
-	README.write('\n')
-	README.write('\n')
-	README.write(readme)
-	README.write('\n')
-	README.close()
-	return True
-
-#---------------------------------------------------------------------------
-def rmdir(directory:str) -> int:
-	"""Remove a directory _and_ its content.
-
-	Returns:
-		Count of items that were not removable. IOW, 0 = success.
-	"""
+def rmdir(directory):
 	#-------------------------------
 	def _on_rm_error(func, path, exc):
 		_log.error('error while shutil.rmtree(%s)', path, exc_info=exc)
 		return True
-
 	#-------------------------------
 	error_count = 0
 	try:
@@ -262,15 +213,12 @@ def rmdir(directory:str) -> int:
 	return error_count
 
 #---------------------------------------------------------------------------
-def rm_dir_content(directory:str) -> bool:
-	"""Remove the content of _directory_.
-	"""
+def rm_dir_content(directory):
 	_log.debug('cleaning out [%s]', directory)
 	try:
 		items = os.listdir(directory)
 	except OSError:
 		return False
-
 	for item in items:
 		# attempt file/link removal and ignore (but log) errors
 		full_item = os.path.join(directory, item)
@@ -281,7 +229,6 @@ def rm_dir_content(directory:str) -> bool:
 			errors = rmdir(full_item)
 			if errors > 0:
 				return False
-
 		except Exception:
 			_log.exception('cannot os.remove(%s) [a file or a link]', full_item)
 			return False
@@ -289,16 +236,7 @@ def rm_dir_content(directory:str) -> bool:
 	return True
 
 #---------------------------------------------------------------------------
-def mk_sandbox_dir(prefix:str=None, base_dir:str=None) -> str:
-	"""Create a sandbox directory.
-
-	Args:
-		prefix: use this prefix to the directory name
-		base_dir: create sandbox inside this directory, or else in the temp dir
-
-	Returns:
-		The newly created sandbox directory.
-	"""
+def mk_sandbox_dir(prefix=None, base_dir=None):
 	if base_dir is None:
 		base_dir = gmPaths().tmp_dir
 	else:
@@ -309,27 +247,17 @@ def mk_sandbox_dir(prefix:str=None, base_dir:str=None) -> str:
 	return tempfile.mkdtemp(prefix = prefix, suffix = '', dir = base_dir)
 
 #---------------------------------------------------------------------------
-def parent_dir(directory:str) -> str:
-	"""/tmp/path/subdir/ -> /tmp/path/"""
+def parent_dir(directory):
 	return os.path.abspath(os.path.join(directory, '..'))
 
 #---------------------------------------------------------------------------
-def dirname_stem(directory:str) -> str:
-	"""Return stem of leaf directory name.
-
-	- /home/user/dir/ -> dir
-	- /home/user/dir  -> dir
-	"""
-	# normpath removes trailing slashes if any
-	return os.path.basename(os.path.normpath(directory))
+def dirname_stem(directory):
+	# /home/user/dir/ -> dir
+	# /home/user/dir  -> dir
+	return os.path.basename(os.path.normpath(directory))		# normpath removes trailing slashes if any
 
 #---------------------------------------------------------------------------
-def dir_is_empty(directory:str=None) -> bool:
-	"""Check for any entries inside _directory_.
-
-	Returns:
-		True / False / None (directory not found)
-	"""
+def dir_is_empty(directory=None):
 	try:
 		empty = (len(os.listdir(directory)) == 0)
 	except OSError as exc:
@@ -339,122 +267,69 @@ def dir_is_empty(directory:str=None) -> bool:
 	return empty
 
 #---------------------------------------------------------------------------
-def dir_list_files(directory:str=None, exclude_subdirs:bool=True) -> list[str]:
-	try:
-		all_dir_items = os.listdir(directory)
-	except OSError:
-		_log.exception('cannot list dir [%s]', directory)
-		return None
-
-	filenames2return = []
-	for item in all_dir_items:
-		item = os.path.join(directory, item)
-		if os.path.isdir(item):
-			if exclude_subdirs:
-				continue
-		filenames2return.append(item)
-	return filenames2return
-
-#---------------------------------------------------------------------------
-def copy_tree_content(directory:str, target_directory:str) -> str:
-	"""Copy the *content* of _directory_ into _target_directory_.
-
-	The target directory is created if need be.
-
-	Returns:
-		The target directory or None on error.
+def copy_tree_content(directory, target_directory):
+	"""Copy the *content* of <directory> *into* <target_directory>
+	   which is created if need be.
 	"""
-	assert (directory is not None), 'source <directory> must not be None'
-	assert (target_directory is not None), '<target_directory> must not be None'
+	assert (directory is not None), 'source <directory> should not be None'
 	_log.debug('copying content of [%s] into [%s]', directory, target_directory)
 	try:
-		base_dir_items = os.listdir(directory)
+		items = os.listdir(directory)
 	except OSError:
-		_log.exception('cannot list dir [%s]', directory)
 		return None
 
-	for item in base_dir_items:
+	for item in items:
 		full_item = os.path.join(directory, item)
 		if os.path.isdir(full_item):
 			target_subdir = os.path.join(target_directory, item)
 			try:
 				shutil.copytree(full_item, target_subdir)
-				continue
 			except Exception:
 				_log.exception('cannot copy subdir [%s]', full_item)
 				return None
-
-		try:
-			shutil.copy2(full_item, target_directory)
-		except Exception:
-			_log.exception('cannot copy file [%s]', full_item)
-			return None
+		else:
+			try:
+				shutil.copy2(full_item, target_directory)
+			except Exception:
+				_log.exception('cannot copy file [%s]', full_item)
+				return None
 
 	return target_directory
 
 #---------------------------------------------------------------------------
 #---------------------------------------------------------------------------
 class gmPaths(gmBorg.cBorg):
-	"""Singleton class providing standard paths.
+	"""This class provides the following paths:
 
-	- .home_dir: user home
-
-	- .local_base_dir: script installation dir
-
-	- .working_dir: current dir
-
-	- .user_config_dir, in the following order:
-		- ~/.config/gnumed/
-		- ~/
-
-	- .user_appdata_dir, in the following order:
-		- ~/.local/gnumed/
-		- ~/
-
-	- .system_config_dir
-
-	- .system_app_data_dir
-
-	- .tmp_dir: instance-local
-
-	- .user_tmp_dir: user-local (NOT per instance)
-
-	- .bytea_cache_dir: caches downloaded BYTEA data
-
-	- .user_work_dir: app specific user work dir, say, ~/gnumed/
-
-	It will take into account the application name.
+	.home_dir				user home
+	.local_base_dir			script installation dir
+	.working_dir			current dir
+	.user_config_dir
+	.system_config_dir
+	.system_app_data_dir	(not writable)
+	.tmp_dir				instance-local
+	.user_tmp_dir			user-local (NOT per instance)
+	.bytea_cache_dir		caches downloaded BYTEA data
 	"""
-	def __init__(self, app_name:str=None, wx=None):
-		"""Setup paths.
+	def __init__(self, app_name=None, wx=None):
+		"""Setup pathes.
 
-		Args:
-			app_name: name of application, default "name of main script without .py"
-			wx: wxPython module reference, optional, used to detect more standard paths
+		<app_name> will default to (name of the script - .py)
 		"""
-		if hasattr(self, 'already_inited'):
+		try:
+			self.already_inited
 			return
+		except AttributeError:
+			pass
 
-#		try:
-#			self.already_inited:bool			# pylint: disable=access-member-before-definition
-#			return
-#
-#		except AttributeError:
-#			pass
-
-		self.init_paths(app_name = app_name, wx = wx)
-		self.already_inited:bool = True
+		self.init_paths(app_name=app_name, wx=wx)
+		self.already_inited = True
 
 	#--------------------------------------
 	# public API
 	#--------------------------------------
-	def init_paths(self, app_name:str=None, wx=None) -> bool:
-		"""Detect paths in the system.
+	def init_paths(self, app_name=None, wx=None):
 
-		Args:
-			app_name: name of application, default "name of main script without .py"
-			wx: wxPython module reference, optional, used to better detect standard paths
-		"""
 		if wx is None:
 			_log.debug('wxPython not available')
 		_log.debug('detecting paths directly')
@@ -487,25 +362,11 @@ class gmPaths(gmBorg.cBorg):
 		# the current working dir at the OS
 		self.working_dir = os.path.abspath(os.curdir)
 
-		# user-specific config dir, usually below the home dir, default to $XDG_CONFIG_HOME
-		_dir = os.path.join(self.home_dir, '.config', app_name)
-		if not mkdir(_dir):
-			_log.error('cannot make config dir [%s], falling back to home dir', _dir)
-			_dir = self.home_dir
-		self.user_config_dir = _dir
+		# user-specific config dir, usually below the home dir
+		mkdir(os.path.join(self.home_dir, '.%s' % app_name))
+		self.user_config_dir = os.path.join(self.home_dir, '.%s' % app_name)
 
-		# user-specific app dir, usually below the home dir
-		mkdir(os.path.join(self.home_dir, app_name))
-		self.user_work_dir = os.path.join(self.home_dir, app_name)
-
-		# user-specific app data/state dir, usually below home dir
-		_dir = os.path.join(self.home_dir, '.local', app_name)
-		if not mkdir(_dir):
-			_log.error('cannot make data/state dir [%s], falling back to home dir', _dir)
-			_dir = self.home_dir
-		self.user_appdata_dir = _dir
-
-		# system-wide config dir, under UN*X usually below /etc/
+		# system-wide config dir, usually below /etc/ under UN*X
 		try:
 			self.system_config_dir = os.path.join('/etc', app_name)
 		except ValueError:
@@ -535,7 +396,6 @@ class gmPaths(gmBorg.cBorg):
 			tempfile.tempdir = self.user_tmp_dir # tell mkdtemp about intermediate dir
 			self.tmp_dir = tempfile.mkdtemp(prefix = 'g-') # will set tempfile.tempdir as side effect
 			_log.info('final (app instance level) temp dir: %s', tempfile.gettempdir())
-		create_directory_description_file(directory = self.tmp_dir, readme = 'client instance tmp dir')
 
 		# BYTEA cache dir
 		cache_dir = os.path.join(self.user_tmp_dir, '.bytea_cache')
@@ -546,7 +406,6 @@ class gmPaths(gmBorg.cBorg):
 		except FileNotFoundError:
 			mkdir(cache_dir, mode = 0o0700)
 		self.bytea_cache_dir = cache_dir
-		create_directory_description_file(directory = self.bytea_cache_dir, readme = 'cache dir for BYTEA data')
 
 		self.__log_paths()
 		if wx is None:
@@ -559,15 +418,8 @@ class gmPaths(gmBorg.cBorg):
 		_log.info('wxPython app name is [%s]', wx.GetApp().GetAppName())
 
 		# user-specific config dir, usually below the home dir
-		_dir = std_paths.UserConfigDir
-		if _dir == self.home_dir:
-			_dir = os.path.join(self.home_dir, '.config', app_name)
-		else:
-			_dir = os.path.join(_dir, '.%s' % app_name)
-		if not mkdir(_dir):
-			_log.error('cannot make config dir [%s], falling back to home dir', _dir)
-			_dir = self.home_dir
-		self.user_config_dir = _dir
+		mkdir(os.path.join(std_paths.GetUserConfigDir(), '.%s' % app_name))
+		self.user_config_dir = os.path.join(std_paths.GetUserConfigDir(), '.%s' % app_name)
 
 		# system-wide config dir, usually below /etc/ under UN*X
 		try:
@@ -604,7 +456,6 @@ class gmPaths(gmBorg.cBorg):
 		_log.debug('current working dir: %s', self.working_dir)
 		_log.debug('user home dir: %s', self.home_dir)
 		_log.debug('user-specific config dir: %s', self.user_config_dir)
-		_log.debug('user-specific application data dir: %s', self.user_appdata_dir)
 		_log.debug('system-wide config dir: %s', self.system_config_dir)
 		_log.debug('system-wide application data dir: %s', self.system_app_data_dir)
 		_log.debug('temporary dir (user): %s', self.user_tmp_dir)
@@ -618,17 +469,15 @@ class gmPaths(gmBorg.cBorg):
 	#--------------------------------------
 	def _set_user_config_dir(self, path):
 		if not (os.access(path, os.R_OK) and os.access(path, os.X_OK)):
-			msg = '[%s:user_config_dir]: unusable path [%s]' % (self.__class__.__name__, path)
+			msg = '[%s:user_config_dir]: invalid path [%s]' % (self.__class__.__name__, path)
 			_log.error(msg)
 			raise ValueError(msg)
 		self.__user_config_dir = path
 
 	def _get_user_config_dir(self):
-		"""User-level application configuration data directory."""
 		return self.__user_config_dir
 
 	user_config_dir = property(_get_user_config_dir, _set_user_config_dir)
-
 	#--------------------------------------
 	def _set_system_config_dir(self, path):
 		if not (os.access(path, os.R_OK) and os.access(path, os.X_OK)):
@@ -638,14 +487,9 @@ class gmPaths(gmBorg.cBorg):
 		self.__system_config_dir = path
 
 	def _get_system_config_dir(self):
-		"""System-wide application configuration directory.
-
-		Typically not writable.
-		"""
 		return self.__system_config_dir
 
 	system_config_dir = property(_get_system_config_dir, _set_system_config_dir)
-
 	#--------------------------------------
 	def _set_system_app_data_dir(self, path):
 		if not (os.access(path, os.R_OK) and os.access(path, os.X_OK)):
@@ -655,20 +499,14 @@ class gmPaths(gmBorg.cBorg):
 		self.__system_app_data_dir = path
 
 	def _get_system_app_data_dir(self):
-		"""The system-wide application data directory.
-
-		Typically not writable.
-		"""
 		return self.__system_app_data_dir
 
 	system_app_data_dir = property(_get_system_app_data_dir, _set_system_app_data_dir)
-
 	#--------------------------------------
 	def _set_home_dir(self, path):
 		raise ValueError('invalid to set home dir')
 
 	def _get_home_dir(self):
-		"""Home directory of OS user."""
 		if self.__home_dir is not None:
 			return self.__home_dir
 
@@ -709,12 +547,6 @@ class gmPaths(gmBorg.cBorg):
 		self.__tmp_dir_already_set = True
 
 	def _get_tmp_dir(self):
-		"""Temporary directory.
-
-		- per instance of main script
-
-		- _may_ be confined to the OS user
-		"""
 		return self.__tmp_dir
 
 	tmp_dir = property(_get_tmp_dir, _set_tmp_dir)
@@ -760,16 +592,7 @@ def unzip_archive(archive_name, target_dir=None, remove_archive=False):
 	return success
 
 #---------------------------------------------------------------------------
-def remove_file(filename:str, log_error:bool=True, force:bool=False) -> bool:
-	"""Remove a file.
-
-	Args:
-		filename: file to remove
-		force: if remove does not work attempt to rename the file
-
-	Returns:
-		True/False: Removed or not.
-	"""
+def remove_file(filename, log_error=True, force=False):
 	if not os.path.lexists(filename):
 		return True
 
@@ -781,76 +604,17 @@ def remove_file(filename:str, log_error:bool=True, force:bool=False) -> bool:
 	except Exception:
 		if log_error:
 			_log.exception('cannot os.remove(%s)', filename)
-	if not force:
-		return False
 
-	tmp_name = get_unique_filename(tmp_dir = fname_dir(filename))
-	_log.debug('attempting os.replace(%s -> %s)', filename, tmp_name)
-	try:
-		os.replace(filename, tmp_name)
-		return True
-
-	except Exception:
-		if log_error:
-			_log.exception('cannot os.replace(%s)', filename)
-	return False
-
-#---------------------------------------------------------------------------
-def rename_file(filename:str, new_filename:str, overwrite:bool=False, allow_symlink:bool=False, allow_hardlink:bool=True) -> bool:
-	"""Rename a file.
-
-	Args:
-		filename: source filename
-		new_filename: target filename
-		overwrite: overwrite existing target ?
-		allow_symlink: allow soft links ?
-		allow_hardlink: allow hard links ?
-
-	Returns:
-		True/False: Renamed or not.
-	"""
-	_log.debug('renaming: [%s] -> [%s]', filename, new_filename)
-	if filename == new_filename:
-		_log.debug('no copy onto self')
-		return True
-
-	if not os.path.lexists(filename):
-		_log.error('source does not exist')
-		return False
-
-	if overwrite and not remove_file(new_filename, force = True):
-		_log.error('cannot remove existing target')
-		return False
-
-	try:
-		shutil.move(filename, new_filename)
-		return True
-
-	except OSError:
-		_log.exception('shutil.move() failed')
-
-	try:
-		os.replace(filename, new_filename)
-		return True
-
-	except Exception:
-		_log.exception('os.replace() failed')
-
-	if allow_hardlink:
+	if force:
+		tmp_name = get_unique_filename(tmp_dir = fname_dir(filename))
+		_log.debug('attempting os.replace(%s -> %s)', filename, tmp_name)
 		try:
-			os.link(filename, new_filename)
+			os.replace(filename, tmp_name)
 			return True
 
 		except Exception:
-			_log.exception('os.link() failed')
-
-	if allow_symlink:
-		try:
-			os.symlink(filename, new_filename)
-			return True
-
-		except Exception:
-			_log.exception('os.symlink() failed')
+			if log_error:
+				_log.exception('cannot os.remove(%s)', filename)
 
 	return False
 
@@ -951,7 +715,7 @@ def old_unicode_csv_reader(unicode_csv_data, dialect=csv.excel, encoding='utf-8'
 			#yield [str(cell, 'utf-8') for cell in row]
 
 #---------------------------------------------------------------------------
-def fname_sanitize(filename:str) -> str:
+def fname_sanitize(filename):
 	"""Normalizes unicode, removes non-alpha characters, converts spaces to underscores."""
 
 	dir_part, name_part = os.path.split(filename)
@@ -962,7 +726,7 @@ def fname_sanitize(filename:str) -> str:
 	name_part = unicodedata.normalize('NFKD', name_part)
 	# remove everything not in group []
 	name_part = regex.sub (
-		'[^.\w\s[\]()%§#+-]',
+		'[^.\w\s[\]()%§+-]',
 		'',
 		name_part,
 		flags = regex.UNICODE
@@ -977,23 +741,19 @@ def fname_sanitize(filename:str) -> str:
 	return os.path.join(dir_part, name_part)
 
 #---------------------------------------------------------------------------
-def fname_stem(filename:str) -> str:
+def fname_stem(filename):
 	"""/home/user/dir/filename.ext -> filename"""
 	return os.path.splitext(os.path.basename(filename))[0]
 
 #---------------------------------------------------------------------------
-def fname_stem_with_path(filename:str) -> str:
+def fname_stem_with_path(filename):
 	"""/home/user/dir/filename.ext -> /home/user/dir/filename"""
 	return os.path.splitext(filename)[0]
 
 #---------------------------------------------------------------------------
-def fname_extension(filename:str=None, fallback:str=None) -> str:
+def fname_extension(filename=None, fallback=None):
 	"""	/home/user/dir/filename.ext -> .ext
-
-	If extension becomes '' or '.' -> return fallback if any else return ''.
-
-	Args:
-		fallback: Return this if extension computes to '.' or '' (IOW, is empty)
+		'' or '.' -> fallback if any else ''
 	"""
 	ext = os.path.splitext(filename)[1]
 	if ext.strip() not in ['.', '']:
@@ -1003,32 +763,23 @@ def fname_extension(filename:str=None, fallback:str=None) -> str:
 	return fallback
 
 #---------------------------------------------------------------------------
-def fname_dir(filename:str) -> str:
-	"""/home/user/dir/filename.ext -> /home/user/dir"""
+def fname_dir(filename):
+	# /home/user/dir/filename.ext -> /home/user/dir
 	return os.path.split(filename)[0]
 
 #---------------------------------------------------------------------------
 def fname_from_path(filename):
-	"""/home/user/dir/filename.ext -> filename.ext"""
+	# /home/user/dir/filename.ext -> filename.ext
 	return os.path.split(filename)[1]
 
 #---------------------------------------------------------------------------
-def get_unique_filename(prefix:str=None, suffix:str=None, tmp_dir:str=None, include_timestamp:bool=False) -> str:
-	"""Generate a unique filename.
+def get_unique_filename(prefix=None, suffix=None, tmp_dir=None, include_timestamp=False):
+	"""This function has a race condition between
+			its file.close()
+	   and actually
+			using the filename in callers.
 
-	Args:
-		prefix: use this prefix to the filename, default 'gm-', '' means "no prefix"
-		suffix: use this suffix to the filename, default '.tmp'
-		tmp_dir: generate filename based suitable for this directory, default system tmpdir
-		include_timestamp: include current timestamp within the filename
-
-	Returns:
-		The full path of a unique file not existing at this moment.
-
-	There is a TOCTOU race conditition between generating the
-	filename here and actually using the filename in callers.
-
-	Note: The file will NOT exist after calling this function.
+	The file will NOT exist after calling this function.
 	"""
 	if tmp_dir is None:
 		gmPaths()		# setup tmp dir if necessary
@@ -1045,22 +796,26 @@ def get_unique_filename(prefix:str=None, suffix:str=None, tmp_dir:str=None, incl
 		ts = pydt.datetime.now().strftime('%m%d-%H%M%S-')
 	else:
 		ts = ''
-	kwargs:dict[str, Any] = {
+
+	kwargs = {
 		'dir': tmp_dir,
-		#  make sure file gets deleted as soon as it is
+		#  make sure file gets deleted as soon as
 		# .close()d so we can "safely" open it again
 		'delete': True
 	}
+
 	if prefix is None:
 		kwargs['prefix'] = 'gm-%s' % ts
 	else:
 		kwargs['prefix'] = prefix + ts
+
 	if suffix in [None, '']:
 		kwargs['suffix'] = '.tmp'
 	else:
 		if not suffix.startswith('.'):
 			suffix = '.' + suffix
 		kwargs['suffix'] = suffix
+
 	f = tempfile.NamedTemporaryFile(**kwargs)
 	filename = f.name
 	f.close()
@@ -1086,13 +841,8 @@ def __make_symlink_on_windows(physical_name, link_name):
 	return ret_code
 
 #---------------------------------------------------------------------------
-def mklink(physical_name:str, link_name:str, overwrite:bool=False) -> bool:
-	"""Create a symbolic link.
+def mklink(physical_name, link_name, overwrite=False):
 
-	Args:
-		physical_name: the pre-existing filesystem object the symlink is to point to
-		link_name: the name of the symlink pointing to the existing filesystem object
-	"""
 	_log.debug('creating symlink (overwrite = %s):', overwrite)
 	_log.debug('link [%s] =>', link_name)
 	_log.debug('=> physical [%s]', physical_name)
@@ -1100,7 +850,7 @@ def mklink(physical_name:str, link_name:str, overwrite:bool=False) -> bool:
 	if os.path.exists(link_name):
 		_log.debug('link exists')
 		if overwrite:
-			return True			# unsafe :/
+			return True
 		return False
 
 	try:
@@ -1112,7 +862,7 @@ def mklink(physical_name:str, link_name:str, overwrite:bool=False) -> bool:
 		_log.exception('cannot create link')
 		return False
 	#except OSError:
-	#	unprivileged on Windows
+	#	unpriviledged on Windows
 	return True
 
 #===========================================================================
@@ -1120,6 +870,7 @@ def import_module_from_directory(module_path=None, module_name=None, always_remo
 	"""Import a module from any location."""
 
 	_log.debug('CWD: %s', os.getcwd())
+
 	remove_path = always_remove_path or False
 	if module_path not in sys.path:
 		_log.info('appending to sys.path: [%s]' % module_path)
@@ -1148,20 +899,6 @@ def import_module_from_directory(module_path=None, module_name=None, always_remo
 
 #===========================================================================
 # text related tools
-#---------------------------------------------------------------------------
-def empty_str(text:str) -> bool:
-	"""Check "text" for emptiness.
-
-	Returns:
-
-	* True: None, '', '\w*'
-	* False: ' anything else 1234'
-	"""
-	if text: return False
-	# could still be '\w+'
-	if text.strip(): return False
-	return True
-
 #---------------------------------------------------------------------------
 def size2str(size=0, template='%s'):
 	if size == 1:
@@ -1198,13 +935,7 @@ def bool2str(boolean=None, true_str='True', false_str='False'):
 
 #---------------------------------------------------------------------------
 def none_if(value=None, none_equivalent=None, strip_string=False):
-	"""Modelled after the SQL NULLIF function.
-
-	Args:
-		value: the value to test for "none"-likeness
-		none_equivalent: values to be considered eqivalent to "none"
-		strip_string: apply .strip() to value
-	"""
+	"""Modelled after the SQL NULLIF function."""
 	if value is None:
 		return None
 
@@ -1215,8 +946,7 @@ def none_if(value=None, none_equivalent=None, strip_string=False):
 	if stripped == none_equivalent:
 		return None
 
-	#return value
-	return stripped
+	return value
 
 #---------------------------------------------------------------------------
 def coalesce(value2test=None, return_instead=None, template4value=None, template4instead=None, none_equivalents=None, function4value=None, value2return=None):
@@ -1230,13 +960,18 @@ def coalesce(value2test=None, return_instead=None, template4value=None, template
 			value = (template4value % value2test) or value2test
 		print(value)
 
-	Args:
-		value2test: the value to be tested for _None_
-		return_instead: the value to be returned if _value2test_ *is* None
-		template4value: if _value2test_ is returned, substitute the value into this template (which must contain one '%s')
-		template4instead: if "return_instead" is returned, substitute the instead-value into this template (which must contain one <%s>)
-		function4value: a tuple of (function name, function arguments) to call on _value2test_, eg "function4value = ('strftime', '%Y-%m-%d')"
-		value2return: a *value* to return if _value2test_ is NOT None, AND there's no _template4value_
+	@param value2test: the value to be tested for <None>
+
+	@param return_instead: the value to be returned if <value2test> *is* None
+
+	@param template4value: if <value2test> is returned, replace the value into this template, must contain one <%s>
+
+	@param template4instead: if <return_instead> is returned, replace the value into this template, must contain one <%s>
+
+	@param value2return: a *value* to return if <value2test> is NOT None, AND there's no <template4value>
+
+	example:
+		function4value = ('strftime', '%Y-%m-%d')
 
 	Ideas:
 		- list of return_insteads: initial, [return_instead, template], [return_instead, template], [return_instead, template], template4value, ...
@@ -1282,7 +1017,7 @@ def coalesce(value2test=None, return_instead=None, template4value=None, template
 
 #---------------------------------------------------------------------------
 def __cap_name(match_obj=None):
-	val = match_obj.group(0).casefold()
+	val = match_obj.group(0).lower()
 	if val in ['von', 'van', 'de', 'la', 'l', 'der', 'den']:			# FIXME: this needs to expand, configurable ?
 		return val
 	buf = list(val)
@@ -1316,11 +1051,11 @@ def capitalize(text=None, mode=CAPS_NAMES):
 	if mode == CAPS_FIRST_ONLY:
 #		if len(text) == 1:
 #			return text[0].upper()
-		return text[0].upper() + text[1:].casefold()
+		return text[0].upper() + text[1:].lower()
 
 	if mode == CAPS_WORDS:
-		#return regex.sub(ur'(\w)(\w+)', lambda x: x.group(1).upper() + x.group(2).casefold(), text)
-		return regex.sub(r'(\w)(\w+)', lambda x: x.group(1).upper() + x.group(2).casefold(), text)
+		#return regex.sub(ur'(\w)(\w+)', lambda x: x.group(1).upper() + x.group(2).lower(), text)
+		return regex.sub(r'(\w)(\w+)', lambda x: x.group(1).upper() + x.group(2).lower(), text)
 
 	if mode == CAPS_NAMES:
 		#return regex.sub(r'\w+', __cap_name, text)
@@ -1393,6 +1128,19 @@ def strip_prefix(text, prefix, remove_repeats=False, remove_whitespace=False):
 		return text
 
 	return strip_prefix(text, prefix, remove_repeats = True, remove_whitespace = remove_whitespace)
+
+#---------------------------------------------------------------------------
+def decorate_window_title(title):
+	if title.startswith(_GM_TITLE_PREFIX):
+		return title
+	return '%s: %s' % (
+		_GM_TITLE_PREFIX,
+		title.lstrip()
+	)
+
+#---------------------------------------------------------------------------
+def undecorate_window_title(title):
+	return strip_prefix(title, _GM_TITLE_PREFIX + ':', remove_repeats = True, remove_whitespace = True)
 
 #---------------------------------------------------------------------------
 def strip_suffix(text, suffix, remove_repeats=False, remove_whitespace=False):
@@ -1726,9 +1474,8 @@ def compare_dict_likes(d1, d2, title1=None, title2=None):
 		_log.info('%25.25s: %50.50s | %.50s' % (key, '<MISSING>', '>>>%s<<<' % d2[key]))
 		different = True
 	if different:
-		_log.warning('dict-likes appear to be different from each other')
+		_log.info('dict-likes appear to be different from each other')
 		return False
-
 	_log.info('dict-likes appear equal to each other')
 	return True
 
@@ -2064,16 +1811,11 @@ def enumerate_optical_writers():
 #---------------------------------------------------------------------------
 #---------------------------------------------------------------------------
 def prompted_input(prompt=None, default=None):
-	"""Obtain entry from standard input.
+	"""Obtains entry from standard input.
 
-	CTRL-C aborts and returns _None_
-
-	Args:
-		prompt: Prompt text to display in standard output
-		default: Default value (for user to press enter only)
-
-	Returns:
-		The input, _default_, or _None_.
+	prompt: Prompt text to display in standard output
+	default: Default value (for user to press enter only)
+	CTRL-C: aborts and returns None
 	"""
 	if prompt is None:
 		msg = '(CTRL-C aborts)'
@@ -2144,17 +1886,7 @@ def get_icon(wx=None):
 	return icon
 
 #---------------------------------------------------------------------------
-def create_qrcode(text=None, filename=None, qr_filename=None, verbose:bool=False) -> str:
-	"""Create a QR code.
-
-	Args:
-		text: data to encode
-		filename: filename to read data from instead of processing _text_
-		qr_filename: target file for QR code PNG, if not specified: generated from _filename_ if that is given
-
-	Returns:
-		Filename of QR code PNG or _None_.
-	"""
+def create_qrcode(text=None, filename=None, qr_filename=None, verbose=False):
 	assert (not ((text is None) and (filename is None))), 'either <text> or <filename> must be specified'
 
 	try:
@@ -2162,9 +1894,8 @@ def create_qrcode(text=None, filename=None, qr_filename=None, verbose:bool=False
 	except ImportError:
 		_log.exception('cannot import <pyqrcode>')
 		return None
-
 	if text is None:
-		with open(filename, mode = 'rt', encoding = 'utf-8-sig') as input_file:
+		with io.open(filename, mode = 'rt', encoding = 'utf8') as input_file:
 			text = input_file.read()
 	if qr_filename is None:
 		if filename is None:
@@ -2271,6 +2002,7 @@ if __name__ == '__main__':
 		print(val, coalesce(val, 'is None', 'is not None'))
 		val = 1
 		print(val, coalesce(val, 'is None', 'is not None'))
+		return
 
 		import datetime as dt
 		print(coalesce(value2test = dt.datetime.now(), template4value = '-- %s --', function4value = ('strftime', '%Y-%m-%d')))
@@ -2355,24 +2087,17 @@ if __name__ == '__main__':
 	def test_mkdir():
 		print("testing mkdir(%s)" % sys.argv[2])
 		mkdir(sys.argv[2], 0o0700)
-
 	#-----------------------------------------------------------------------
 	def test_gmPaths():
 		print("testing gmPaths()")
 		print("-----------------")
 		paths = gmPaths(wx=None, app_name='gnumed')
-		print("user       home dir:", paths.home_dir)
 		print("user     config dir:", paths.user_config_dir)
-		print("user    appdata dir:", paths.user_appdata_dir)
-		print("user       work dir:", paths.user_work_dir)
-		print("user       temp dir:", paths.user_tmp_dir)
-		print("user+app   temp dir:", paths.tmp_dir)
 		print("system   config dir:", paths.system_config_dir)
 		print("local      base dir:", paths.local_base_dir)
 		print("system app data dir:", paths.system_app_data_dir)
 		print("working directory  :", paths.working_dir)
-		print("BYTEA cache dir    :", paths.bytea_cache_dir)
-
+		print("temp directory     :", paths.tmp_dir)
 	#-----------------------------------------------------------------------
 	def test_none_if():
 		print("testing none_if()")
@@ -2729,29 +2454,9 @@ second line\n
 			#print(dicts2table(dicts, left_margin=2, eol='\n', keys2ignore=None, show_only_changes=True, column_labels = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6']))
 
 	#-----------------------------------------------------------------------
-	def test_create_dir_desc_file():
-		global _client_version
-		_client_version = 'dev.test'
-		print(create_directory_description_file (
-			directory = './',
-			readme = 'test\ntest2\nsome more text',
-			suffix = None
-		))
-
-	#-----------------------------------------------------------------------
-	def test_dir_list_files():
-		print(dir_list_files(directory = sys.argv[2], exclude_subdirs = True))
-		print(dir_list_files(directory = sys.argv[2], exclude_subdirs = False))
-
-	#-----------------------------------------------------------------------
-	def test_rename_file():
-		print(rename_file (
-			sys.argv[2],
-			sys.argv[3],
-			overwrite = True,
-			allow_symlink = False,
-			allow_hardlink = False
-		))
+	def test_decorate_window_title():
+		for txt in globals():
+			print(decorate_window_title(txt))
 
 	#-----------------------------------------------------------------------
 	#test_coalesce()
@@ -2773,7 +2478,7 @@ second line\n
 	#test_xml_escape()
 	#test_strip_trailing_empty_lines()
 	#test_fname_stem()
-	#test_tex_escape()
+	test_tex_escape()
 	#test_rst2latex_snippet()
 	#test_dir_is_empty()
 	#test_compare_dicts()
@@ -2789,9 +2494,6 @@ second line\n
 	#test_copy_tree_content()
 	#test_mk_sandbox_dir()
 	#test_make_table_from_dicts()
-	#test_create_dir_desc_file()
-	#test_dir_list_files()
 	#test_decorate_window_title()
-	test_rename_file()
 
 #===========================================================================

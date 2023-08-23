@@ -1,28 +1,36 @@
 # -*- coding: utf-8 -*-
-
-"""GNUmed notebook based progress note input plugin
-
-This plugin displays the list of patient problems
-together with a notebook container for progress notes.
-"""
 #======================================================================
+# GNUmed notebook based progress note input plugin
+# ------------------------------------------------
+#
+# this plugin displays the list of patient problems
+# together whith a notebook container for progress notes
+#
+# @copyright: author
+#======================================================================
+__version__ = "$Revision: 1.7 $"
 __author__ = "Carlos Moro, Karsten Hilbert"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 import logging
 
 
 if __name__ == '__main__':
+	# stdlib
 	import sys
 	sys.path.insert(0, '../../../')
 
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
+
+# GNUmed
 from Gnumed.wxpython import gmPlugin, gmNarrativeWidgets
 from Gnumed.wxpython import gmAccessPermissionWidgets
 
 
 _log = logging.getLogger('gm.ui')
-if __name__ == '__main__':
-	_ = lambda x:x
+_log.info(__version__)
 
 #======================================================================
 class gmSoapPlugin(gmPlugin.cNotebookPlugin):
@@ -68,7 +76,6 @@ if __name__ == "__main__":
 	# GNUmed
 	from Gnumed.business import gmPersonSearch
 	from Gnumed.wxpython import gmSOAPWidgets
-	from Gnumed.wxpython import gmPatSearchWidgets
 
 	_log.info("starting Notebooked progress notes input plugin...")
 
@@ -79,6 +86,7 @@ if __name__ == "__main__":
 		sys.exit(0)
 	gmPatSearchWidgets.set_active_patient(patient=patient)
 
+	# display standalone multisash progress notes input
 	application = wx.wx.PyWidgetTester(size = (800,600))
 	multisash_notes = gmSOAPWidgets.cNotebookedProgressNoteInputPanel(application.frame, -1)
 

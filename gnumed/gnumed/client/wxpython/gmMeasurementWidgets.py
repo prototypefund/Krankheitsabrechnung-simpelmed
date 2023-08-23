@@ -9,6 +9,7 @@ import logging
 import datetime as pyDT
 import decimal
 import os
+import subprocess
 import io
 import os.path
 
@@ -20,10 +21,11 @@ import wx.adv as wxh
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmNetworkTools
-from Gnumed.pycommon import gmCfgDB
+from Gnumed.pycommon import gmI18N
+from Gnumed.pycommon import gmShellAPI
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmMatchProvider
 from Gnumed.pycommon import gmDispatcher
@@ -47,6 +49,7 @@ from Gnumed.wxpython import gmEditArea
 from Gnumed.wxpython import gmPhraseWheel
 from Gnumed.wxpython import gmListWidgets
 from Gnumed.wxpython import gmGuiHelpers
+from Gnumed.wxpython import gmAuthWidgets
 from Gnumed.wxpython import gmOrganizationWidgets
 from Gnumed.wxpython import gmEMRStructWidgets
 from Gnumed.wxpython import gmCfgWidgets
@@ -69,7 +72,7 @@ def show_hl7_file(parent=None):
 		parent = parent,
 		message = _('Show HL7 file:'),
 		# make configurable:
-		defaultDir = paths.user_work_dir,
+		defaultDir = os.path.join(paths.home_dir, 'gnumed'),
 		wildcard = "hl7 files|*.hl7|HL7 files|*.HL7|all files|*",
 		style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
 	)
@@ -100,7 +103,7 @@ def unwrap_HL7_from_XML(parent=None):
 		parent = parent,
 		message = _('Extract HL7 from XML file:'),
 		# make configurable:
-		defaultDir = paths.user_work_dir,
+		defaultDir = os.path.join(paths.home_dir, 'gnumed'),
 		wildcard = "xml files|*.xml|XML files|*.XML|all files|*",
 		style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
 	)
@@ -143,7 +146,7 @@ def stage_hl7_file(parent=None):
 		parent = parent,
 		message = _('Select HL7 file for staging:'),
 		# make configurable:
-		defaultDir = paths.user_work_dir,
+		defaultDir = os.path.join(paths.home_dir, 'gnumed'),
 		wildcard = ".hl7 files|*.hl7|.HL7 files|*.HL7|all files|*",
 		style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
 	)
@@ -153,7 +156,7 @@ def stage_hl7_file(parent=None):
 	if choice != wx.ID_OK:
 		return False
 
-	target_dir = os.path.join(paths.user_tmp_dir, 'hl7')
+	target_dir = os.path.join(paths.home_dir, '.gnumed', 'hl7')
 	success, PID_names = gmHL7.split_hl7_file(hl7_name, target_dir = target_dir, encoding = 'utf8')
 	if not success:
 		gmGuiHelpers.gm_show_error (
@@ -219,7 +222,7 @@ def browse_incoming_unmatched(parent=None):
 				answer = gmGuiHelpers.gm_show_question (
 					title = _('Importing HL7 data'),
 					question = _(
-						'There has not been a patient explicitly associated\n'
+						'There has not been a patient explicitely associated\n'
 						'with this chunk of HL7 data. However, the data file\n'
 						'contains the following patient identification information:\n'
 						'\n'
@@ -232,7 +235,7 @@ def browse_incoming_unmatched(parent=None):
 						'Selecting [NO] makes GNUmed try to find a patient matching the HL7 data.\n'
 					) % (
 						staged_item.patient_identification,
-						pat.description_gender
+						pat['description_gender']
 					),
 					cancel_button = True
 				)
@@ -309,22 +312,33 @@ def browse_incoming_unmatched(parent=None):
 # convenience functions
 #================================================================
 def call_browser_on_measurement_type(measurement_type=None):
-	url = gmCfgDB.get4user (
+
+	dbcfg = gmCfg.cCfgSQL()
+
+	url = dbcfg.get2 (
 		option = 'external.urls.measurements_search',
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'user',
 		default = gmPathLab.URL_test_result_information_search
 	)
-	base_url = gmCfgDB.get4user (
+
+	base_url = dbcfg.get2 (
 		option = 'external.urls.measurements_encyclopedia',
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'user',
 		default = gmPathLab.URL_test_result_information
 	)
+
 	if measurement_type is None:
 		url = base_url
+
 	measurement_type = measurement_type.strip()
+
 	if measurement_type == '':
 		url = base_url
+
 	url = url % {'search_term': measurement_type}
+
 	gmNetworkTools.open_url_in_browser(url = url)
 
 #----------------------------------------------------------------
@@ -472,7 +486,8 @@ def configure_default_gnuplot_template(parent=None):
 		gmDispatcher.send(signal = 'statustext', msg = _('No default Gnuplot script template selected.'), beep = True)
 		return None
 
-	gmCfgDB.set (
+	dbcfg = gmCfg.cCfgSQL()
+	dbcfg.set (
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
 		option = option,
 		value = '%s - %s' % (template['name_long'], template['external_version'])
@@ -483,11 +498,16 @@ def configure_default_gnuplot_template(parent=None):
 def get_default_gnuplot_template(parent = None):
 
 	option = 'form_templates.default_gnuplot_template'
+
+	dbcfg = gmCfg.cCfgSQL()
+
 	# load from option
-	default_template_name = gmCfgDB.get4user (
+	default_template_name = dbcfg.get2 (
 		option = option,
-		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'user'
 	)
+
 	# not configured -> try to configure
 	if default_template_name is None:
 		gmDispatcher.send('statustext', msg = _('No default Gnuplot template configured.'), beep = False)
@@ -629,9 +649,11 @@ class cLabRelatedDocumentsPnl(wxgLabRelatedDocumentsPnl.wxgLabRelatedDocumentsPn
 			self._LBL_no_of_docs.SetToolTip(_('There is no lab reference to find related documents for.'))
 			return
 
-		lab_doc_types = gmCfgDB.get4user (
+		dbcfg = gmCfg.cCfgSQL()
+		lab_doc_types = dbcfg.get2 (
 			option = 'horstspace.lab_doc_types',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		)
 		if lab_doc_types is None:
 			self._LBL_no_of_docs.SetToolTip(_('No document types declared to contain lab results.'))
@@ -702,9 +724,11 @@ class cLabRelatedDocumentsPnl(wxgLabRelatedDocumentsPnl.wxgLabRelatedDocumentsPn
 	#------------------------------------------------------------
 	def _on_list_documents_button_pressed(self, event):
 		event.Skip()
-		lab_doc_types = gmCfgDB.get4user (
+		dbcfg = gmCfg.cCfgSQL()
+		lab_doc_types = dbcfg.get2 (
 			option = 'horstspace.lab_doc_types',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		)
 		d_types = gmDocuments.map_types2pk(lab_doc_types)
 		if isinstance(self.__reference, gmPathLab.cTestResult):
@@ -2279,9 +2303,11 @@ class cMeasurementsGrid(wx.grid.Grid):
 		self.SetLabelFont(font)
 
 		# add link to left upper corner
-		url = gmCfgDB.get4user (
+		dbcfg = gmCfg.cCfgSQL()
+		url = dbcfg.get2 (
 			option = 'external.urls.measurements_encyclopedia',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user',
 			default = gmPathLab.URL_test_result_information
 		)
 
@@ -2651,13 +2677,11 @@ class cMeasurementsPnl(wxgMeasurementsPnl.wxgMeasurementsPnl, gmRegetMixin.cRege
 
 		item = self.__action_button_popup.Append(-1, _('Export to &file'))
 		self.Bind(wx.EVT_MENU, self._GRID_results_all.current_selection_to_file, item)
-		#self.__action_button_popup.Enable(id = menu_id, enable = False)
-		item.Enable(enable = False)
+		self.__action_button_popup.Enable(id = menu_id, enable = False)
 
 		item = self.__action_button_popup.Append(-1, _('Export to &clipboard'))
 		self.Bind(wx.EVT_MENU, self._GRID_results_all.current_selection_to_clipboard, item)
-		#self.__action_button_popup.Enable(id = menu_id, enable = False)
-		item.Enable(enable = False)
+		self.__action_button_popup.Enable(id = menu_id, enable = False)
 
 		item = self.__action_button_popup.Append(-1, _('&Delete'))
 		self.Bind(wx.EVT_MENU, self.__on_delete_current_selection, item)
@@ -2711,13 +2735,17 @@ def review_tests(parent=None, tests=None):
 
 	if parent is None:
 		parent = wx.GetApp().GetTopWindow()
+
 	if len(tests) > 10:
 		test_count = len(tests)
 		tests2show = None
 	else:
 		test_count = None
 		tests2show = tests
-	dlg = cMeasurementsReviewDlg(parent, -1, tests = tests2show, test_count = test_count)
+		if len(tests) == 0:
+			return True
+
+	dlg = cMeasurementsReviewDlg(parent, -1, tests = tests, test_count = test_count)
 	decision = dlg.ShowModal()
 	if decision != wx.ID_APPLY:
 		return True
@@ -2729,17 +2757,21 @@ def review_tests(parent=None, tests=None):
 		abnormal = False
 	else:
 		abnormal = True
+
 	if dlg._RBTN_confirm_relevance.GetValue():
 		relevant = None
 	elif dlg._RBTN_results_not_relevant.GetValue():
 		relevant = False
 	else:
 		relevant = True
+
 	comment = None
 	if len(tests) == 1:
 		comment = dlg._TCTRL_comment.GetValue()
+
 	make_responsible = dlg._CHBOX_responsible.IsChecked()
 	dlg.DestroyLater()
+
 	for test in tests:
 		test.set_review (
 			technically_abnormal = abnormal,
@@ -2748,6 +2780,7 @@ def review_tests(parent=None, tests=None):
 			make_me_responsible = make_responsible
 		)
 	wx.EndBusyCursor()
+
 	return True
 
 #----------------------------------------------------------------
@@ -4812,8 +4845,11 @@ class cTestPanelEAPnl(wxgTestPanelEAPnl.wxgTestPanelEAPnl, gmEditArea.cGenericEd
 #----------------------------------------------------------------
 if __name__ == '__main__':
 
+	from Gnumed.pycommon import gmLog2
 	from Gnumed.wxpython import gmPatSearchWidgets
 
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 	gmDateTime.init()
 
 	#------------------------------------------------------------
@@ -4829,7 +4865,7 @@ if __name__ == '__main__':
 		pat = gmPersonSearch.ask_for_patient()
 		gmPatSearchWidgets.set_active_patient(patient=pat)
 		app = wx.PyWidgetTester(size = (500, 300))
-		cMeasurementEditAreaPnl(app.frame, -1)
+		ea = cMeasurementEditAreaPnl(app.frame, -1)
 		app.frame.Show()
 		app.MainLoop()
 	#------------------------------------------------------------

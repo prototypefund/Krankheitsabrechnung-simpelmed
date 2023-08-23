@@ -11,40 +11,45 @@ __license__ = "GPL"
 
 # std lib
 import sys
+import os.path
 import time
+import re as regex
 import datetime as pyDT
 import threading
 import logging
+import io
 import inspect
 from xml.etree import ElementTree as etree
 
+
 # GNUmed
 if __name__ == '__main__':
+	logging.basicConfig(level = logging.DEBUG)
 	sys.path.insert(0, '../../')
-from Gnumed.pycommon import gmLog2
-if __name__ == '__main__':
-	_ = lambda x:x
-	from Gnumed.pycommon import gmI18N
-	gmI18N.activate_locale()
-	gmI18N.install_domain()
+from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmBorg
+from Gnumed.pycommon import gmI18N
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 from Gnumed.pycommon import gmNull
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmMatchProvider
+from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmHooks
 
 from Gnumed.business import gmDemographicRecord
+from Gnumed.business import gmClinicalRecord
 from Gnumed.business import gmXdtMappings
 from Gnumed.business import gmProviderInbox
 from Gnumed.business import gmExportArea
 from Gnumed.business import gmBilling
 from Gnumed.business import gmAutoHints
 from Gnumed.business.gmDocuments import cDocumentFolder
-from Gnumed.business.gmClinicalRecord import cClinicalRecord
 
 
 _log = logging.getLogger('gm.person')
@@ -71,36 +76,14 @@ BEGIN;
 """
 
 #============================================================
-def external_id_exists(pk_issuer:int, value:str) -> int:
-	"""Check whether an external ID exists for a given ID issuer.
-
-	Args:
-		pk_issuer: primary key of external ID issuer (say, the Department of Motor Vehicles, DMV)
-		value: value of external ID (say, the driver's license ID)
-
-	Returns:
-		Count of stored external IDs for the given issuer.
-	"""
-	cmd = 'SELECT COUNT(*) FROM dem.lnk_identity2ext_id WHERE fk_origin = %(issuer)s AND external_id = %(val)s'
+def external_id_exists(pk_issuer, value):
+	cmd = 'SELECT COUNT(1) FROM dem.lnk_identity2ext_id WHERE fk_origin = %(issuer)s AND external_id = %(val)s'
 	args = {'issuer': pk_issuer, 'val': value}
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 	return rows[0][0]
 
 #============================================================
-def get_potential_person_dupes(lastnames:str, dob:pyDT.datetime, firstnames:str=None, active_only:bool=True) -> int:
-	"""Get number of potential duplicates of a person.
-
-	Args:
-		lastnames: last name(s) to search for
-		dob: date of birth to search for, timestamp truncated to days
-		firstnames: first name(s) to search for if given
-		active_only: search among _all_ patients or among active patients only
-
-	Returns:
-		Count of matches (= potential duplicates for the arguments).
-	"""
-	assert (lastnames is not None), '<lastnames> required'
-	assert (dob is not None), '<dob> required'
+def get_potential_person_dupes(lastnames, dob, firstnames=None, active_only=True):
 	args = {
 		'last': lastnames,
 		'dob': dob
@@ -111,46 +94,37 @@ def get_potential_person_dupes(lastnames:str, dob:pyDT.datetime, firstnames:str=
 	]
 	if firstnames is not None:
 		if firstnames.strip() != '':
+			#where_parts.append(u"position(%(first)s in firstnames) = 1")
 			where_parts.append("firstnames ~* %(first)s")
-			# the \m makes "firstnames" match at any word boundary
-			args['first'] = '\\m' + firstnames.strip()
+			args['first'] = '\\m' + firstnames
 	if active_only:
-		cmd = """SELECT COUNT(*) FROM dem.v_active_persons WHERE %s""" % ' AND '.join(where_parts)
+		cmd = """SELECT COUNT(1) FROM dem.v_active_persons WHERE %s""" % ' AND '.join(where_parts)
 	else:
-		cmd = """SELECT COUNT(*) FROM dem.v_all_persons WHERE %s""" % ' AND '.join(where_parts)
+		cmd = """SELECT COUNT(1) FROM dem.v_all_persons WHERE %s""" % ' AND '.join(where_parts)
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 	return rows[0][0]
 
 #============================================================
-def get_person_duplicates(lastnames:str, firstnames:str, dob:pyDT.datetime, gender:str, comment:str) -> list:
-	"""Check whether a given person record exists in the database.
-
-	Args:
-		lastnames: last names to search form, case insensitive
-		firstnames: first names to search for, case insensitive
-		dob: date of birth to search for, truncated to days
-		gender: gender, case insensitive
-		comment: comment to search for, used for de-duplication, case insensitive
-
-	Returns:
-		List of primary keys of persons matching the given criteria.
-	"""
+def this_person_exists(lastnames, firstnames, dob, comment):
+	# backend also looks at gender (IOW, only fails on same-gender dupes)
+	# implement in plpgsql and re-use in both validation trigger and here
+	if comment is not None:
+		comment = comment.strip()
+		if comment == u'':
+			comment = None
 	args = {
 		'last': lastnames.strip(),
 		'first': firstnames.strip(),
 		'dob': dob,
-		'gender': gmTools.none_if (
-			value = gender,
-			none_equivalent = '',
-			strip_string = True
-		),
-		'cmt': gmTools.none_if (
-			value = comment,
-			none_equivalent = '',
-			strip_string = True
-		)
+		'cmt': comment
 	}
-	cmd = 'SELECT dem.get_person_duplicates(%(dob)s, %(last)s, %(first)s, %(gender)s, %(cmt)s)'
+	where_parts = [
+		u'lower(lastnames) = lower(%(last)s)',
+		u'lower(firstnames) = lower(%(first)s)',
+		u"dem.date_trunc_utc('day', dob) IS NOT DISTINCT FROM dem.date_trunc_utc('day', %(dob)s)",
+		u'lower(comment) IS NOT DISTINCT FROM lower(%(cmt)s)'
+	]
+	cmd = u"SELECT COUNT(1) FROM dem.v_persons WHERE %s" % u' AND '.join(where_parts)
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 	return rows[0][0]
 
@@ -172,7 +146,7 @@ class cDTO_person(object):
 		self.dob_is_estimated = False
 		self.source = self.__class__.__name__
 
-		self.dob_formats = []
+		self.dob_formats = None
 		self.dob_tz = None
 
 	#--------------------------------------------------------
@@ -199,7 +173,7 @@ class cDTO_person(object):
 		if self.gender is not None:
 			where_snippets.append('gender = %(sex)s')
 			args['sex'] = self.gender
-		cmd = 'SELECT COUNT(*) FROM dem.v_person_names WHERE %s' % ' AND '.join(where_snippets)
+		cmd = 'SELECT count(1) FROM dem.v_person_names WHERE %s' % ' AND '.join(where_snippets)
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 
 		return rows[0][0] == 1
@@ -222,7 +196,7 @@ class cDTO_person(object):
 		if self.gender is not None:
 			where_snippets.append('gender = %(sex)s')
 			args['sex'] = self.gender
-		cmd = 'SELECT COUNT(*) FROM dem.v_person_names WHERE %s' % ' AND '.join(where_snippets)
+		cmd = 'SELECT count(1) FROM dem.v_person_names WHERE %s' % ' AND '.join(where_snippets)
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 
 		return rows[0][0] > 0
@@ -454,9 +428,10 @@ class cDTO_person(object):
 	#--------------------------------------------------------
 	def __getitem__(self, attr):
 		return getattr(self, attr)
-
 	#--------------------------------------------------------
 	def __parse_dob_str(self, dob_str):
+		if self.dob_formats is None:
+			return None
 		for dob_format in self.dob_formats:
 			try:
 				dob = pyDT.datetime.strptime(dob_str, dob_format)
@@ -464,11 +439,9 @@ class cDTO_person(object):
 				_log.exception('cannot parse DOB [%s] with [%s]', dob_str, dob_format)
 				continue
 			if self.dob_tz is None:
-				raise ValueError('lacking TZ information in DOB [%s] and/or format [%s]' % (dob_str, dob_format))
-
+				raise ValueError('lacking TZ information in DOB [%s] and/or format [%s]' % (dob_str, self.dob_format))
 			dob = dob.replace(tzinfo = self.dob_tz)
 			return dob
-
 		return None
 
 #============================================================
@@ -496,11 +469,7 @@ class cPersonName(gmBusinessDBObject.cBusinessDBObject):
 			xmin = %(xmin_name)s""",
 		"""select xmin as xmin_name from dem.names where id = %(pk_name)s"""
 	]
-	_updatable_fields = [
-		'active_name',
-		'preferred',
-		'comment'
-	]
+	_updatable_fields = ['active_name', 'preferred', 'comment']
 	#--------------------------------------------------------
 	def __setitem__(self, attribute, value):
 		if attribute == 'active_name':
@@ -510,7 +479,6 @@ class cPersonName(gmBusinessDBObject.cBusinessDBObject):
 			if self._payload[self._idx['active_name']] is True:
 				return
 		gmBusinessDBObject.cBusinessDBObject.__setitem__(self, attribute, value)
-
 	#--------------------------------------------------------
 	def _get_description(self):
 		return '%(last)s, %(title)s %(first)s%(nick)s' % {
@@ -523,7 +491,7 @@ class cPersonName(gmBusinessDBObject.cBusinessDBObject):
 			'nick': gmTools.coalesce(self._payload[self._idx['preferred']], '', " '%s'", '%s')
 		}
 
-	description = property(_get_description)
+	description = property(_get_description, lambda x:x)
 
 #============================================================
 _SQL_get_active_person = "SELECT * FROM dem.v_active_persons WHERE pk_identity = %s"
@@ -566,11 +534,13 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 	#--------------------------------------------------------
 	def _get_ID(self):
 		return self._payload[self._idx['pk_identity']]
+	def _set_ID(self, value):
+		raise AttributeError('setting ID of identity is not allowed')
 
-	ID = property(_get_ID)
+	ID = property(_get_ID, _set_ID)
 
 	#--------------------------------------------------------
-	def __setitem__(self, attribute:str, value):
+	def __setitem__(self, attribute, value):
 
 		if attribute == 'dob':
 			if value is not None:
@@ -603,74 +573,63 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		pass
 
 	#--------------------------------------------------------
-	def _get_is_patient(self) -> bool:
+	def _get_is_patient(self):
 		return identity_is_patient(self._payload[self._idx['pk_identity']])
 
-	def _set_is_patient(self, turn_into_patient:bool):
-		if not turn_into_patient:
-			return
-
-		SQL = """
-			INSERT INTO clin.patient (fk_identity)
-			SELECT %(pk_ident)s WHERE NOT EXISTS (
-				SELECT 1 FROM clin.patient c_p WHERE fk_identity = %(pk_ident)s
-			)"""
-		args = {'pk_ident': self._payload['pk_identity']}
-		gmPG2.run_rw_queries(queries = [{'cmd': SQL, 'args': args}])
+	def _set_is_patient(self, turn_into_patient):
+		if turn_into_patient:
+			return turn_identity_into_patient(self._payload[self._idx['pk_identity']])
+		return False
 
 	is_patient = property(_get_is_patient, _set_is_patient)
 
 	#--------------------------------------------------------
-	def _get_as_patient(self) -> 'cPatient':
+	def _get_as_patient(self):
 		return cPatient(self._payload[self._idx['pk_identity']])
 
-	as_patient = property(_get_as_patient)
+	as_patient = property(_get_as_patient, lambda x:x)
 
 	#--------------------------------------------------------
-	def _get_staff_id(self) -> int:
+	def _get_staff_id(self):
 		cmd = "SELECT pk FROM dem.staff WHERE fk_identity = %(pk)s"
 		args = {'pk': self._payload[self._idx['pk_identity']]}
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
-		if rows:
-			return rows[0][0]
-		return None
+		if len(rows) == 0:
+			return None
+		return rows[0][0]
 
-	staff_id = property(_get_staff_id)
+	staff_id = property(_get_staff_id, lambda x:x)
 
 	#--------------------------------------------------------
 	# identity API
 	#--------------------------------------------------------
-	def _get_gender_symbol(self) -> str:
+	def _get_gender_symbol(self):
 		return map_gender2symbol[self._payload[self._idx['gender']]]
 
-	gender_symbol = property(_get_gender_symbol)
-
+	gender_symbol = property(_get_gender_symbol, lambda x:x)
 	#--------------------------------------------------------
-	def _get_gender_string(self) -> str:
+	def _get_gender_string(self):
 		return map_gender2string(gender = self._payload[self._idx['gender']])
 
-	gender_string = property(_get_gender_string)
-
+	gender_string = property(_get_gender_string, lambda x:x)
 	#--------------------------------------------------------
-	def _get_gender_list(self) -> list:
+	def _get_gender_list(self):
 		gender_list, tmp = get_gender_list()
 		return gender_list
 
-	gender_list = property(_get_gender_list)
-
+	gender_list = property(_get_gender_list, lambda x:x)
 	#--------------------------------------------------------
-	def get_active_name(self) -> cPersonName:
+	def get_active_name(self):
 		names = self.get_names(active_only = True)
-		if names:
-			return names[0]
+		if len(names) == 0:
+			_log.error('cannot retrieve active name for patient [%s]', self._payload[self._idx['pk_identity']])
+			return None
+		return names[0]
 
-		_log.error('cannot retrieve active name for patient [%s]', self._payload[self._idx['pk_identity']])
-		return None
-
-	active_name = property(get_active_name)
-
+	active_name = property(get_active_name, lambda x:x)
 	#--------------------------------------------------------
-	def get_names(self, active_only:bool=False, exclude_active:bool=False) -> list[cPersonName]:
+	def get_names(self, active_only=False, exclude_active=False):
+
 		args = {'pk_pat': self._payload[self._idx['pk_identity']]}
 		where_parts = ['pk_identity = %(pk_pat)s']
 		if active_only:
@@ -684,13 +643,15 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			ORDER BY active_name DESC, lastnames, firstnames
 		""" % ' AND '.join(where_parts)
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
-		if rows:
-			return [ cPersonName(row = {'idx': idx, 'data': r, 'pk_field': 'pk_name'}) for r in rows ]
 
-		return []
+		if len(rows) == 0:
+			# no names registered for patient
+			return []
 
+		names = [ cPersonName(row = {'idx': idx, 'data': r, 'pk_field': 'pk_name'}) for r in rows ]
+		return names
 	#--------------------------------------------------------
-	def get_description_gender(self, with_nickname:bool=True) -> str:
+	def get_description_gender(self, with_nickname=True):
 		if with_nickname:
 			template = _('%(last)s,%(title)s %(first)s%(nick)s (%(sex)s)')
 		else:
@@ -703,9 +664,8 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			'sex': self.gender_symbol
 		}
 
-	description_gender = property(get_description_gender)
 	#--------------------------------------------------------
-	def get_description(self, with_nickname:bool=True) -> str:
+	def get_description(self, with_nickname=True):
 		if with_nickname:
 			template = _('%(last)s,%(title)s %(first)s%(nick)s')
 		else:
@@ -717,9 +677,8 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			'nick': gmTools.coalesce(self._payload[self._idx['preferred']], '', " '%s'")
 		}
 
-	description = property(get_description)
 	#--------------------------------------------------------
-	def add_name(self, firstnames:str, lastnames:str, active:bool=True) -> cPersonName:
+	def add_name(self, firstnames, lastnames, active=True):
 		"""Add a name.
 
 		@param firstnames The first names.
@@ -760,7 +719,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		return True
 
 	#--------------------------------------------------------
-	def get_tags(self, order_by:str=None) -> list[gmDemographicRecord.cPersonTag]:
+	def get_tags(self, order_by=None):
 		if order_by is None:
 			order_by = ''
 		else:
@@ -771,10 +730,10 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 
 		return [ gmDemographicRecord.cPersonTag(row = {'data': r, 'idx': idx, 'pk_field': 'pk_identity_tag'}) for r in rows ]
 
-	tags = property(get_tags)
+	tags = property(get_tags, lambda x:x)
 
 	#--------------------------------------------------------
-	def add_tag(self, tag) -> gmDemographicRecord.cPersonTag:
+	def add_tag(self, tag):
 		args = {
 			'tag': tag,
 			'identity': self.ID
@@ -909,24 +868,27 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}])
 
 	#--------------------------------------------------------
-	def get_external_ids(self, id_type=None, issuer:str=None):
+	def get_external_ids(self, id_type=None, issuer=None):
 		where_parts = ['pk_identity = %(pat)s']
 		args = {'pat': self.ID}
-		if id_type:
+
+		if id_type is not None:
 			where_parts.append('name = %(name)s')
 			args['name'] = id_type.strip()
-		if issuer:
+
+		if issuer is not None:
 			where_parts.append('issuer = %(issuer)s')
 			args['issuer'] = issuer.strip()
 
 		cmd = "SELECT * FROM dem.v_external_ids4identity WHERE %s" % ' AND '.join(where_parts)
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}])
+
 		return rows
 
-	external_ids = property(get_external_ids)
+	external_ids = property(get_external_ids, lambda x:x)
 
 	#--------------------------------------------------------
-	def delete_external_id(self, pk_ext_id:int=None):
+	def delete_external_id(self, pk_ext_id=None):
 		cmd = """
 			DELETE FROM dem.lnk_identity2ext_id
 			WHERE id_identity = %(pat)s AND id = %(pk)s"""
@@ -934,10 +896,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}])
 
 	#--------------------------------------------------------
-	def suggest_external_id(self, target:str=None) -> str:
-		dob = self.get_formatted_dob(format = '%Y%m%d', none_string = '?dob?')
-		gender = gmTools.coalesce(self['gender'], '?gender?')
-		pk = '#GMd::PK::%s#' % self.ID
+	def suggest_external_id(self, target=None, encoding=None):
 		name = self.active_name
 		last = ' '.join(p for p in name['lastnames'].split("-"))
 		last = ' '.join(p for p in last.split("."))
@@ -947,66 +906,61 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		first = ' '.join(p for p in first.split("."))
 		first = ' '.join(p for p in first.split("'"))
 		first = ''.join(gmTools.capitalize(text = p, mode = gmTools.CAPS_FIRST_ONLY) for p in first.split(' '))
-		suggestion_parts = ['GMd']
-		if target:
-			suggestion_parts.append(target)
-		suggestion_parts.append(last)
-		suggestion_parts.append(first)
-		suggestion_parts.append(dob)
-		suggestion_parts.append(gender)
-		suggestion_parts.append(pk)
-		suggestion = '-'.join (suggestion_parts)
-		return suggestion
+		suggestion = 'GMd-%s%s%s%s%s' % (
+			gmTools.coalesce(target, '', '%s-'),
+			last,
+			first,
+			self.get_formatted_dob(format = '-%Y%m%d', none_string = ''),
+			gmTools.coalesce(self['gender'], '', '-%s')
+		)
+		try:
+			import unidecode
+			return unidecode.unidecode(suggestion)
+		except ImportError:
+			_log.debug('cannot transliterate external ID suggestion, <unidecode> module not installed')
+		if encoding is None:
+			return suggestion
+		return suggestion.encode(encoding)
 
-	external_id_suggestion = property(suggest_external_id)
+	external_id_suggestion = property(suggest_external_id, lambda x:x)
 
 	#--------------------------------------------------------
-	def suggest_external_ids(self, target:str=None) -> list[str]:
-		"""Suggest external IDs for this person."""
-		dob = self.get_formatted_dob(format = '%Y%m%d', none_string = '?dob?')
-		gender = gmTools.coalesce(self['gender'], '?gender?')
-		pk = '#GMd::PK::%s#' % self.ID
+	def suggest_external_ids(self, target=None, encoding=None):
+		names2use = [self.active_name]
+		names2use.extend(self.get_names(active_only = False, exclude_active = True))
+		target = gmTools.coalesce(target, '', '%s-')
+		dob = self.get_formatted_dob(format = '-%Y%m%d', none_string = '')
+		gender = gmTools.coalesce(self['gender'], '', '-%s')
 		suggestions = []
-		for name in self.get_names(active_only = False, exclude_active = False):
-			last = ' '.join(part for part in name['lastnames'].split("-"))
-			last = ' '.join(part for part in last.split("."))
-			last = ' '.join(part for part in last.split("'"))
-			last = ''.join(gmTools.capitalize(text = part, mode = gmTools.CAPS_FIRST_ONLY) for part in last.split(' '))
-			first = ' '.join(part for part in name['firstnames'].split("-"))
-			first = ' '.join(part for part in first.split("."))
-			first = ' '.join(part for part in first.split("'"))
-			first = ''.join(gmTools.capitalize(text = part, mode = gmTools.CAPS_FIRST_ONLY) for part in first.split(' '))
-			suggestion_parts = ['GMd']
-			if target:
-				suggestion_parts.append(target)
-			suggestion_parts.append(last)
-			suggestion_parts.append(first)
-			suggestion_parts.append(dob)
-			suggestion_parts.append(gender)
-			suggestion_parts.append(pk)
-			suggestion = '-'.join(suggestion_parts)
-			suggestions.append(suggestion)
+		for name in names2use:
+			last = ' '.join(p for p in name['lastnames'].split("-"))
+			last = ' '.join(p for p in last.split("."))
+			last = ' '.join(p for p in last.split("'"))
+			last = ''.join(gmTools.capitalize(text = p, mode = gmTools.CAPS_FIRST_ONLY) for p in last.split(' '))
+			first = ' '.join(p for p in name['firstnames'].split("-"))
+			first = ' '.join(p for p in first.split("."))
+			first = ' '.join(p for p in first.split("'"))
+			first = ''.join(gmTools.capitalize(text = p, mode = gmTools.CAPS_FIRST_ONLY) for p in first.split(' '))
+			suggestion = 'GMd-%s%s%s%s%s' % (target, last, first, dob, gender)
+			try:
+				import unidecode
+				suggestions.append(unidecode.unidecode(suggestion))
+				continue
+			except ImportError:
+				_log.debug('cannot transliterate external ID suggestion, <unidecode> module not installed')
+			if encoding is None:
+				suggestions.append(suggestion)
+			else:
+				suggestions.append(suggestion.encode(encoding))
 		return suggestions
 
 	#--------------------------------------------------------
 	#--------------------------------------------------------
-	def assimilate_identity(self, other_identity:'cPerson'=None, link_obj=None, dry_run:bool=True) -> tuple[bool, str]:
-		"""Merge another identity into this one (self).
+	def assimilate_identity(self, other_identity=None, link_obj=None):
+		"""Merge another identity into this one.
 
-		Args:
-			other_identity: another cPerson instance to be assimilated, and then deleted
-			dry_run:
+		Keep this one. Delete other one."""
 
-			* True: only create SQL script containing the queries to merge the identities
-			* False: create SQL script and perform the assimilation by running the queries
-
-		Returns:
-			A tuple of (result state, information):
-
-			* (True, None): nothing to do (say, same identity)
-			* (True, SQL script file name)
-			* (False, error message)
-		"""
 		if other_identity.ID == self.ID:
 			return True, None
 
@@ -1017,8 +971,10 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 
 		now_here = gmDateTime.pydt_strftime(gmDateTime.pydt_now_here())
 		distinguisher = _('merge of #%s into #%s @ %s') % (other_identity.ID, self.ID, now_here)
-		queries:list[dict] = []
+
+		queries = []
 		args = {'pat2del': other_identity.ID, 'pat2keep': self.ID}
+
 		# merge allergy state
 		queries.append ({
 			'cmd': """
@@ -1042,6 +998,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			'cmd': 'DELETE FROM clin.allergy_state WHERE pk = (SELECT pk_allergy_state FROM clin.v_pat_allergy_state WHERE pk_patient = %(pat2del)s)',
 			'args': args
 		})
+
 		# merge patient proxy
 		queries.append ({
 			'cmd': """
@@ -1055,6 +1012,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			""",
 			'args': args
 		})
+
 		# transfer names
 		# 1) hard-disambiguate all inactive names in old patient
 		#    (the active one will be disambiguated upon being moved)
@@ -1107,6 +1065,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 				""",
 			'args': args
 		})
+
 		# disambiguate potential dupes
 		# - same-url comm channels
 		queries.append ({
@@ -1157,6 +1116,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			""",
 			'args': args
 		})
+
 		# find FKs pointing to dem.identity.pk
 		FKs = gmPG2.get_foreign_keys2column (
 			schema = 'dem',
@@ -1169,6 +1129,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			table = 'patient',
 			column = 'fk_identity'
 		))
+
 		# generate UPDATEs
 		cmd_template = 'UPDATE %s SET %s = %%(pat2keep)s WHERE %s = %%(pat2del)s'
 		for FK in FKs:
@@ -1178,38 +1139,44 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 				'cmd': cmd_template % (FK['referencing_table'], FK['referencing_column'], FK['referencing_column']),
 				'args': args
 			})
+
 		# delete old patient proxy
 		queries.append ({
 			'cmd': 'DELETE FROM clin.patient WHERE fk_identity = %(pat2del)s',
 			'args': args
 		})
+
 		# remove old identity entry
 		queries.append ({
 			'cmd': 'delete from dem.identity where pk = %(pat2del)s',
 			'args': args
 		})
-		args['date'] = gmDateTime.pydt_strftime(gmDateTime.pydt_now_here(), '%Y %B %d  %H:%M')
+
 		script_name = gmTools.get_unique_filename(prefix = 'gm-assimilate-%(pat2del)s-into-%(pat2keep)s-' % args, suffix = '.sql')
 		_log.warning('identity [%s] is about to assimilate identity [%s], SQL script [%s]', self.ID, other_identity.ID, script_name)
-		with open(script_name, 'wt', encoding = 'utf8') as script:
-			script.write(_MERGE_SCRIPT_HEADER % args)
-			for query in queries:
-				script.write(query['cmd'] % args)
-				script.write(';\n')
-			script.write('\nROLLBACK;\n')
-			script.write('--COMMIT;\n')
-		if not dry_run:
-			try:
-				gmPG2.run_rw_queries(link_obj = link_obj, queries = queries, end_tx = True)
-			except Exception:
-				return False, _('The merge failed. Check the log and [%s]') % script_name
 
-			self.add_external_id (
-				type_name = 'merged GNUmed identity primary key',
-				value = 'GNUmed::pk::%s' % other_identity.ID,
-				issuer = 'GNUmed'
-			)
-		return True, script_name
+		script = io.open(script_name, 'wt')
+		args['date'] = gmDateTime.pydt_strftime(gmDateTime.pydt_now_here(), '%Y %B %d  %H:%M')
+		script.write(_MERGE_SCRIPT_HEADER % args)
+		for query in queries:
+			script.write(query['cmd'] % args)
+			script.write(';\n')
+		script.write('\nROLLBACK;\n')
+		script.write('--COMMIT;\n')
+		script.close()
+
+		try:
+			gmPG2.run_rw_queries(link_obj = link_obj, queries = queries, end_tx = True)
+		except Exception:
+			return False, _('The merge failed. Check the log and [%s]') % script_name
+
+		self.add_external_id (
+			type_name = 'merged GNUmed identity primary key',
+			value = 'GNUmed::pk::%s' % other_identity.ID,
+			issuer = 'GNUmed'
+		)
+
+		return True, None
 
 	#--------------------------------------------------------
 	#--------------------------------------------------------
@@ -1234,14 +1201,13 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}])
 		return rows
 
-	waiting_list_entries = property(get_waiting_list_entry)
+	waiting_list_entries = property(get_waiting_list_entry, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_export_area(self):
 		return gmExportArea.cExportArea(self.ID)
 
-	export_area = property(_get_export_area)
-
+	export_area = property(_get_export_area, lambda x:x)
 	#--------------------------------------------------------
 	def export_as_gdt(self, filename=None, encoding='iso-8859-15', external_id_type=None):
 
@@ -1253,7 +1219,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 				suffix = '.gdt'
 			)
 
-		gdt_file = open(filename, mode = 'wt', encoding = encoding, errors = 'strict')
+		gdt_file = io.open(filename, mode = 'wt', encoding = encoding, errors = 'strict')
 
 		gdt_file.write(template % ('013', '8000', '6301'))
 		gdt_file.write(template % ('013', '9218', '2.10'))
@@ -1462,7 +1428,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 				prefix = 'gm-patient-',
 				suffix = '.vcf'
 			)
-		vcf = open(filename, mode = 'wt', encoding = 'utf8')
+		vcf = io.open(filename, mode = 'wt', encoding = 'utf8')
 		try:
 			vcf.write(vc.serialize())
 		except UnicodeDecodeError:
@@ -1480,7 +1446,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 				prefix = 'gm-patient-',
 				suffix = '.mcf'
 			)
-		with open(filename, mode = 'wt', encoding = 'utf8') as mecard_file:
+		with io.open(filename, mode = 'wt', encoding = 'utf8') as mecard_file:
 			mecard_file.write(self.MECARD)
 		return filename
 
@@ -1492,35 +1458,36 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 
 		MECARD:N:NAME;ADR:pobox,subunit,unit,street,ort,region,zip,country;TEL:111111111;FAX:22222222;EMAIL:mail@praxis.org;
 
-		MECARD:N:lastname,firstname;BDAY:YYYYMMDD;ADR:pobox,subunit,number,street,location,region,zip,country;EMAIL:...;TEL:...;FAX:...;URL:...;;
+
+		MECARD:N:lastname,firstname;BDAY:YYYYMMDD;ADR:pobox,subunit,number,street,location,region,zip,country;;
 		MECARD:N:$<lastname::::>$,$<firstname::::>$;BDAY:$<date_of_birth::%Y%m%d::>$;ADR:,$<adr_subunit::home::>$,$<adr_number::home::>$,$<adr_street::home::>$,$<adr_location::home::>$,,$<adr_postcode::home::>$,$<adr_country::home::>$;;
 		"""
-		mecard_fields = [
-			'MECARD:N:%s,%s' % (
-				self._payload[self._idx['lastnames']].strip(),
-				self._payload[self._idx['firstnames']].strip()
-			)
-		]
+		MECARD = 'MECARD:N:%s,%s;' % (
+			self._payload[self._idx['lastnames']],
+			self._payload[self._idx['firstnames']]
+		)
 		if self._payload[self._idx['dob']] is not None:
-			mecard_fields.append('BDAY:%s' % self._payload[self._idx['dob']].strftime('%Y%m%d'))
+			MECARD += 'BDAY:%s;' % gmDateTime.pydt_strftime (
+				self._payload[self._idx['dob']],
+				'%Y%m%d',
+				accuracy = gmDateTime.acc_days,
+				none_str = ''
+			)
 		adrs = self.get_addresses(address_type = 'home')
 		if len(adrs) > 0:
-			mecard_fields.append('ADR:,%(subunit)s,%(number)s,%(street)s,%(urb)s,,%(postcode)s,%(l10n_country)s' % adrs[0])
+			MECARD += 'ADR:,%(subunit)s,%(number)s,%(street)s,%(urb)s,,%(postcode)s,%(l10n_country)s;' % adrs[0]
 		comms = self.get_comm_channels(comm_medium = 'homephone')
 		if len(comms) > 0:
 			if not comms[0]['is_confidential']:
-				mecard_fields.append('TEL:%s' % comms[0]['url'].strip())
+				MECARD += 'TEL:%s;' % comms[0]['url']
 		comms = self.get_comm_channels(comm_medium = 'fax')
 		if len(comms) > 0:
 			if not comms[0]['is_confidential']:
-				mecard_fields.append('FAX:%s' % comms[0]['url'].strip())
+				MECARD += 'FAX:%s;' % comms[0]['url']
 		comms = self.get_comm_channels(comm_medium = 'email')
 		if len(comms) > 0:
 			if not comms[0]['is_confidential']:
-				mecard_fields.append('EMAIL:%s' % comms[0]['url'].strip())
-		if len(adrs) > 0:
-			mecard_fields.append('URL:%s' % adrs[0].as_map_url)
-		MECARD = ';'.join(mecard_fields) + ';'
+				MECARD += 'EMAIL:%s;' % comms[0]['url']
 		return MECARD
 
 	MECARD = property(_get_mecard)
@@ -1598,8 +1565,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 				}) for r in filtered
 			]
 
-	comm_channels = property(get_comm_channels)
-
+	comm_channels = property(get_comm_channels, lambda x:x)
 	#--------------------------------------------------------
 	def link_comm_channel(self, comm_medium=None, url=None, is_confidential=False, pk_channel_type=None):
 		"""Link a communication medium with a patient.
@@ -1607,7 +1573,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		@param comm_medium The name of the communication medium.
 		@param url The communication resource locator.
 		@type url A str instance.
-		@param is_confidential Whether the data must be treated as confidential.
+		@param is_confidential Wether the data must be treated as confidential.
 		@type is_confidential A bool instance.
 		"""
 		comm_channel = gmDemographicRecord.create_comm_channel (
@@ -1718,7 +1684,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			pk_patient = self.pk_obj
 		)
 
-	bills = property(get_bills)
+	bills = property(get_bills, lambda x:x)
 	#----------------------------------------------------------------------
 	# relatives API
 	#----------------------------------------------------------------------
@@ -1748,7 +1714,6 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		if len(rows) == 0:
 			return []
 		return [(row[0], cPerson(row = {'data': row[1:], 'idx':idx, 'pk_field': 'pk_identity'})) for row in rows]
-
 	#--------------------------------------------------------
 	def link_new_relative(self, rel_type = 'parent'):
 		# create new relative
@@ -1767,22 +1732,19 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			) values (
 				%s, %s, (select id from dem.relation_types where description = %s)
 			)"""
-		gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': [self.ID, id_new_relative, rel_type  ]}])
+		rows, idx = gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': [self.ID, id_new_relative, rel_type  ]}])
 		return True
-
 	#----------------------------------------------------------------------
 	def delete_relative(self, relation):
 		# unlink only, don't delete relative itself
-		#self.set_relative(None, relation)
-		pass
-
+		self.set_relative(None, relation)
 	#--------------------------------------------------------
 	def _get_emergency_contact_from_database(self):
 		if self._payload[self._idx['pk_emergency_contact']] is None:
 			return None
 		return cPerson(self._payload[self._idx['pk_emergency_contact']])
 
-	emergency_contact_in_database = property(_get_emergency_contact_from_database)
+	emergency_contact_in_database = property(_get_emergency_contact_from_database, lambda x:x)
 
 	#----------------------------------------------------------------------
 	# age/dob related
@@ -1826,8 +1788,6 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 				)
 			)
 		)
-
-	medical_age = property(get_medical_age)
 
 	#----------------------------------------------------------------------
 	def dob_in_range(self, min_distance='1 week', max_distance='1 week'):
@@ -1892,7 +1852,6 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 	def _get_birthday_last_year(self):
 		if self['dob'] is None:
 			return None
-
 		now = gmDateTime.pydt_now_here()
 		return gmDateTime.pydt_replace (
 			dt = self['dob'],
@@ -1900,7 +1859,7 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 			strict = False
 		)
 
-	birthday_last_year = property(_get_birthday_last_year)
+	birthday_last_year = property(_get_birthday_last_year, lambda x:x)
 
 	#----------------------------------------------------------------------
 	# practice related
@@ -1908,56 +1867,52 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 	def get_last_encounter(self):
 		cmd = 'select * from clin.v_most_recent_encounters where pk_patient=%s'
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': [self._payload[self._idx['pk_identity']]]}])
-		if rows:
+		if len(rows) > 0:
 			return rows[0]
-
-		return None
-
+		else:
+			return None
 	#--------------------------------------------------------
-	def get_messages(self, order_by:str=None):
+	def get_messages(self, order_by=None):
 		return gmProviderInbox.get_inbox_messages(pk_patient = self._payload[self._idx['pk_identity']], order_by = order_by)
 
-	messages = property(get_messages)
-
+	messages = property(get_messages, lambda x:x)
 	#--------------------------------------------------------
 	def _get_overdue_messages(self):
 		return gmProviderInbox.get_overdue_messages(pk_patient = self._payload[self._idx['pk_identity']])
 
-	overdue_messages = property(_get_overdue_messages)
+	overdue_messages = property(_get_overdue_messages, lambda x:x)
 
 	#--------------------------------------------------------
-	def delete_message(self, pk:int=None):
+	def delete_message(self, pk=None):
 		return gmProviderInbox.delete_inbox_message(inbox_message = pk)
 
 	#--------------------------------------------------------
-	def _get_dynamic_hints(self, pk_encounter:int=None):
+	def _get_dynamic_hints(self, pk_encounter=None):
 		return gmAutoHints.get_hints_for_patient (
 			pk_identity = self._payload[self._idx['pk_identity']],
 			pk_encounter = pk_encounter
 		)
 
-	dynamic_hints = property(_get_dynamic_hints)
+	dynamic_hints = property(_get_dynamic_hints, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_suppressed_hints(self):
 		return gmAutoHints.get_suppressed_hints(pk_identity = self._payload[self._idx['pk_identity']])
 
-	suppressed_hints = property(_get_suppressed_hints)
+	suppressed_hints = property(_get_suppressed_hints, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_primary_provider_identity(self):
 		if self._payload[self._idx['pk_primary_provider']] is None:
 			return None
-
 		cmd = "SELECT * FROM dem.v_all_persons WHERE pk_identity = (SELECT pk_identity FROM dem.v_staff WHERE pk_staff = %(pk_staff)s)"
 		args = {'pk_staff': self._payload[self._idx['pk_primary_provider']]}
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 		if len(rows) == 0:
 			return None
-
 		return cPerson(row = {'data': rows[0], 'idx': idx, 'pk_field': 'pk_identity'})
 
-	primary_provider_identity = property(_get_primary_provider_identity)
+	primary_provider_identity = property(_get_primary_provider_identity, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_primary_provider(self):
@@ -1966,12 +1921,12 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		from Gnumed.business import gmStaff
 		return gmStaff.cStaff(aPK_obj = self._payload[self._idx['pk_primary_provider']])
 
-	primary_provider = property(_get_primary_provider)
+	primary_provider = property(_get_primary_provider, lambda x:x)
 
 	#----------------------------------------------------------------------
 	# convenience
 	#----------------------------------------------------------------------
-	def get_subdir_name(self) -> str:
+	def get_subdir_name(self):
 		"""Format patient demographics into patient specific path name fragment."""
 
 		return gmTools.fname_sanitize('%s-%s-%s-ID_%s' % (
@@ -1984,22 +1939,33 @@ class cPerson(gmBusinessDBObject.cBusinessDBObject):
 		#	u'\u2248', u''			# "approximately", having been added by dob_is_estimated
 		#)
 
-	subdir_name = property(get_subdir_name)
+	subdir_name = property(get_subdir_name, lambda x:x)
 
 #============================================================
-def identity_is_patient(pk_identity:int) -> bool:
+def identity_is_patient(pk_identity):
 	cmd = 'SELECT 1 FROM clin.patient WHERE fk_identity = %(pk_pat)s'
 	args = {'pk_pat': pk_identity}
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
-	if rows:
-		return True
+	if len(rows) == 0:
+		return False
+	return True
 
-	return False
+#------------------------------------------------------------
+def turn_identity_into_patient(pk_identity):
+	cmd = """
+		INSERT INTO clin.patient (fk_identity)
+		SELECT %(pk_ident)s WHERE NOT EXISTS (
+			SELECT 1 FROM clin.patient c_p WHERE fk_identity = %(pk_ident)s
+		)"""
+	args = {'pk_ident': pk_identity}
+	queries = [{'cmd': cmd, 'args': args}]
+	gmPG2.run_rw_queries(queries = queries)
+	return True
 
 #============================================================
 # helper functions
 #------------------------------------------------------------
-_yield = lambda *x: None
+_yield = lambda *x:None
 
 def set_yielder(yielder):
 	if not callable(yielder):
@@ -2083,14 +2049,14 @@ class cPatient(cPerson):
 			stack_logged = True
 
 		self.is_patient = True
-		emr = cClinicalRecord(aPKey = self._payload[self._idx['pk_identity']])
+		emr = gmClinicalRecord.cClinicalRecord(aPKey = self._payload[self._idx['pk_identity']])
 
 		_log.debug('returning EMR for identity [%s], thread [%s]', self._payload[self._idx['pk_identity']], threading.get_ident())
 		self.__emr = emr
 		self.__emr_access_lock.release()
 		return self.__emr
 
-	emr = property(get_emr)
+	emr = property(get_emr, lambda x:x)
 
 	#----------------------------------------------------------
 	def get_document_folder(self):
@@ -2098,7 +2064,7 @@ class cPatient(cPerson):
 			self.__doc_folder = cDocumentFolder(aPKey = self._payload[self._idx['pk_identity']])
 		return self.__doc_folder
 
-	document_folder = property(get_document_folder)
+	document_folder = property(get_document_folder, lambda x:x)
 
 #============================================================
 class gmCurrentPatient(gmBorg.cBorg):
@@ -2136,7 +2102,7 @@ class gmCurrentPatient(gmBorg.cBorg):
 
 		5) The current patient is set to the new value.
 			The new patient can also remain gmNull.cNull
-			in case the calling code explicitly unset
+			in case the calling code explicitely unset
 			the current patient.
 
 		6) Signal "post_patient_selection" is sent.
@@ -2145,14 +2111,14 @@ class gmCurrentPatient(gmBorg.cBorg):
 			already active.
 	"""
 	def __init__(self, patient=None, forced_reload=False):
-		"""Initialization.
-		Args:
-			patient:
+		"""Change or get currently active patient.
 
-			* None: get currently active patient
-			* -1: unset currently active patient
-			* cPatient instance: set active patient if possible
+		patient:
+		* None: get currently active patient
+		* -1: unset currently active patient
+		* cPatient instance: set active patient if possible
 		"""
+		# make sure we do have a patient pointer
 		try:
 			self.patient
 		except AttributeError:
@@ -2270,7 +2236,7 @@ class gmCurrentPatient(gmBorg.cBorg):
 	def _get_connected(self):
 		return (not isinstance(self.patient, gmNull.cNull))
 
-	connected = property(_get_connected)
+	connected = property(_get_connected, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_locked(self):
@@ -2353,8 +2319,7 @@ class gmCurrentPatient(gmBorg.cBorg):
 		kwargs = {
 			'signal': 'post_patient_selection',
 			'sender': self.__class__.__name__,
-			'pk_identity': self.patient['pk_identity'],
-			'current_patient': self
+			'pk_identity': self.patient['pk_identity']
 		}
 		gmDispatcher.send(**kwargs)
 
@@ -2415,7 +2380,7 @@ class cMatchProvider_Provider(gmMatchProvider.cMatchProvider_SQL2):
 #============================================================
 # convenience functions
 #============================================================
-def create_name(pk_person, firstnames, lastnames, active=False) -> cPersonName:
+def create_name(pk_person, firstnames, lastnames, active=False):
 	queries = [{
 		'cmd': "select dem.add_name(%s, %s, %s, %s)",
 		'args': [pk_person, firstnames, lastnames, active]
@@ -2467,7 +2432,7 @@ def create_dummy_identity():
 		queries = [{'cmd': cmd}],
 		return_data = True
 	)
-	return cPerson(aPK_obj = rows[0][0])
+	return gmDemographicRecord.cPerson(aPK_obj = rows[0][0])
 
 #============================================================
 def identity_exists(pk_identity):
@@ -2516,7 +2481,7 @@ def set_active_patient(patient=None, forced_reload=False):
 #============================================================
 # gender related
 #------------------------------------------------------------
-def get_gender_list() -> tuple:
+def get_gender_list():
 	"""Retrieves the list of known genders from the database."""
 	global __gender_idx
 	global __gender_list
@@ -2653,6 +2618,10 @@ if __name__ == '__main__':
 	if sys.argv[1] != 'test':
 		sys.exit()
 
+	import datetime
+
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 	gmDateTime.init()
 
 	#--------------------------------------------------------
@@ -2660,17 +2629,14 @@ if __name__ == '__main__':
 
 		ident = cPerson(1)
 		print("setting active patient with", ident)
-		print(ident.description)
 		set_active_patient(patient=ident)
 
 		patient = cPatient(12)
 		print("setting active patient with", patient)
-		print(patient.description)
 		set_active_patient(patient=patient)
 
 		pat = gmCurrentPatient()
 		print(pat['dob'])
-		print(pat.description)
 		#pat['dob'] = 'test'
 
 #		staff = cStaff()
@@ -2764,11 +2730,6 @@ if __name__ == '__main__':
 		person = cPerson(aPK_obj = 9)
 		print(person.get_external_ids(id_type='Fachgebiet', issuer='Ärztekammer'))
 		#print(person.get_external_ids()
-		person = cPerson(aPK_obj = 12)
-		suggestions = person.suggest_external_ids(target = 'Orthanc')
-		print(suggestions)
-		print([ (sugg.rsplit('#', 2)[0]).strip('-') for sugg in suggestions ])
-
 	#--------------------------------------------------------
 	def test_vcf():
 		person = cPerson(aPK_obj = 12)
@@ -2781,7 +2742,7 @@ if __name__ == '__main__':
 		mcf = person.export_as_mecard()
 		print(mcf)
 		#print(gmTools.create_qrcode(filename = mcf, qr_filename = None, verbose = True)
-		#print(gmTools.create_qrcode(text = person.MECARD, qr_filename = None, verbose = True))
+		print(gmTools.create_qrcode(text = person.MECARD, qr_filename = None, verbose = True))
 
 	#--------------------------------------------------------
 	def test_current_patient():
@@ -2798,46 +2759,13 @@ if __name__ == '__main__':
 		patient = cPatient(12)
 		set_active_patient(patient = patient)
 		curr_pat = gmCurrentPatient()
-		#other_pat = cPerson(1111111)
+		other_pat = cPerson(1111111)
 		curr_pat.assimilate_identity(other_identity=None)
-
-	#--------------------------------------------------------
-	def test_get_person_duplicates():
-		print(get_person_duplicates (
-			lastnames = 'Kirk',
-			firstnames = 'James Tiberius',
-			dob = '1931-03-21',
-			gender = 'm',
-			comment = None
-		))
-
-	#--------------------------------------------------------
-	def test_get_potential_person_dupes():
-		print('w/o first name:')
-		print(get_potential_person_dupes (
-			lastnames = 'Kirk',
-			#firstnames = 'James Tiberius',
-			dob = '1931-03-21',
-			active_only =True
-		))
-		print('w/ first name:')
-		print(get_potential_person_dupes (
-			lastnames = 'Kirk',
-			firstnames = 'James Tiberius',
-			dob = '1931-03-21',
-			active_only =True
-		))
-		print('w/ first name:')
-		print(get_potential_person_dupes (
-			lastnames = 'Kirk',
-			firstnames = ' Tiber',
-			dob = '1931-03-21',
-			active_only =True
-		))
 
 	#--------------------------------------------------------
 	#test_dto_person()
 	#test_identity()
+	#test_set_active_pat()
 	#test_search_by_dto()
 	#test_name()
 	#test_gender_list()
@@ -2850,14 +2778,9 @@ if __name__ == '__main__':
 	#test_export_area()
 	#test_ext_id()
 	#test_vcf()
-
-	gmPG2.request_login_params(setup_pool = True)
-	test_set_active_pat()
-	#test_mecard()
+	test_mecard()
 	#test_ext_id()
 	#test_current_patient()
 	#test_assimilate_identity()
-	#test_get_person_duplicates()
-	#test_get_potential_person_dupes()
 
 #============================================================

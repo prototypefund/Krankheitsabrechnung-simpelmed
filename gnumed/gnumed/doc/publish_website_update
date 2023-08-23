@@ -1,9 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 
 rm --verbose --force html/*.html
 
 for ADOC in website/*.adoc ; do
 	./convert_adoc2html ${ADOC}
+#	asciidoc --backend=html5 --verbose ${ADOC}
+#	#--section-numbers
+#	#--safe
 	RESULT="$?"
 	if test "${RESULT}" != "0" ; then
 		echo "Cannot convert asciidoc (${ADOC}) to html5 (${RESULT}). Aborting."
@@ -11,8 +14,7 @@ for ADOC in website/*.adoc ; do
 	fi
 done;
 
-read -p "Hit [ENTER] for uploading website updates "
-rsync --verbose --progress --checksum --human-readable html/*.html gnumed.de:gm-website/
+rsync --verbose --progress --checksum --human-readable html/*.html www.gnumed.de:gm-website/
 RESULT="$?"
 if test "${RESULT}" != "0" ; then
 	echo "Cannot upload html files (${RESULT}). Aborting."

@@ -313,17 +313,6 @@ else
 	echo "found"
 fi
 
-echo -n " 'pdffonts' command... "
-BIN=$(which pdffonts)
-if [ "x${BIN}x" == "xx" ]; then
-	echo ""
-	echo "  INFO : You don't seem to have the 'pdffonts' command installed."
-	echo "  INFO : It can be used by GNUmed to extract metadata from"
-	echo "  INFO : files for display within GNUmed."
-else
-	echo "found"
-fi
-
 echo -n " 'dmtxwrite' command... "
 BIN=`which dmtxwrite`
 if [ "x${BIN}x" == "xx" ]; then
@@ -351,7 +340,7 @@ BIN=`which gm-print_doc`
 if [ "x${BIN}x" == "xx" ]; then
 	echo ""
 	echo "  INFO : You don't seem to have the 'gm-print_doc' command installed."
-	echo "  INFO : It is used by GNUmed to print documents."
+	echo "  INFO : It is used to print files from GNUmed."
 else
 	echo "found"
 fi
@@ -361,7 +350,7 @@ BIN=`which gm-fax_doc`
 if [ "x${BIN}x" == "xx" ]; then
 	echo ""
 	echo "  INFO : You don't seem to have the 'gm-fax_doc' command installed."
-	echo "  INFO : It is used by GNUmed to fax documents."
+	echo "  INFO : It is used to fax files from GNUmed."
 else
 	echo "found"
 fi
@@ -371,7 +360,7 @@ BIN=`which gm-mail_doc`
 if [ "x${BIN}x" == "xx" ]; then
 	echo ""
 	echo "  INFO : You don't seem to have the 'gm-mail_doc' command installed."
-	echo "  INFO : It is used by GNUmed to e-mail documents."
+	echo "  INFO : It is used to e-mail files from GNUmed."
 else
 	echo "found"
 fi
@@ -381,7 +370,7 @@ BIN=`which gm-burn_doc`
 if [ "x${BIN}x" == "xx" ]; then
 	echo ""
 	echo "  INFO : You don't seem to have the 'gm-burn_doc' command installed."
-	echo "  INFO : It is used by GNUmed to burn to disk an ISO image of documents."
+	echo "  INFO : It is used to burn to disk an ISO image of files from GNUmed."
 else
 	echo "found"
 fi

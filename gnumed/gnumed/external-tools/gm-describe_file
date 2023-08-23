@@ -17,8 +17,7 @@ echo "" >> "${DESCRIPTION_FILE}"
 # exiftool
 BIN=`which exiftool`
 if [ "x${BIN}x" != "xx" ]; then
-	#exiftool -g1 -ee -m -u "${FILE_2_DESCRIBE}" >> "${DESCRIPTION_FILE}" 2>> "${DESCRIPTION_FILE}"
-	exiftool -g1 -ee3 -m -U -api RequestAll=3 -api LargeFileSupport "${FILE_2_DESCRIBE}" >> "${DESCRIPTION_FILE}" 2>> "${DESCRIPTION_FILE}"
+	exiftool -g1 -ee -m -u "${FILE_2_DESCRIBE}" >> "${DESCRIPTION_FILE}" 2>> "${DESCRIPTION_FILE}"
 	echo "" >> "${DESCRIPTION_FILE}"
 fi
 
@@ -87,16 +86,6 @@ if [ $? -eq 0 ] ; then
 		cat "${DESCRIPTION_FILE}.pdfimages" >> "${DESCRIPTION_FILE}"
 		echo "" >> "${DESCRIPTION_FILE}"
 		rm -f "${DESCRIPTION_FILE}.pdfimages"
-	fi
-	# pdffonts
-	BIN=`which pdffonts`
-	if [ "x${BIN}x" != "xx" ]; then
-		echo "---- pdffonts ----" > "${DESCRIPTION_FILE}.pdffonts"
-		pdffonts "${FILE_2_DESCRIBE}" >> "${DESCRIPTION_FILE}.pdffonts" 2>> "${DESCRIPTION_FILE}.pdffonts"
-		pdffonts -subst "${FILE_2_DESCRIBE}" >> "${DESCRIPTION_FILE}.pdffonts" 2>> "${DESCRIPTION_FILE}.pdffonts"
-		cat "${DESCRIPTION_FILE}.pdffonts" >> "${DESCRIPTION_FILE}"
-		echo "" >> "${DESCRIPTION_FILE}"
-		rm -f "${DESCRIPTION_FILE}.pdffonts"
 	fi
 ## not a PDF
 #else

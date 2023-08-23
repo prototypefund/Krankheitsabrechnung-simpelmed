@@ -16,9 +16,6 @@ from Gnumed.wxpython import gmAccessPermissionWidgets
 
 
 _log = logging.getLogger('gm.ui')
-if __name__ == '__main__':
-	_ = lambda x:x
-
 #================================================================
 class gmExportAreaPlugin(gmPlugin.cNotebookPlugin):
 	tab_name = _("Export Area")
@@ -83,8 +80,8 @@ if __name__ == '__main__':
 	gmPatSearchWidgets.set_active_patient(patient=patient)
 
 	# display the plugin standalone
-	application = wx.PyWidgetTester(size = (800,600))
-	#widgets = gmExamplePluginWidgets.cExamplePluginPnl(application.frame, -1)
+	application = wx.wx.PyWidgetTester(size = (800,600))
+	widgets = gmExamplePluginWidgets.cExamplePluginPnl(application.frame, -1)
 
 	application.frame.Show(True)
 	application.MainLoop()

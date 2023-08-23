@@ -6,13 +6,6 @@ link:index.html[Home]
 
 :sectnums:
 
-NOTE: Content is being resurrected from the wiki. If you need
-information that is not available send us an inquiry on
-either mailing list:
-
-	* https://lists.gnu.org/mailman/listinfo/gnumed-devel (gnumed-devel@gnu.org)
-	* https://lists.gnu.org/mailman/listinfo/gnumed-bugs (gnumed-bugs@gnu.org)
-
 == User Guide
 
 === Before you start
@@ -84,7 +77,7 @@ retiring forms) - Caveat: link:TalkbackClient[error reports]
 * the link:GnumedTimeConcept[concept of time]
 * the link:GmManualReportGenerator[Report Generator]
 * adding Forms
-* managing link:GNUmedManagingUsers.html[Users]
+* managing link:GmManualManagingUsers[Users]
 * managing link:GmManualManagingOrgsPraxis[Organizations / your Praxis]
 * planning your link:PaperToEmr[paper to EMR] transition
 * planning link:Fax Integration[Fax Integration]
@@ -95,12 +88,11 @@ retiring forms) - Caveat: link:TalkbackClient[error reports]
 
 === Server Maintenance
 
-* Database link:GNUmedDatabaseInstallation.html[Installation]
-* Database link:GNUmedDatabaseUpgrade.html[Upgrade]
-
 * Account/Access link:GmManualAccountManagement[Management]
 * Client/Access link:GmManualClientAccessManagement[Management]
+* Database link:GmManualServerInstall[Installation]
 * Going into link:GmManualServerIntoProduction[production]
+* Database link:GmManualServerUpgrade[Upgrade]
 * Database link:GmManualDatabaseBackupRestore[Backup, Restore and
 Migration]
 * Managing link:GmManualReferenceData[Reference data] (including data

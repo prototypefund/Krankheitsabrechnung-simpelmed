@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-"""GNUmed connection pooler.
+__doc__ = """GNUmed connection pooler.
 
 Currently, only readonly connections are pooled.
 
-This pool is (supposedly) thread safe.
+This pool is thread safe.
 """
 #============================================================
 # SPDX-License-Identifier: GPL-2.0-or-later
 __author__ = "karsten.hilbert@gmx.net"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 
 _DISABLE_CONNECTION_POOL = False		# set to True to disable the connection pool for debugging (= always return new connection)
@@ -18,10 +18,10 @@ _VERBOSE_PG_LOG = False				# set to True to force-enable verbose connections
 # standard library imports
 import os
 import sys
+import codecs
 import inspect
 import logging
 import threading
-import types
 import re as regex
 import datetime as pydt
 
@@ -56,13 +56,14 @@ except ValueError:
 
 import psycopg2.extensions
 import psycopg2.extras
-import psycopg2.errorcodes as PG_error_codes
+import psycopg2.errorcodes as SQL_error_codes
 
 
 # GNUmed module imports
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
 from Gnumed.pycommon import gmBorg
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
@@ -120,28 +121,22 @@ _map_psyco_iso_level2str = {
 	4: 'ISOLATION_LEVEL_READ_UNCOMMITTED'
 }
 
-_connection_loss_markers = [
-	'terminating connection due to administrator command'
-]
-
 #============================================================
 class cPGCredentials:
-	"""Holds PostgreSQL credentials"""
 
 	def __init__(self) -> None:
-		self.__host:str = None			# None: left out -> defaults to $PGHOST or implicit <localhost>
-		self.__port:int = None			# None: left out -> defaults to $PGPORT or libpq compiled-in default (typically 5432)
-		self.__database:str = None		# must be set before connecting
-		self.__user:str = None			# must be set before connecting
-		self.__password:str = None		# None: left out
-										# -> try password-less connect (TRUST/IDENT/PEER)
-										# -> try connect with password from <passfile> parameter or $PGPASSFILE or ~/.pgpass
+		self.__host = None			# None: left out -> defaults to $PGHOST or implicit <localhost>
+		self.__port = None			# None: left out -> defaults to $PGPORT or libpq compiled-in default (typically 5432)
+		self.__database = None		# must be set before connecting
+		self.__user = None			# must be set before connecting
+		self.__password = None		# None: left out
+									# -> try password-less connect (TRUST/IDENT/PEER)
+									# -> try connect with password from <passfile> parameter or $PGPASSFILE or ~/.pgpass
 
 	#--------------------------------------------------
 	# properties
 	#--------------------------------------------------
-	def __format_credentials(self) -> str:
-		"""Database credentials formatted as string."""
+	def __format_credentials(self):
 		cred_parts = [
 			'dbname=%s' % self.__database,
 			'host=%s' % self.__host,
@@ -153,11 +148,9 @@ class cPGCredentials:
 	formatted_credentials = property(__format_credentials)
 
 	#--------------------------------------------------
-	def generate_credentials_kwargs(self, connection_name:str=None) -> dict:
-		"""Return dictionary with credentials suitable for psycopg2.connection() keyword arguments."""
+	def generate_credentials_kwargs(self, connection_name=None):
 		assert (self.__database is not None), 'self.__database must be defined'
 		assert (self.__user is not None), 'self.__user must be defined'
-
 		kwargs = {
 			'dbname': self.__database,
 			'user': self.__user,
@@ -180,12 +173,11 @@ class cPGCredentials:
 	credentials_kwargs = property(generate_credentials_kwargs)
 
 	#--------------------------------------------------
-	def _get_database(self) -> str:
+	def _get_database(self):
 		return self.__database
 
-	def _set_database(self, database:str=None):
-		assert database, '<database> must not be None'
-		assert database.strip(), '<database> must not be empty'
+	def _set_database(self, database=None):
+		assert (database is not None), '<database> must not be None'
 		assert ('salaam.homeunix' not in database), 'The public database is not hosted by <salaam.homeunix.com> anymore.\n\nPlease point your configuration files to <publicdb.gnumed.de>.'
 		self.__database = database.strip()
 		_log.info('[%s]', self.__database)
@@ -193,21 +185,20 @@ class cPGCredentials:
 	database = property(_get_database, _set_database)
 
 	#--------------------------------------------------
-	def _get_host(self) -> str:
+	def _get_host(self):
 		return self.__host
 
-	def _set_host(self, host:str=None):
-		if host is not None:
-			host = host.strip()
-			if host == '':
-				host = None
-		self.__host = host
+	def _set_host(self, host=None):
+		if host is None or host.strip() == '':
+			self.__host = None
+		else:
+			self.__host = host.strip()
 		_log.info('[%s]', self.__host)
 
 	host = property(_get_host, _set_host)
 
 	#--------------------------------------------------
-	def _get_port(self) -> int:
+	def _get_port(self):
 		return self.__port
 
 	def _set_port(self, port=None):
@@ -215,16 +206,15 @@ class cPGCredentials:
 		if port is None:
 			self.__port = None
 			return
-
 		self.__port = int(port)
 
 	port = property(_get_port, _set_port)
 
 	#--------------------------------------------------
-	def _get_user(self) -> str:
+	def _get_user(self):
 		return self.__user
 
-	def _set_user(self, user:str=None):
+	def _set_user(self, user=None):
 		assert (user is not None), '<user> must not be None'
 		assert (user.strip() != ''), '<user> must not be empty'
 		self.__user = user.strip()
@@ -233,10 +223,10 @@ class cPGCredentials:
 	user = property(_get_user, _set_user)
 
 	#--------------------------------------------------
-	def _get_password(self) -> str:
+	def _get_password(self):
 		return self.__password
 
-	def _set_password(self, password:str=None):
+	def _set_password(self, password=None):
 		if password is not None:
 			gmLog2.add_word2hide(password)
 		self.__password = password
@@ -246,51 +236,29 @@ class cPGCredentials:
 
 #============================================================
 class gmConnectionPool(gmBorg.cBorg):
-	"""The Singleton connection pool class.
 
-	Any normal connection from GNUmed to PostgreSQL should go
-	through this pool. It needs credentials to be provided
-	via .credentials = <cPGCredentials>.
-	"""
 	def __init__(self) -> None:
 		try:
 			self.__initialized
 			return
 
 		except AttributeError:
-			self.__initialized:bool = True
+			self.__initialized = True
 
 		_log.info('[%s]: first instantiation', self.__class__.__name__)
-		self.__ro_conn_pool:dict[str, dbapi._psycopg.connection] = {}	# keyed by "credentials::thread ID"
-		self.__SQL_set_client_timezone:str = None
+		self.__ro_conn_pool = {}	# keyed by "credentials::thread ID"
+		self.__SQL_set_client_timezone = None
 		self.__client_timezone = None
-		self.__creds:cPGCredentials = None
+		self.__creds = None
 		self.__log_auth_environment()
 
 	#--------------------------------------------------
 	# connection API
 	#--------------------------------------------------
-	def get_connection(self, readonly:bool=True, verbose:bool=False, pooled:bool=True, connection_name:str=None, autocommit:bool=False, credentials:cPGCredentials=None) -> dbapi._psycopg.connection:
-		"""Provide a database connection.
+	def get_connection(self, readonly=True, verbose=False, pooled=True, connection_name=None, autocommit=False, credentials=None):
 
-		Readonly connections can be pooled. If there is no
-		suitable connection in the pool a new one will be
-		created and stored. The pool is per-thread and
-		per-credentials.
-
-		Args:
-			readonly: make connection read only
-			verbose: make connection log more things
-			pooled: return a pooled connection, if possible
-			connection_name: a human readable name for the connection, avoid spaces
-			autocommit: whether to autocommit
-			credentials: use for getting a connection with other credentials different from what the pool was set to before
-
-		Returns:
-			a working connection to a PostgreSQL database
-		"""
-#		if _DISABLE_CONNECTION_POOL:
-#			pooled = False
+		if _DISABLE_CONNECTION_POOL:
+			pooled = False
 
 		if credentials is not None:
 			pooled = False
@@ -321,6 +289,17 @@ class gmConnectionPool(gmBorg.cBorg):
 		# - client encoding
 		encoding = 'UTF8'
 		_log.debug('desired client (wire) encoding: [%s]', encoding)
+		# check whether psycopg2 can handle this encoding
+		if encoding not in psycopg2.extensions.encodings:
+			_log.warning('psycopg2 does not know about client (wire) encoding [%s]', encoding)
+			py_enc = encoding
+		else:
+			py_enc = psycopg2.extensions.encodings[encoding]
+		# check whether Python can handle this encoding
+		try:
+			codecs.lookup(py_enc)
+		except LookupError:
+			_log.warning('<codecs> module can NOT handle encoding [psycopg2::<%s> -> Python::<%s>]', encoding, py_enc)
 		conn.set_client_encoding(encoding)
 		# - transaction isolation level
 		if not readonly:
@@ -332,6 +311,7 @@ class gmConnectionPool(gmBorg.cBorg):
 		curs.close()
 		conn.commit()
 		if readonly and pooled:
+			# put into pool
 			_log.debug('putting RO conn with key [%s] into pool', self.pool_key)
 			self.__ro_conn_pool[self.pool_key] = conn
 		if verbose:
@@ -339,20 +319,19 @@ class gmConnectionPool(gmBorg.cBorg):
 		return conn
 
 	#--------------------------------------------------
-	def get_rw_conn(self, verbose:bool=False, connection_name:str=None, autocommit:bool=False) -> dbapi._psycopg.connection:
+	def get_rw_conn(self, verbose=False, connection_name=None, autocommit=False):
 		return self.get_connection(verbose = verbose, readonly = False, connection_name = connection_name, autocommit = autocommit)
 
 	#--------------------------------------------------
-	def get_ro_conn(self, verbose:bool=False, connection_name:str=None, autocommit:bool=False) -> dbapi._psycopg.connection:
+	def get_ro_conn(self, verbose=False, connection_name=None, autocommit=False):
 		return self.get_connection(verbose = verbose, readonly = False, connection_name = connection_name, autocommit = autocommit)
 
 	#--------------------------------------------------
-	def get_raw_connection(self, verbose:bool=False, readonly:bool=True, connection_name:str=None, autocommit:bool=False, credentials:cPGCredentials=None) -> dbapi._psycopg.connection:
+	def get_raw_connection(self, verbose=False, readonly=True, connection_name=None, autocommit=False, credentials=None):
 		"""Get a raw, unadorned connection.
 
-		This will not set any parameters such as encoding,
-		timezone, or datestyle, hence it can be used for
-		"service" connections for verifying encodings etc
+		- this will not set any parameters such as encoding, timezone, datestyle
+		- hence it can be used for "service" connections for verifying encodings etc
 		"""
 #		# FIXME: support verbose
 		if credentials is None:
@@ -377,10 +356,6 @@ class gmConnectionPool(gmBorg.cBorg):
 			raise cAuthenticationError(creds2use.formatted_credentials, msg).with_traceback(tb)
 
 		_log.debug('established connection "%s", backend PID: %s', gmTools.coalesce(connection_name, 'anonymous'), conn.get_backend_pid())
-		# safe-guard
-		conn._original_rollback = conn.rollback
-		conn.rollback = types.MethodType(_safe_transaction_rollback, conn)
-
 		# - inspect server
 		self.__log_on_first_contact(conn)
 		# - verify PG understands client time zone
@@ -425,11 +400,7 @@ class gmConnectionPool(gmBorg.cBorg):
 		return conn
 
 	#--------------------------------------------------
-	def get_dbowner_connection(self, readonly:bool=True, verbose:bool=False, connection_name:str=None, autocommit:bool=False, dbo_password:str=None, dbo_account:str='gm-dbo') -> dbapi._psycopg.connection:
-		"""Return a connection for the database owner.
-
-		Will not touch the pool.
-		"""
+	def get_dbowner_connection(self, readonly=True, verbose=False, connection_name=None, autocommit=False, dbo_password=None, dbo_account='gm-dbo'):
 		dbo_creds = cPGCredentials()
 		dbo_creds.user = dbo_account
 		dbo_creds.password = dbo_password
@@ -447,7 +418,6 @@ class gmConnectionPool(gmBorg.cBorg):
 
 	#--------------------------------------------------
 	def discard_pooled_connection_of_thread(self):
-		"""Discard from pool the connection of the current thread."""
 		try:
 			conn = self.__ro_conn_pool[self.pool_key]
 		except KeyError:
@@ -463,7 +433,6 @@ class gmConnectionPool(gmBorg.cBorg):
 
 	#--------------------------------------------------
 	def shutdown(self):
-		"""Close and discard all pooled connections."""
 		for conn_key in self.__ro_conn_pool:
 			conn = self.__ro_conn_pool[conn_key]
 			if conn.closed:
@@ -477,12 +446,12 @@ class gmConnectionPool(gmBorg.cBorg):
 	#--------------------------------------------------
 	# utility functions
 	#--------------------------------------------------
-	def __log_on_first_contact(self, conn:dbapi._psycopg.connection):
+	def __log_on_first_contact(self, conn):
 		global postgresql_version
 		if postgresql_version is not None:
 			return
 
-		_log.debug('_\\\\// heed Prime Directive _\\\\//')
+		_log.debug('heed Prime Directive')
 		# FIXME: verify PG version
 		curs = conn.cursor()
 		curs.execute ("""
@@ -526,7 +495,7 @@ class gmConnectionPool(gmBorg.cBorg):
 				_log.debug('$PGPASSFILE=%s -> file not found')
 
 	#--------------------------------------------------
-	def __detect_client_timezone(self, conn:dbapi._psycopg.connection):
+	def __detect_client_timezone(self, conn):
 		"""This is run on the very first connection."""
 
 		if self.__client_timezone is not None:
@@ -564,7 +533,7 @@ class gmConnectionPool(gmBorg.cBorg):
 		# FIXME: value as what we eventually detect
 
 	#--------------------------------------------------
-	def __expand_timezone(self, conn:dbapi._psycopg.connection, timezone:str):
+	def __expand_timezone(self, conn, timezone):
 		"""Some timezone defs are abbreviations so try to expand
 		them because "set time zone" doesn't take abbreviations"""
 
@@ -587,13 +556,14 @@ class gmConnectionPool(gmBorg.cBorg):
 		return result
 
 	#---------------------------------------------------
-	def __validate_timezone(self, conn:dbapi._psycopg.connection, timezone:str) -> bool:
+	def __validate_timezone(self, conn, timezone):
 		_log.debug('validating timezone [%s]', timezone)
 		cmd = 'SET timezone TO %(tz)s'
 		args = {'tz': timezone}
 		curs = conn.cursor()
 		try:
 			curs.execute(cmd, args)
+			_log.info('time zone [%s] is settable', timezone)
 		except dbapi.DataError:
 			_log.warning('timezone [%s] is not settable', timezone)
 			return False
@@ -604,54 +574,52 @@ class gmConnectionPool(gmBorg.cBorg):
 
 		finally:
 			conn.rollback()
-		_log.info('time zone [%s] is settable', timezone)
 		# can we actually use it, though ?
-		SQL = "SELECT '1931-03-26 11:11:11+0'::timestamp with time zone"
+		cmd = "SELECT '1920-01-19 23:00:00+01'::timestamp with time zone"
 		try:
-			curs.execute(SQL)
+			curs.execute(cmd)
 			curs.fetchone()
+			_log.info('timezone [%s] is usable', timezone)
 		except Exception:
 			_log.exception('error using timezone [%s]', timezone)
+			#_log.error('error using timezone [%s]', timezone)
 			return False
 
 		finally:
 			curs.close()
 			conn.rollback()
-		_log.info('timezone [%s] is usable', timezone)
 		return True
 
 	#--------------------------------------------------
 	# properties
 	#--------------------------------------------------
-	def _get_credentials(self) -> cPGCredentials:
+	def _get_credentials(self):
 		return self.__creds
 
-	def _set_credentials(self, creds:cPGCredentials=None):
-		if self.__creds is None:
-			self.__creds = creds
-			return
-
-		_log.debug('invalidating pooled connections on credentials change')
-		pool_key_start_from_curr_creds = self.__creds.formatted_credentials + '::thread='
-		for pool_key in self.__ro_conn_pool:
-			if not pool_key.startswith(pool_key_start_from_curr_creds):
-				continue
-			conn = self.__ro_conn_pool[pool_key]
-			del self.__ro_conn_pool[pool_key]
-			if conn.closed:
+	def _set_credentials(self, creds=None):
+		if self.__creds is not None:
+			_log.debug('invalidating pooled connections on credentials change')
+			curr_creds = self.__creds.formatted_credentials + '::'
+			for conn_key in self.__ro_conn_pool:
+				if not conn_key.startswith(curr_creds):
+					continue
+				conn = self.__ro_conn_pool[conn_key]
+				self.__ro_conn_pool[conn_key] = None
+				if conn.closed:
+					del conn
+					continue
+				_log.debug('closing open database connection, pool key: %s', conn_key)
+				log_conn_state(conn)
+				conn.close = conn.original_close
+				conn.close()
 				del conn
-				continue
-			_log.debug('closing open database connection, pool key: %s', pool_key)
-			log_conn_state(conn)
-			conn.original_close()
-			del conn
 		self.__creds = creds
 
 	credentials = property(_get_credentials, _set_credentials)
 
 	#--------------------------------------------------
-	def _get_pool_key(self) -> str:
-		return '%s::thread=%s' % (
+	def _get_pool_key(self):
+		return '%s::%s' % (
 			self.__creds.formatted_credentials,
 			threading.current_thread().ident
 		)
@@ -659,7 +627,7 @@ class gmConnectionPool(gmBorg.cBorg):
 	pool_key = property(_get_pool_key)
 
 	#--------------------------------------------------
-	def __is_auth_fail_msg(self, msg:str) -> bool:
+	def __is_auth_fail_msg(self, msg):
 		if 'fe_sendauth' in msg:
 			return True
 
@@ -685,10 +653,9 @@ class gmConnectionPool(gmBorg.cBorg):
 #============================================================
 # internal helpers
 #------------------------------------------------------------
-def exception_is_connection_loss(exc: Exception) -> bool:
-	"""Checks whether exception represents connection loss."""
+def exception_is_connection_loss(exc):
 	if not isinstance(exc, dbapi.Error):
-		# not a PG/psycopg2 exception
+		# not a PG exception
 		return False
 
 	try:
@@ -696,20 +663,17 @@ def exception_is_connection_loss(exc: Exception) -> bool:
 			_log.debug('indicates connection loss due to admin shutdown')
 			return True
 
-	except AttributeError:	# psycopg2 2.7/2.8 transition (no AdminShutdown exception)
+	except AttributeError:	# psycopg2 2.7/2.8 transition
 		pass
+
 	try:
 		msg = '%s' % exc.args[0]
 	except (AttributeError, IndexError, TypeError):
 		_log.debug('cannot extract message from exception')
+		# cannot process message
 		return False
 
 	_log.debug('interpreting: %s', msg)
-	for snippet in _connection_loss_markers:
-		if snippet in msg:
-			_log.debug('indicates connection loss')
-			return True
-
 	is_conn_loss = (
 		# OperationalError
 		('erver' in msg)
@@ -738,13 +702,13 @@ def exception_is_connection_loss(exc: Exception) -> bool:
 	return is_conn_loss
 
 #------------------------------------------------------------
-def log_pg_exception_details(exc: Exception) -> bool:
-	"""Logs details from a database exception."""
+def log_pg_exception_details(exc):
 	if not isinstance(exc, dbapi.Error):
 		return False
 
 	try:
-		for arg in exc.args:
+		args = exc.args
+		for arg in args:
 			_log.debug('exc.arg: %s', arg)
 	except AttributeError:
 		_log.debug('exception has no <.args>')
@@ -752,92 +716,73 @@ def log_pg_exception_details(exc: Exception) -> bool:
 	if exc.pgcode is None:
 		_log.debug('pgcode : %s', exc.pgcode)
 	else:
-		_log.debug('pgcode : %s (%s)', exc.pgcode, PG_error_codes.lookup(exc.pgcode))
-	log_cursor_state(exc.cursor)
+		_log.debug('pgcode : %s (%s)', exc.pgcode, SQL_error_codes.lookup(exc.pgcode))
+	if exc.cursor is None:
+		_log.debug('cursor: None')
+	else:
+		log_cursor_state(exc.cursor)
 	try:
-		diags = exc.diag
+		exc.diag
+		for attr in dir(exc.diag):
+			if attr.startswith('__'):
+				continue
+			val = getattr(exc.diag, attr)
+			if val is None:
+				continue
+			_log.debug('%s: %s', attr, val)
 	except AttributeError:
-		_log.debug('<.diag> not available')
-		diags = None
-	if diags is None:
-		return True
-
-	for attr in dir(diags):
-		if attr.startswith('__'):
-			continue
-		val = getattr(diags, attr)
-		if val is None:
-			continue
-		_log.debug('%s: %s', attr, val)
+		_log.debug('diag: not available')
 	return True
 
 #--------------------------------------------------
-def log_pg_settings(curs) -> bool:
-	"""Log PostgreSQL server settings."""
-	# config settings
+def log_pg_settings(curs):
 	try:
 		curs.execute('SELECT * FROM pg_settings')
 	except dbapi.Error:
 		_log.exception('cannot retrieve PG settings ("SELECT ... FROM pg_settings" failed)')
 		return False
-
 	settings = curs.fetchall()
-	if settings:
-		for setting in settings:
-			if setting['unit'] is None:
-				unit = ''
-			else:
-				unit = ' %s' % setting['unit']
-			if setting['sourcefile'] is None:
-				sfile = ''
-			else:
-				sfile = '// %s @ %s' % (setting['sourcefile'], setting['sourceline'])
-			pending_restart = u''
-			try:
-				if setting['pending_restart']:
-					pending_restart = u'// needs restart'
-			except KeyError:
-				pass	# 'pending_restart' does not exist in PG 9.4 yet
-			_log.debug('%s: %s%s (set from: [%s] // session RESET will set to: [%s]%s%s)',
-				setting['name'],
-				setting['setting'],
-				unit,
-				setting['source'],
-				setting['reset_val'],
-				pending_restart,
-				sfile
-			)
-	# extensions
+	for setting in settings:
+		if setting['unit'] is None:
+			unit = ''
+		else:
+			unit = ' %s' % setting['unit']
+		if setting['sourcefile'] is None:
+			sfile = ''
+		else:
+			sfile = '// %s @ %s' % (setting['sourcefile'], setting['sourceline'])
+		pending_restart = u''
+		try:
+			if setting['pending_restart']:
+				pending_restart = u'// needs restart'
+		except KeyError:
+			# 'pending_restart' does not exist in PG 9.4 yet
+			pass
+		_log.debug('%s: %s%s (set from: [%s] // sess RESET will set to: [%s]%s%s)',
+			setting['name'],
+			setting['setting'],
+			unit,
+			setting['source'],
+			setting['reset_val'],
+			pending_restart,
+			sfile
+		)
 	try:
 		curs.execute('select pg_available_extensions()')
 	except Exception:
 		_log.exception('cannot log available PG extensions')
 		return False
-
 	extensions = curs.fetchall()
-	if extensions:
-		for ext in extensions:
-			_log.debug('PG extension: %s', ext['pg_available_extensions'])
-	else:
+	if extensions is None:
 		_log.error('no PG extensions available')
-	# log pg_config -- can only be read by superusers :-/
-	# database collation
-	try:
-		curs.execute('SELECT *, pg_database_collation_actual_version(oid), pg_encoding_to_char(encoding) FROM pg_database WHERE datname = current_database()')
-	except dbapi.Error:
-		_log.exception('cannot log actual collation version (probably PG < 15)')
-		curs.execute('SELECT * FROM pg_database WHERE datname = current_database()')
-	config = curs.fetchall()
-	gmLog2.log_multiline(10, message = 'PG database config', text = gmTools.format_dict_like(dict(config[0]), tabular = True))
+		return False
+	for ext in extensions:
+		_log.debug('PG extension: %s', ext['pg_available_extensions'])
+
 	return True
 
 #--------------------------------------------------
-def log_cursor_state(cursor) -> None:
-	"""Log details about a DB-API cursor."""
-	if cursor is None:
-		_log.debug('cursor: None')
-		return
-
+def log_cursor_state(cursor):
 	conn = cursor.connection
 	tx_status = conn.get_transaction_status()
 	if tx_status in [ psycopg2.extensions.TRANSACTION_STATUS_INERROR, psycopg2.extensions.TRANSACTION_STATUS_UNKNOWN ]:
@@ -901,8 +846,7 @@ Query
 	gmLog2.log_multiline(logging.DEBUG, message = 'Link state:', line_prefix = '', text = txt)
 
 #--------------------------------------------------
-def log_conn_state(conn:dbapi._psycopg.connection) -> None:
-	"""Log details about a DB-API connection."""
+def log_conn_state(conn):
 	tx_status = conn.get_transaction_status()
 	if tx_status in [ psycopg2.extensions.TRANSACTION_STATUS_INERROR, psycopg2.extensions.TRANSACTION_STATUS_UNKNOWN ]:
 		isolation_level = '%s (tx aborted or unknown, cannot retrieve)' % conn.isolation_level
@@ -937,21 +881,6 @@ def log_conn_state(conn:dbapi._psycopg.connection) -> None:
 	_log.debug(conn)
 	for key in d:
 		_log.debug('%s: %s', key, d[key])
-
-#------------------------------------------------------------
-def _safe_transaction_rollback(self) -> bool:
-	"""Make connection.rollback() somewhat fault tolerant.
-
-	Will *not* fail if the connection is already closed.
-
-	Args:
-		conn: a psycopg2 connection object
-	"""
-	if self.closed:
-		_log.debug('fishy: connection already closed, cannot roll back')
-		return True
-
-	return self._original_rollback()
 
 #------------------------------------------------------------
 def _raise_exception_on_pooled_ro_conn_close():
@@ -999,7 +928,7 @@ psycopg2.extensions.register_type(psycopg2._psycopg.UNICODEARRAY)
 psycopg2.extensions.register_adapter(pydt.datetime, cAdapterPyDateTime)
 
 # turn dict()s into JSON - only works > 9.2
-psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
+#psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
 
 # do NOT adapt *lists* to "... IN (*) ..." syntax because we want
 # them adapted to "... ARRAY[]..." so we can support PG arrays
@@ -1155,7 +1084,6 @@ if __name__ == "__main__":
 		creds.user = 'gm-dbo'
 		pool.credentials = creds
 		conn = pool.get_connection()
-		print(conn)
 
 	#--------------------------------------------------------------------
 	def test_credentials():

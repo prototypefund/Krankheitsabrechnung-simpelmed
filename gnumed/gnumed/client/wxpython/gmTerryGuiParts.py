@@ -12,7 +12,7 @@ dependencies: wxPython (>= version 2.3.1)
 # $Source: /home/ncq/Projekte/cvs2git/vcs-mirror/gnumed/gnumed/client/wxpython/gmTerryGuiParts.py,v $
 __version__ = "$Revision: 1.6 $"
 __author__  = 'Dr. Richard Terry'
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 import wx
 
@@ -22,7 +22,7 @@ class cAlertCaption(wx.Panel):
 
 	This panel consists constructs a simple heading to be used at the bottom
 	of the screen, in the form of capitalised word on user defined foreground
-	and background colours. The heading is left justified currently. The
+	and background colours. The heading is left justified curently. The
 	default colours are black text on intermediate grey so as to not make it
 	too intrusive. The alert text will appear in flashing red text
 	"""
@@ -96,7 +96,7 @@ class cHeadingCaption(wx.Panel):
 	"""This panel consists constructs a simple heading to be used at the top
 
 		of a panel, in the form of capitalised word on user defined foreground
-		and background colours. The heading is left justified currently. The
+		and background colours. The heading is left justified curently. The
 		default colours are purple panel, orange label with yellow capitalised
 		words (sounds yuk doesn't it - but I like it and it works well!!!!!
 	"""
@@ -112,7 +112,7 @@ class cHeadingCaption(wx.Panel):
 		self.h = 0
 
 	def OnPaint (self, event):
-		self.redraw (wx.PaintDC (self))
+		self.redraw (wxPaintDC (self))
 
 	def OnSize (self, event):
 		self.w, self.h = self.GetClientSize()
@@ -145,7 +145,7 @@ class cHeadingCaption(wx.Panel):
 
 #===========================================================================
 if __name__ == "__main__":
-		app = wx.PyWidgetTester(size = (50, 20))
+		app = wxPyWidgetTester(size = (50, 20))
 		app.SetWidget(cAlertCaption, -1,"  Alerts  ")
 		app.MainLoop()
 

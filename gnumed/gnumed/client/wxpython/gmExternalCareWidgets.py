@@ -15,7 +15,6 @@ import wx
 # GNUmed libs
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher

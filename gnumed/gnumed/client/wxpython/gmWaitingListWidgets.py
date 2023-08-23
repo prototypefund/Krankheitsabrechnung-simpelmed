@@ -1,7 +1,7 @@
 """GNUmed waiting list widgets."""
 #================================================================
 __author__ = 'karsten.hilbert@gmx.net'
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 # stdlib
 import logging
@@ -14,11 +14,11 @@ import wx
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmMatchProvider
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmDateTime
 
@@ -488,6 +488,9 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 
 	#--------------------------------------------------------
 #	def test_generic_codes_prw():

@@ -9,22 +9,20 @@ copyright: authors
 __author__  = "H. Herb <hherb@gnumed.net>,\
 			   K. Hilbert <Karsten.Hilbert@gmx.net>,\
 			   I. Haywood <i.haywood@ugrad.unimelb.edu.au>"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
-import sys, logging
+import os.path, os, sys, logging
 
 
 import wx
 
 
-from Gnumed.pycommon import gmGuiBroker, gmDispatcher, gmCfgDB
-from Gnumed.wxpython import gmPlugin, gmTopPanel
+from Gnumed.pycommon import gmGuiBroker, gmI18N, gmDispatcher, gmCfg, gmLog2
+from Gnumed.wxpython import gmPlugin, gmTopPanel, gmGuiHelpers
 from Gnumed.business import gmPerson, gmPraxis
 
 
 _log = logging.getLogger('gm.ui')
-if __name__ == '__main__':
-	_ = lambda x:x
 
 #==============================================================================
 class cHorstSpaceNotebook(wx.Notebook):			# wx.BestBook ?
@@ -275,6 +273,7 @@ class cHorstSpaceLayoutMgr(wx.Panel):
 		progress_bar = gmPlugin.cLoadProgressBar(nr_plugins)
 
 		#  and load them
+		prev_plugin = ""
 		first_plugin = None
 		plugin = None
 		result = -1
@@ -294,8 +293,10 @@ class cHorstSpaceLayoutMgr(wx.Panel):
 				_log.exception('failed to load plugin %s', curr_plugin)
 				failed_plugins.append(curr_plugin)
 				result = 0
+
 			if first_plugin is None:
 				first_plugin = plugin
+			prev_plugin = curr_plugin
 
 		_log.debug('failed plugins: %s', failed_plugins)
 		progress_bar.DestroyLater()
@@ -304,15 +305,18 @@ class cHorstSpaceLayoutMgr(wx.Panel):
 		# force-refresh first notebook page
 		page = self.nb.GetPage(0)
 		page.Refresh()
+
 		return True
 
 	#----------------------------------------------
 	# external callbacks
 	#----------------------------------------------
 	def _on_post_patient_selection(self, **kwargs):
-		default_plugin = gmCfgDB.get4user (
+		db_cfg = gmCfg.cCfgSQL()
+		default_plugin = db_cfg.get2 (
 			option = 'patient_search.plugin_to_raise_after_search',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user',
 			default = 'gmPatientOverviewPlugin'
 		)
 		gmDispatcher.send(signal = 'display_widget', name = default_plugin)
@@ -491,4 +495,5 @@ class cHorstSpaceLayoutMgr(wx.Panel):
 
 #==============================================================================
 if __name__ == '__main__':
-	pass
+	wx.InitAllImageHandlers()
+	pgbar = gmPluginLoadProgressBar(3)

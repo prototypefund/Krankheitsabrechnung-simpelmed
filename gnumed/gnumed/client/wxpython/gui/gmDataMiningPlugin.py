@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-
-"""GNUmed data mining plugin aka SimpleReports"""
+#=====================================================
+# GNUmed data mining plugin aka SimpleReports
 #=====================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
 __license__ = "GPL"
 
 from Gnumed.wxpython import gmPlugin, gmDataMiningWidgets
 
-if __name__ == '__main__':
-	_ = lambda x:x
 #======================================================================
 class gmDataMiningPlugin(gmPlugin.cNotebookPlugin):
 	"""Plugin to encapsulate a simple data mining window."""

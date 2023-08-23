@@ -479,7 +479,7 @@ class ConfigDataDB(ConfigData):
 			cookie = self.mConfigData[aParameterName][1]
 #			print "name:", name
 #			print "cookie.", cookie
-			result = ConfigDataDB._dbcfg.get (
+			result = ConfigDataDB._dbcfg.get2 (
 				workplace=self.mWorkplace,
 #				self.mUser,
 				cookie = cookie,
@@ -551,7 +551,7 @@ class ConfigDataDB(ConfigData):
 			return None
 		# now we should re-read the name cache in order to have 
 		# consistent data. Since we wont signal the frontend, we will
-		# have to do this manually in the frontend 
+		# have to do this manually in the fronend 
 
 		return 1
 	#---------------------------------------------------------------------
@@ -596,7 +596,7 @@ class ConfigDataDB(ConfigData):
 	def getRawName(self,aParameterName = None):
 		"""
 		Returns the parameter name without possible cookie part(s).
-		Needed to identify matching config definition entry.
+		Needed to indentify matching config definition entry.
 		"""
 		try:
 			return self.mConfigData[aParameterName][0]
@@ -740,7 +740,7 @@ class ConfigDataFile(ConfigData):
 	def getRawName(self,aParameterName = None):
 		"""
 		Returns the parameter name without possible cookie part(s).
-		Needed to identify matching config definition entry.
+		Needed to indentify matching config definition entry.
 		"""
 		# since CfgFile does not know about cookies, just return 
 		# the parameter name

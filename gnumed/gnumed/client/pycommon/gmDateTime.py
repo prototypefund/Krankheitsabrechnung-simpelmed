@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-"""GNUmed date/time handling.
+__doc__ = """
+GNUmed date/time handling.
 
 This modules provides access to date/time handling
 and offers an fuzzy timestamp implementation
@@ -9,6 +10,7 @@ It utilizes
 
 	- Python time
 	- Python datetime
+	- mxDateTime
 
 Note that if you want locale-aware formatting you need to call
 
@@ -39,19 +41,23 @@ Other useful links:
 """
 #===========================================================================
 __author__ = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 # stdlib
-import sys, datetime as pyDT, time, os, re as regex, logging
-from typing import Callable
+import sys, datetime as pyDT, time, os, re as regex, locale, logging
+
+
+# 3rd party
+#import mx.DateTime as mxDT
 
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+#from Gnumed.pycommon import gmI18N
 
 
 _log = logging.getLogger('gm.datetime')
+#_log.info(u'mx.DateTime version: %s', mxDT.__version__)
 
 dst_locally_in_use = None
 dst_currently_in_effect = None
@@ -59,10 +65,12 @@ dst_currently_in_effect = None
 py_timezone_name = None
 py_dst_timezone_name = None
 current_local_utc_offset_in_seconds = None
+#current_local_timezone_interval = None
 current_local_iso_numeric_timezone_string = None
 current_local_timezone_name = None
 
-gmCurrentLocalTimezone = None
+gmCurrentLocalTimezone = 'gmCurrentLocalTimezone not initialized'
+
 
 (	acc_years,
 	acc_months,
@@ -109,8 +117,8 @@ days_per_week = 7
 # module init
 #---------------------------------------------------------------------------
 def init():
-	"""Initialize date/time handling and log date/time environment."""
 
+#	_log.debug('mx.DateTime.now(): [%s]' % mxDT.now())
 	_log.debug('datetime.now()   : [%s]' % pyDT.datetime.now())
 	_log.debug('time.localtime() : [%s]' % str(time.localtime()))
 	_log.debug('time.gmtime()    : [%s]' % str(time.gmtime()))
@@ -126,6 +134,7 @@ def init():
 	_log.debug('time.tzname             : [%s / %s] (non-DST / DST)' % time.tzname)
 	_log.debug('time.localtime.tm_zone  : [%s]', time.localtime().tm_zone)
 	_log.debug('time.localtime.tm_gmtoff: [%s]', time.localtime().tm_gmtoff)
+#	_log.debug('mx.DateTime.now().gmtoffset(): [%s]' % mxDT.now().gmtoffset())
 
 	global py_timezone_name
 	py_timezone_name = time.tzname[0]
@@ -159,7 +168,12 @@ def init():
 	else:
 		_log.debug('UTC offset is ZERO, assuming Greenwich Time')
 
+#	global current_local_timezone_interval
+#	current_local_timezone_interval = mxDT.now().gmtoffset()
+#	_log.debug('ISO timezone: [%s] (taken from mx.DateTime.now().gmtoffset())' % current_local_timezone_interval)
+
 	global current_local_iso_numeric_timezone_string
+#	current_local_iso_numeric_timezone_string = str(current_local_timezone_interval).replace(',', '.')
 	current_local_iso_numeric_timezone_string = '%s' % current_local_utc_offset_in_seconds
 	_log.debug('ISO numeric timezone string: [%s]' % current_local_iso_numeric_timezone_string)
 
@@ -182,14 +196,16 @@ def init():
 #		print (" timezone name:", gmCurrentLocalTimezone.tzname(pyDT.datetime.now()))
 
 #===========================================================================
+# local timezone implementation (lifted from the docs)
+#
+# A class capturing the platform's idea of local time.
+# (May result in wrong values on historical times in
+#  timezones where UTC offset and/or the DST rules had
+#  changed in the past.)
+#---------------------------------------------------------------------------
 class cPlatformLocalTimezone(pyDT.tzinfo):
-	"""Local timezone implementation (lifted from the docs).
 
-	A class capturing the platform's idea of local time.
-
-	May result in wrong values on historical times in
-	timezones where UTC offset and/or the DST rules had
-	changed in the past."""
+	#-----------------------------------------------------------------------
 	def __init__(self):
 		self._SECOND = pyDT.timedelta(seconds = 1)
 		self._nonDST_OFFSET_FROM_UTC = pyDT.timedelta(seconds = -time.timezone)
@@ -241,26 +257,26 @@ class cPlatformLocalTimezone(pyDT.tzinfo):
 #===========================================================================
 # convenience functions
 #---------------------------------------------------------------------------
-def get_next_month(dt:pyDT.datetime):
+def get_next_month(dt):
 	next_month = dt.month + 1
 	if next_month == 13:
 		return 1
 	return next_month
 
 #---------------------------------------------------------------------------
-def get_last_month(dt:pyDT.datetime):
+def get_last_month(dt):
 	last_month = dt.month - 1
 	if last_month == 0:
 		return 12
 	return last_month
 
 #---------------------------------------------------------------------------
-def get_date_of_weekday_in_week_of_date(weekday, base_dt:pyDT.datetime=None) -> pyDT.datetime:
+def get_date_of_weekday_in_week_of_date(weekday, base_dt=None):
 	# weekday:
 	# 0 = Sunday
 	# 1 = Monday ...
-	assert weekday in [0,1,2,3,4,5,6,7], 'weekday must be in 0 (Sunday) to 7 (Sunday, again)'
-
+	if weekday not in [0,1,2,3,4,5,6,7]:
+		raise ValueError('weekday must be in 0 (Sunday) to 7 (Sunday, again)')
 	if base_dt is None:
 		base_dt = pydt_now_here()
 	dt_weekday = base_dt.isoweekday()		# 1 = Mon
@@ -269,7 +285,7 @@ def get_date_of_weekday_in_week_of_date(weekday, base_dt:pyDT.datetime=None) -> 
 	return pydt_add(base_dt, days = days2add)
 
 #---------------------------------------------------------------------------
-def get_date_of_weekday_following_date(weekday, base_dt:pyDT.datetime=None):
+def get_date_of_weekday_following_date(weekday, base_dt=None):
 	# weekday:
 	# 0 = Sunday		# will be wrapped to 7
 	# 1 = Monday ...
@@ -287,8 +303,55 @@ def get_date_of_weekday_following_date(weekday, base_dt:pyDT.datetime=None):
 		days2add += 7
 	return pydt_add(base_dt, days = days2add)
 
+#===========================================================================
+# mxDateTime conversions
 #---------------------------------------------------------------------------
-def format_dob(dob:pyDT.datetime, format='%Y %b %d', none_string=None, dob_is_estimated=False):
+def mxdt2py_dt(mxDateTime):
+
+	if isinstance(mxDateTime, pyDT.datetime):
+		return mxDateTime
+
+	try:
+		tz_name = str(mxDateTime.gmtoffset()).replace(',', '.')
+	except mxDT.Error:
+		_log.debug('mx.DateTime cannot gmtoffset() this timestamp, assuming local time')
+		#tz_name = current_local_iso_numeric_timezone_string
+		tz_name = current_local_timezone_name
+
+	if dst_currently_in_effect:
+		# convert
+		tz = cFixedOffsetTimezone (
+			offset = ((time.altzone * -1) // 60),
+			name = tz_name
+		)
+	else:
+		# convert
+		tz = cFixedOffsetTimezone (
+			offset = ((time.timezone * -1) // 60),
+			name = tz_name
+		)
+
+	try:
+		return pyDT.datetime (
+			year = mxDateTime.year,
+			month = mxDateTime.month,
+			day = mxDateTime.day,
+			tzinfo = tz
+		)
+	except Exception:
+		_log.debug ('error converting mx.DateTime.DateTime to Python: %s-%s-%s %s:%s %s.%s',
+			mxDateTime.year,
+			mxDateTime.month,
+			mxDateTime.day,
+			mxDateTime.hour,
+			mxDateTime.minute,
+			mxDateTime.second,
+			mxDateTime.tz
+		)
+		raise
+
+#===========================================================================
+def format_dob(dob, format='%Y %b %d', none_string=None, dob_is_estimated=False):
 	if dob is None:
 		if none_string is None:
 			return _('** DOB unknown **')
@@ -316,8 +379,7 @@ def pydt_strftime(dt=None, format='%Y %b %d  %H:%M.%S', accuracy=None, none_str=
 		return 'strftime() error'
 
 #---------------------------------------------------------------------------
-def pydt_add(dt:pyDT.datetime, years=0, months=0, weeks=0, days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microseconds=0):
-	"""Add some time to a given datetime."""
+def pydt_add(dt, years=0, months=0, weeks=0, days=0, hours=0, minutes=0, seconds=0, milliseconds=0, microseconds=0):
 	if months > 11 or months < -11:
 		raise ValueError('pydt_add(): months must be within [-11..11]')
 
@@ -332,7 +394,6 @@ def pydt_add(dt:pyDT.datetime, years=0, months=0, weeks=0, days=0, hours=0, minu
 	)
 	if (years == 0) and (months == 0):
 		return dt
-
 	target_year = dt.year + years
 	target_month = dt.month + months
 	if target_month > 12:
@@ -344,7 +405,7 @@ def pydt_add(dt:pyDT.datetime, years=0, months=0, weeks=0, days=0, hours=0, minu
 	return pydt_replace(dt, year = target_year, month = target_month, strict = False)
 
 #---------------------------------------------------------------------------
-def pydt_replace(dt:pyDT.datetime, strict=True, year=None, month=None, day=None, hour=None, minute=None, second=None, microsecond=None, tzinfo=None):
+def pydt_replace(dt, strict=True, year=None, month=None, day=None, hour=None, minute=None, second=None, microsecond=None, tzinfo=None):
 	# normalization required because .replace() does not
 	# deal with keyword arguments being None ...
 	if year is None:
@@ -386,18 +447,14 @@ def pydt_replace(dt:pyDT.datetime, strict=True, year=None, month=None, day=None,
 	return dt.replace(year = year, month = month, day = day, hour = hour, minute = minute, second = second, microsecond = microsecond, tzinfo = tzinfo)
 
 #---------------------------------------------------------------------------
-def pydt_is_today(dt:pyDT.datetime) -> bool:
-	"""Check wheter <dt> is today."""
+def pydt_is_today(dt):
 	now = pyDT.datetime.now(gmCurrentLocalTimezone)
 	if dt.day != now.day:
 		return False
-
 	if dt.month != now.month:
 		return False
-
 	if dt.year != now.year:
 		return False
-
 	return True
 
 #---------------------------------------------------------------------------
@@ -462,86 +519,126 @@ def format_interval(interval=None, accuracy_wanted=None, none_string=None, verbo
 	hours, secs = divmod(secs, 3600)
 	mins, secs = divmod(secs, 60)
 
-	if verbose:
-		years_tag = ' ' + (_('year') if years == 1 else _('years'))
-		months_tag = ' ' + (_('month') if months == 1 else _('months'))
-		weeks_tag = ' ' + (_('week') if weeks == 1 else _('weeks'))
-		days_tag = ' ' + (_('day') if days == 1 else _('days'))
-		hours_tag = ' ' + (_('hour') if hours == 1 else _('hours'))
-		minutes_tag = ' ' + (_('minute') if mins == 1 else _('minutes'))
-		seconds_tag = ' ' + (_('second') if secs == 1 else _('seconds'))
-	else:
-		years_tag = _('interval_format_tag::years::y')[-1:]
-		months_tag = _('interval_format_tag::months::m')[-1:]
-		weeks_tag = _('interval_format_tag::weeks::w')[-1:]
-		days_tag = _('interval_format_tag::days::d')[-1:]
-		hours_tag = '/24'
-		minutes_tag = '/60'
-		seconds_tag = 's'
+	tmp = ''
 
-	# special cases
-	if years == 0:
-		if accuracy_wanted < acc_months:
-			return _('0 years') if verbose else '0%s' % years_tag
-
-	if years + months == 0:
-		if accuracy_wanted < acc_weeks:
-			return _('0 months') if verbose else '0%s' % months_tag
-
-	if years + months + weeks == 0:
-		if accuracy_wanted < acc_days:
-			return _('0 weeks') if verbose else '0%s' % weeks_tag
-
-	if years + months + weeks + days == 0:
-		if accuracy_wanted < acc_hours:
-			return _('0 days') if verbose else '0%s' % days_tag
-
-	if years + months + weeks + days + hours == 0:
-		if accuracy_wanted < acc_minutes:
-			return _('0 hours') if verbose else '0/24'
-
-	if years + months + weeks + days + hours + mins == 0:
-		if accuracy_wanted < acc_seconds:
-			return _('0 minutes') if verbose else '0/60'
-
-	if years + months + weeks + days + hours + mins + secs == 0:
-		return _('0 seconds') if verbose else '0s'
-
-	# normal cases
-	formatted_intv = ''
 	if years > 0:
-		formatted_intv += '%s%s' % (int(years), years_tag)
+		if verbose:
+			if years > 1:
+				tag = ' ' + _('years')
+			else:
+				tag = ' ' + _('year')
+		else:
+			tag = _('interval_format_tag::years::y')[-1:]
+		tmp += '%s%s' % (int(years), tag)
+
 	if accuracy_wanted < acc_months:
-		return formatted_intv.strip()
+		if tmp == '':
+			if verbose:
+				return _('0 years')
+			return '0%s' % _('interval_format_tag::years::y')[-1:]
+		return tmp.strip()
 
 	if months > 0:
-		formatted_intv += ' %s%s' % (int(months), months_tag)
+		if verbose:
+			if months > 1:
+				tag = ' ' + _('months')
+			else:
+				tag = ' ' + _('month')
+		else:
+			tag = _('interval_format_tag::months::m')[-1:]
+		tmp += ' %s%s' % (int(months), tag)
+
 	if accuracy_wanted < acc_weeks:
-		return formatted_intv.strip()
+		if tmp == '':
+			if verbose:
+				return _('0 months')
+			return '0%s' % _('interval_format_tag::months::m')[-1:]
+		return tmp.strip()
 
 	if weeks > 0:
-		formatted_intv += ' %s%s' % (int(weeks), weeks_tag)
+		if verbose:
+			if weeks > 1:
+				tag = ' ' + _('weeks')
+			else:
+				tag = ' ' + _('week')
+		else:
+			tag = _('interval_format_tag::weeks::w')[-1:]
+		tmp += ' %s%s' % (int(weeks), tag)
+
 	if accuracy_wanted < acc_days:
-		return formatted_intv.strip()
+		if tmp == '':
+			if verbose:
+				return _('0 weeks')
+			return '0%s' % _('interval_format_tag::weeks::w')[-1:]
+		return tmp.strip()
 
 	if days > 0:
-		formatted_intv += ' %s%s' % (int(days), days_tag)
+		if verbose:
+			if days > 1:
+				tag = ' ' + _('days')
+			else:
+				tag = ' ' + _('day')
+		else:
+			tag = _('interval_format_tag::days::d')[-1:]
+		tmp += ' %s%s' % (int(days), tag)
+
 	if accuracy_wanted < acc_hours:
-		return formatted_intv.strip()
+		if tmp == '':
+			if verbose:
+				return _('0 days')
+			return '0%s' % _('interval_format_tag::days::d')[-1:]
+		return tmp.strip()
 
 	if hours > 0:
-		formatted_intv += ' %s%s' % (int(hours), hours_tag)
+		if verbose:
+			if hours > 1:
+				tag = ' ' + _('hours')
+			else:
+				tag = ' ' + _('hour')
+		else:
+			tag = '/24'
+		tmp += ' %s%s' % (int(hours), tag)
+
 	if accuracy_wanted < acc_minutes:
-		return formatted_intv.strip()
+		if tmp == '':
+			if verbose:
+				return _('0 hours')
+			return '0/24'
+		return tmp.strip()
 
 	if mins > 0:
-		formatted_intv += ' %s%s' % (int(mins), minutes_tag)
+		if verbose:
+			if mins > 1:
+				tag = ' ' + _('minutes')
+			else:
+				tag = ' ' + _('minute')
+		else:
+			tag = '/60'
+		tmp += ' %s%s' % (int(mins), tag)
+
 	if accuracy_wanted < acc_seconds:
-		return formatted_intv.strip()
+		if tmp == '':
+			if verbose:
+				return _('0 minutes')
+			return '0/60'
+		return tmp.strip()
 
 	if secs > 0:
-		formatted_intv += ' %s%s' % (int(secs), seconds_tag)
-	return formatted_intv.strip()
+		if verbose:
+			if secs > 1:
+				tag = ' ' + _('seconds')
+			else:
+				tag = ' ' + _('second')
+		else:
+			tag = 's'
+		tmp += ' %s%s' % (int(secs), tag)
+
+	if tmp == '':
+		if verbose:
+			return _('0 seconds')
+		return '0s'
+
+	return tmp.strip()
 
 #---------------------------------------------------------------------------
 def format_interval_medically(interval=None):
@@ -552,10 +649,11 @@ def format_interval_medically(interval=None):
 	# more than 1 year ?
 	if interval.days > 364:
 		years, days = divmod(interval.days, avg_days_per_gregorian_year)
-		months, day = divmod(days, 30.33)
+		leap_days, tmp = divmod(years, 4)
+		days_left_without_leap_days = days - leap_days
+		months, day = divmod((days_left_without_leap_days), 30.33)
 		if int(months) == 0:
 			return "%s%s" % (int(years), _('interval_format_tag::years::y')[-1:])
-
 		return "%s%s %s%s" % (int(years), _('interval_format_tag::years::y')[-1:], int(months), _('interval_format_tag::months::m')[-1:])
 
 	# more than 30 days / 1 month ?
@@ -613,7 +711,7 @@ def format_pregnancy_weeks(age):
 	return '%s%s%s%s' % (
 		int(weeks),
 		_('interval_format_tag::weeks::w')[-1:],
-		int(days),
+		days,
 		_('interval_format_tag::days::d')[-1:]
 	)
 
@@ -660,21 +758,18 @@ def is_leap_year(year):
 	return False
 
 #---------------------------------------------------------------------------
-def calculate_apparent_age(start=None, end=None) -> tuple:
-	"""Calculate age in a way humans naively expect it.
-
-	This does *not* take into account time zones which may
-	shift the result by one day.
-
-	Args:
-		start: the beginning of the period-to-be-aged, the 'birth' if you will
-		end: the end of the period, default *now*
-
-	Returns:
-		A tuple (years, ..., seconds) as simple differences
-		between the fields:
+def calculate_apparent_age(start=None, end=None):
+	"""The result of this is a tuple (years, ..., seconds) as one would
+	'expect' an age to look like, that is, simple differences between
+	the fields:
 
 		(years, months, days, hours, minutes, seconds)
+
+	This does not take into account time zones which may
+	shift the result by one day.
+
+	<start> and <end> must by python datetime instances
+	<end> is assumed to be "now" if not given
 	"""
 	if end is None:
 		end = pyDT.datetime.now(gmCurrentLocalTimezone)
@@ -969,12 +1064,12 @@ def __single_char2py_dt(str2parse, trigger_chars=None):
 
 	This also defines the significance of the order of the characters.
 	"""
-	str2parse = str2parse.strip().casefold()
+	str2parse = str2parse.strip().lower()
 	if len(str2parse) != 1:
 		return []
 
 	if trigger_chars is None:
-		trigger_chars = _('ndmy (single character date triggers)')[:4].casefold()
+		trigger_chars = _('ndmy (single character date triggers)')[:4].lower()
 
 	if str2parse not in trigger_chars:
 		return []
@@ -1371,7 +1466,7 @@ def __explicit_offset2py_dt(str2parse, offset_chars=None):
 		This also defines the significance of the order of the characters.
 	"""
 	if offset_chars is None:
-		offset_chars = _('hdwmy (single character date offset triggers)')[:5].casefold()
+		offset_chars = _('hdwmy (single character date offset triggers)')[:5].lower()
 
 	str2parse = str2parse.replace(' ', '').replace('\t', '')
 	# "+/-XXXh/d/w/m/t"
@@ -1426,68 +1521,48 @@ def __explicit_offset2py_dt(str2parse, offset_chars=None):
 	return [{'data': ts, 'label': label}]
 
 #---------------------------------------------------------------------------
-STR2PYDT_DEFAULT_PATTERNS = [
-	'%Y-%m-%d',
-	'%y-%m-%d',
-	'%Y/%m/%d',
-	'%y/%m/%d',
-	'%d-%m-%Y',
-	'%d-%m-%y',
-	'%d/%m/%Y',
-	'%d/%m/%y',
-	'%d.%m.%Y',
-	'%m-%d-%Y',
-	'%m-%d-%y',
-	'%m/%d/%Y',
-	'%m/%d/%y',
-	'%Y.%m.%d'
-]
-"""Default patterns being passed to strptime()."""
+def str2pydt_matches(str2parse=None, patterns=None):
+	"""Turn a string into candidate dates and auto-completions the user is likely to type.
 
-STR2PYDT_PARSERS:list[Callable[[str], dict]] = [
-	__single_dot2py_dt,
-	__numbers_only2py_dt,
-	__single_slash2py_dt,
-	__single_char2py_dt,
-	__explicit_offset2py_dt
-]
-"""Specialized parsers for string -> datetime conversion."""
+	You MUST have called locale.setlocale(locale.LC_ALL, '')
+	somewhere in your code previously.
 
-#---------------------------------------------------------------------------
-def str2pydt_matches(str2parse:str=None, patterns:list=None) -> list:
-	"""Turn a string into candidate datetimes.
-
-	Args:
-		str2parse: string to turn into candidate datetimes
-		patterns: additional patterns to try with strptime()
-
-	A number of default patterns will be tried. Also, a few
-	specialized parsers will be run. See the source for
-	details.
-
-	If the input contains a space followed by more characters
-	matching either hour:minute or hour:minute:second that
-	will be used as the time part of the datetime returned.
-	Otherwise 11:11:11 will be used as default.
-
-	Note: You must have previously called
-
-		locale.setlocale(locale.LC_ALL, '')
-
-	somewhere in your code.
-
-	Returns:
-		List of Python datetimes the input could be parsed as.
+	@param patterns: list of time.strptime compatible date pattern
+	@type patterns: list
 	"""
-	matches:list[dict] = []
-	for parser in STR2PYDT_PARSERS:
-		matches.extend(parser(str2parse))
+	matches = []
+	matches.extend(__single_dot2py_dt(str2parse))
+	matches.extend(__numbers_only2py_dt(str2parse))
+	matches.extend(__single_slash2py_dt(str2parse))
+	matches.extend(__single_char2py_dt(str2parse))
+	matches.extend(__explicit_offset2py_dt(str2parse))
+
+	# apply explicit patterns
+	if patterns is None:
+		patterns = []
+
+	patterns.append('%Y-%m-%d')
+	patterns.append('%y-%m-%d')
+	patterns.append('%Y/%m/%d')
+	patterns.append('%y/%m/%d')
+
+	patterns.append('%d-%m-%Y')
+	patterns.append('%d-%m-%y')
+	patterns.append('%d/%m/%Y')
+	patterns.append('%d/%m/%y')
+	patterns.append('%d.%m.%Y')
+
+	patterns.append('%m-%d-%Y')
+	patterns.append('%m-%d-%y')
+	patterns.append('%m/%d/%Y')
+	patterns.append('%m/%d/%y')
+
+	patterns.append('%Y.%m.%d')
+
 	parts = str2parse.split(maxsplit = 1)
 	hour = 11
 	minute = 11
 	second = 11
-	acc = acc_days
-	lbl_fmt = '%Y-%m-%d'
 	if len(parts) > 1:
 		for pattern in ['%H:%M', '%H:%M:%S']:
 			try:
@@ -1495,15 +1570,10 @@ def str2pydt_matches(str2parse:str=None, patterns:list=None) -> list:
 				hour = date.hour
 				minute = date.minute
 				second = date.second
-				acc = acc_minutes
-				lbl_fmt = '%Y-%m-%d %H:%M'
 				break
 			except ValueError:
 				# C-level overflow
 				continue
-	if patterns is None:
-		patterns = []
-	patterns.extend(STR2PYDT_DEFAULT_PATTERNS)
 	for pattern in patterns:
 		try:
 			date = pyDT.datetime.strptime(parts[0], pattern).replace (
@@ -1514,11 +1584,13 @@ def str2pydt_matches(str2parse:str=None, patterns:list=None) -> list:
 			)
 			matches.append ({
 				'data': date,
-				'label': pydt_strftime(date, format = lbl_fmt, accuracy = acc)
+				'label': pydt_strftime(date, format = '%Y-%m-%d', accuracy = acc_days)
 			})
 		except ValueError:
 			# C-level overflow
 			continue
+
+
 	return matches
 
 #===========================================================================
@@ -1940,7 +2012,7 @@ class cFuzzyTimestamp:
 	to allow the programmer to set the precision of the
 	timestamp.
 
-	The timestamp will have to be initialized with a fully
+	The timestamp will have to be initialzed with a fully
 	precise value (which may, of course, contain partially
 	fake data to make up for missing values). One can then
 	set the accuracy value to indicate up to which part of
@@ -2058,9 +2130,7 @@ if __name__ == '__main__':
 		sys.exit()
 
 	from Gnumed.pycommon import gmI18N
-	del _
-	gmI18N.activate_locale()
-	gmI18N.install_domain()
+	from Gnumed.pycommon import gmLog2
 
 	#-----------------------------------------------------------------------
 	intervals_as_str = [
@@ -2151,16 +2221,12 @@ if __name__ == '__main__':
 			pyDT.timedelta(days = 367),
 			pyDT.timedelta(days = 400),
 			pyDT.timedelta(weeks = 53 * 30),
-			pyDT.timedelta(weeks = 53 * 79, days = 33),
-			pyDT.timedelta(days = 3650)
+			pyDT.timedelta(weeks = 53 * 79, days = 33)
 		]
 		idx = 1
 		for intv in intervals:
 			print ('%s) %s -> %s' % (idx, intv, format_interval_medically(intv)))
 			idx += 1
-		#intv = pyDT.timedelta(days = 3650)
-		#print ('%s -> %s' % (intv, format_interval_medically(intv)))
-
 	#-----------------------------------------------------------------------
 	def test_str2interval():
 		print ("testing str2interval()")
@@ -2175,6 +2241,7 @@ if __name__ == '__main__':
 	def test_date_time():
 		print ("DST currently in effect:", dst_currently_in_effect)
 		print ("current UTC offset:", current_local_utc_offset_in_seconds, "seconds")
+		#print ("current timezone (interval):", current_local_timezone_interval)
 		print ("current timezone (ISO conformant numeric string):", current_local_iso_numeric_timezone_string)
 		print ("local timezone class:", cPlatformLocalTimezone)
 		print ("")
@@ -2229,10 +2296,10 @@ if __name__ == '__main__':
 	def test_get_pydt():
 		print ("testing platform for handling dates before 1970")
 		print ("-----------------------------------------------")
-		#ts = mxDT.DateTime(1935, 4, 2)
-		#fts = cFuzzyTimestamp(timestamp=ts)
-		#print ("fts           :", fts)
-		#print ("fts.get_pydt():", fts.get_pydt())
+		ts = mxDT.DateTime(1935, 4, 2)
+		fts = cFuzzyTimestamp(timestamp=ts)
+		print ("fts           :", fts)
+		print ("fts.get_pydt():", fts.get_pydt())
 	#-------------------------------------------------
 	def test_calculate_apparent_age():
 		# test leap year glitches
@@ -2277,7 +2344,7 @@ if __name__ == '__main__':
 		print (calculate_apparent_age(start = start))
 		print (format_apparent_age_medically(calculate_apparent_age(start = start)))
 	#-------------------------------------------------
-	def test_str2pydt_matches():
+	def test_str2pydt():
 		print ("testing function str2pydt_matches")
 		print ("---------------------------------")
 
@@ -2352,13 +2419,13 @@ if __name__ == '__main__':
 
 	#test_date_time()
 	#test_str2fuzzy_timestamp_matches()
-	#test_str2pydt_matches()
 	#test_get_date_of_weekday_in_week_of_date()
 	#test_cFuzzyTimeStamp()
 	#test_get_pydt()
 	#test_str2interval()
 	#test_format_interval()
-	test_format_interval_medically()
+	#test_format_interval_medically()
+	#test_str2pydt()
 	#test_pydt_strftime()
 	#test_calculate_apparent_age()
 	#test_is_leap_year()

@@ -20,7 +20,6 @@ import lxml.etree as lxml_etree
 # GNUmed libs
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmMimeLib
@@ -36,7 +35,7 @@ from Gnumed.exporters import gmTimelineExporter
 _log = logging.getLogger('gm.ui.tl')
 
 #============================================================
-#from Gnumed.timelinelib.canvas.data import TimePeriod
+from Gnumed.timelinelib.canvas.data import TimePeriod
 
 # activate experimental container features
 from Gnumed.timelinelib.features.experimental import experimentalfeatures
@@ -299,7 +298,7 @@ class cEMRTimelinePluginPnl(wxgEMRTimelinePluginPnl.wxgEMRTimelinePluginPnl, gmR
 		dlg = wx.FileDialog (
 			parent = self,
 			message = _("Save timeline as images (SVG, PNG) under..."),
-			defaultDir = gmTools.gmPaths().user_work_dir,
+			defaultDir = os.path.expanduser(os.path.join('~', 'gnumed')),
 			defaultFile = 'timeline.svg',
 			wildcard = '%s (*.svg)|*.svg' % _('SVG files'),
 			style = wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT

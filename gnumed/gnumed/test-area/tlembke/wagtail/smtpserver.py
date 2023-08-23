@@ -37,7 +37,7 @@ class OurServer(smtpd.SMTPServer):
 				self.sendEncMessage(m)
 				status=''
 			else:
-				print "Error in encrypting message"
+				print "Error in encrypting mesage"
 		else:
 			print "Not authorised smtp user"
 			status="Not authorised smtp user"
@@ -199,7 +199,7 @@ class wtKeysClass(GnuPGInterface.GnuPG):
 	
 		
 	def encryptMessage(self,message,toAddr):
-		# get recipients preferred encryption and keyID
+		# get recepients preferred encryption and keyID
 		keyID,prefEnc,errorMsg=self.getKeyID(toAddr)
 		print "prefEnc is %i" %prefEnc
 		status=errorMsg
@@ -305,7 +305,7 @@ smtpPort=8023
 gnupg = wtKeysClass()
 
 
-#This is the 2.2 way of running asynchronous servers
+#This is the 2.2 way of running asyncronous servers
 server = OurServer((smtpIP, smtpPort),
                    (None, 0))
 try:

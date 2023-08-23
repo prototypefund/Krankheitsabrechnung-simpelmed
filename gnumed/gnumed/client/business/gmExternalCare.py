@@ -12,14 +12,18 @@ import logging
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmPG2
-from Gnumed.pycommon import gmTools
+from Gnumed.pycommon import gmI18N
 
 from Gnumed.business import gmOrganization
 
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
+
+from Gnumed.pycommon import gmTools
 
 _log = logging.getLogger('gm.ext_care')
 
@@ -109,7 +113,7 @@ class cExternalCareItem(gmBusinessDBObject.cBusinessDBObject):
 	def _get_org_unit(self):
 		return gmOrganization.cOrgUnit(self._payload[self._idx['pk_org_unit']])
 
-	org_unit = property(_get_org_unit)
+	org_unit = property(_get_org_unit, lambda x:x)
 
 #------------------------------------------------------------
 def get_external_care_items(order_by=None, pk_identity=None, pk_health_issue=None, exclude_inactive=False, return_pks=False):

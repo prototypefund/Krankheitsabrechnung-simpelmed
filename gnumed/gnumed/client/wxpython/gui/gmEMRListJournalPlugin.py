@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
-
-"""GNUmed patient EMR Journal plugin (list based)"""
+#======================================================================
+# GNUmed patient EMR Journal plugin (list based)
 #======================================================================
 __author__ = "Karsten Hilbert"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 import logging
 
 
+from Gnumed.pycommon import gmI18N
 from Gnumed.wxpython import gmPlugin
 from Gnumed.wxpython import gmEMRBrowser
 from Gnumed.wxpython import gmAccessPermissionWidgets
 
 _log = logging.getLogger('gm.ui')
-if __name__ == '__main__':
-	_ = lambda x:x
 
 #======================================================================
 class gmEMRListJournalPlugin(gmPlugin.cNotebookPlugin):
@@ -59,9 +58,11 @@ class gmEMRListJournalPlugin(gmPlugin.cNotebookPlugin):
 if __name__ == "__main__":
 
     import sys
+
     import wx
+
+    from Gnumed.exporters import gmPatientExporter
     from Gnumed.business import gmPersonSearch
-    from Gnumed.wxpython import gmPatSearchWidgets
 
     _log.info("starting emr journal plugin...")
 
@@ -73,7 +74,7 @@ if __name__ == "__main__":
     gmPatSearchWidgets.set_active_patient(patient=patient)
 
     # display standalone browser
-    application = wx.PyWidgetTester(size=(800,600))
+    application = wx.wxPyWidgetTester(size=(800,600))
     emr_journal = gmEMRBrowser.cEMRListJournalPluginPnl(application.frame, -1)
     emr_journal.refresh_journal()
 

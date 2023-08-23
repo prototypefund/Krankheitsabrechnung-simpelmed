@@ -43,8 +43,8 @@ class cGenericLinkedCode(gmBusinessDBObject.cBusinessDBObject):
 	READ ONLY
 	"""
 	_cmd_fetch_payload = _SQL_get_generic_linked_codes % "pk_lnk_code2item = %s"
-	_cmds_store_payload:list = []
-	_updatable_fields:list = []
+	_cmds_store_payload = []
+	_updatable_fields = []
 #------------------------------------------------------------
 def get_generic_linked_codes(order_by=None):
 	if order_by is None:
@@ -63,8 +63,8 @@ _SQL_get_generic_code = "SELECT * FROM ref.v_generic_codes WHERE %s"
 class cGenericCode(gmBusinessDBObject.cBusinessDBObject):
 	"""READ ONLY"""
 	_cmd_fetch_payload = _SQL_get_generic_code % "pk_generic_code = %s"
-	_cmds_store_payload:list = []
-	_updatable_fields:list = []
+	_cmds_store_payload = []
+	_updatable_fields = []
 #------------------------------------------------------------
 def get_generic_codes(order_by=None):
 	if order_by is None:
@@ -85,12 +85,12 @@ def get_coded_terms(coding_systems=None, languages=None, order_by=None):
 	args = {}
 
 	if coding_systems is not None:
-		where_snippets.append("((coding_system = ANY(%(sys)s)) OR (coding_system_long = ANY(%(sys)s))")
-		args['sys'] = coding_systems
+		where_snippets.append("((coding_system IN %(sys)s) OR (coding_system_long IN %(sys)s)")
+		args['sys'] = tuple(coding_systems)
 
 	if languages is not None:
-		where_snippets.append('lang = ANY(%(lang)s)')
-		args['lang'] = languages
+		where_snippets.append('lang IN %(lang)s')
+		args['lang'] = tuple(languages)
 
 	cmd = 'select * from ref.v_coded_terms'
 

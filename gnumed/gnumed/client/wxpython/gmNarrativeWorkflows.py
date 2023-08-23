@@ -1,10 +1,11 @@
 """GNUmed narrative workflows."""
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import sys
 import logging
+import os.path
 import time
 
 
@@ -13,7 +14,12 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+
+from Gnumed.pycommon import gmI18N
+
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
@@ -361,7 +367,7 @@ def search_narrative_across_emrs(parent=None):
 		return
 
 	items = [ [
-		gmPerson.cPerson(aPK_obj = r['pk_patient']).description_gender,
+		gmPerson.cPerson(aPK_obj = r['pk_patient'])['description_gender'],
 		r['narrative'],
 		r['src_table']
 	] for r in results ]
@@ -482,7 +488,7 @@ def export_narrative_for_medistar_import(parent=None, soap_cats='soapu', encount
 	# get file name
 	aWildcard = "%s (*.txt)|*.txt|%s (*)|*" % (_("text files"), _("all files"))
 		# FIXME: make configurable
-	aDefDir = gmTools.gmPaths().user_work_dir
+	aDefDir = os.path.abspath(os.path.expanduser(os.path.join('~', 'gnumed')))
 		# FIXME: make configurable
 	fname = '%s-%s-%s-%s-%s.txt' % (
 		'Medistar-MD',
@@ -920,7 +926,7 @@ def select_narrative_from_episodes(parent=None, soap_cats=None):
 				gmDispatcher.send(signal = 'statustext', msg = _('No narrative available for selected episodes.'))
 				continue
 
-			dlg = gmNarrativeWidgets.cNarrativeListSelectorDlg (
+			dlg = cNarrativeListSelectorDlg (
 				parent = parent,
 				id = -1,
 				narrative = all_narr,
@@ -959,12 +965,15 @@ if __name__ == '__main__':
 
 	from Gnumed.business import gmPersonSearch
 
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain = 'gnumed')
+
 	#----------------------------------------
 	def test_select_narrative_from_episodes():
 		pat = gmPersonSearch.ask_for_patient()
 		set_active_patient(patient = pat)
-		#app = wx.PyWidgetTester(size = (200, 200))
-		sels = select_narrative_from_episodes()
+		app = wx.PyWidgetTester(size = (200, 200))
+		sels = select_narrative_from_episodes_new()
 		print("selected:")
 		for sel in sels:
 			print(sel)
@@ -972,7 +981,7 @@ if __name__ == '__main__':
 	def test_select_narrative():
 		pat = gmPersonSearch.ask_for_patient()
 		set_active_patient(patient = pat)
-		#app = wx.PyWidgetTester(size = (200, 200))
+		app = wx.PyWidgetTester(size = (200, 200))
 		sels = select_narrative(parent=None, soap_cats = None)
 		print("selected:")
 		for sel in sels:

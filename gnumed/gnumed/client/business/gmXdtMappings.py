@@ -8,6 +8,10 @@ __author__ = "S.Hilbert, K.Hilbert"
 __license__ = "GPL v2 or later"
 
 #==============================================================
+if __name__ == '__main__':
+	_ = lambda x:x
+
+
 # FIXME: xBDT incorporated only up to (excluding) Satzart 0101 (Do 09 Aug 2007 11:10:16 CEST)
 xdt_id_map = {
 
@@ -125,7 +129,7 @@ xdt_id_map = {
 	'3100': 'Namenszusatz/Vorsatzwort',
 	'3101': 'Name des Patienten',
 	'3102': 'Vorname des Patienten',
-	'3103': 'Geburtsdatum des Patienten',
+	'3103': 'Geburtsdatum des Patienten', 
 	'3104': 'Titel des Patienten',
 	'3105': 'Versichertennummer des Patienten',
 	'3106': 'PLZ/Wohnort des Patienten',
@@ -413,16 +417,20 @@ xdt_id_map = {
 	'7207': 'Kurzanrede/Wirkstoff',
 	'7208': 'Briefanrede/Indikation',
 	'7209': 'Briefschluß/Nebenwirkungen',
-	'7210': 'Ansprechpartner/Gegenanzeigen /// AOK-DMP (D.M.): Datum der Erstmeldung',
+	'7210': 'Ansprechpartner/Gegenanzeigen',
 	'7211': 'Vertretung/Wechselwirkungen',
-	'7212': 'Bankname/Hinweise /// AOK-DMP (D.M.): bereits v. SSP mitbetreut; 1=nein, 2=ja',
+	'7212': 'Bankname/Hinweise',
 	'7213': 'BLZ/Alternativmedikamente',
 	'7214': 'Kontonummer',
-	'7215': 'Bemerkung /// AOK-DMP (D.M.): Schulungsstatus; 1=nicht 2=geschult',
-	'7216': 'Sonstiges /// AOK-DMP (D.M.): Jahr der letzten Schulung; Vorgabe 1979',
+	'7215': 'Bemerkung',
+	'7216': 'Sonstiges',
 	'7217': 'Gruppenkennzeichen: 1=Arztkollege, 2=Arbeitgeber, 4=Krankenhaus, 5=BG, 6=Sonstige',
 	'7218': 'Internet-Adresse',
 
+	'7210':'AOK-DMP (D.M.): Datum der Erstmeldung',
+	'7212':'AOK-DMP (D.M.): bereits v. SSP mitbetreut; 1=nein, 2=ja',
+	'7215':'AOK-DMP (D.M.): Schulungsstatus; 1=nicht 2=geschult',
+	'7216':'AOK-DMP (D.M.): Jahr der letzten Schulung; Vorgabe 1979',
 	'7220':'AOK-DMP (D.M.): Schulung laut Vertrag durchgeführt; ja, nein',
 	'7221':'AOK-DMP (D.M.): Begründung für keine Schulung; 1 bis 5',
 	'7222':'AOK-DMP (D.M.): Klartext für Sonstige 7221 = 5',
@@ -440,7 +448,7 @@ xdt_id_map = {
 	'8301': 'Eingangsdatum des Auftrags im Labor',       ## nicht in GDT 2.1 Specs (KS)
 	'8302': 'Berichtsdatum',       ## nicht in GDT 2.1 Specs (KS)
 	'8303': 'Berichtszeit',     ## nicht in GDT 2.1 Specs (KS)
-	'8310': 'Anforderungsnummer',
+	'8310': 'Anforderungsnummer', 
 	'8311': '(interne) Auftragsnummer des Labors',## nicht in GDT 2.1 Specs (KS)
 	'8312': 'Kunden- bzw. Arztnummer',## nicht in GDT 2.1 Specs (KS)
 	'8315': 'GDT-ID Empfänger',
@@ -606,13 +614,13 @@ map_gender_gm2xdt = {
 
 # LDT "gender", 8407
 map_8407_2str = {
-	'0': 'unbekannt',
-	'1': 'männlich',
-	'2': 'weiblich',
-	'3': 'Kind',
-	'4': 'Junge',
-	'5': 'Mädchen',
-	'6': 'Tier'
+	'0': _('unknown gender'),
+	'1': _('male'),
+	'2': _('female'),
+	'3': _('child'),
+	'4': _('boy'),
+	'5': _('girl'),
+	'6': _('animal')
 }
 
 # xDT character code mapping : 9106
@@ -844,18 +852,18 @@ xdt_Befundstatus_map = {
 }
 
 map_Befundstatus_xdt2gm = {
-	'E': 'final',
-	'T': 'partial',
-	'V': 'preliminary',
-	'A': 'final',
-	'N': 'final'
+	'E': _('final'),
+	'T': _('partial'),
+	'V': _('preliminary'),
+	'A': _('final'),
+	'N': _('final')
 }
 
 # Teststatus : 8418
 xdt_Teststatus_map = {
-	'B': 'bereits zuvor übermittelt',
-	'K': 'korrigiertes Ergebnis',
-	'F': 'ausstehend'
+	'B': _('already reported'),
+	'K': _('corrected result'),
+	'F': _('missing, reported later')
 }
 
 # Resistenzmethode
@@ -943,7 +951,7 @@ kvdt_somatische_Ursachen_map = {
 }
 # GNR-Zusatzkennzeichen für poststationär erbrachte Leistungen : 5024
 kvdt_Zusatzkennzeichen_poststationaere_Leistungen_map = {
-	'N': 'poststationäre Leistung'
+	'N': 'poststationäre Leistung'	
 }
 # Diagnosensicherheit : 6003
 kvdt_Diagnosensicherheit_map = {
@@ -1031,7 +1039,7 @@ kvdt_Empfaenger_map = {
 # Facharztstatus Operateur / Assistent : 2750/2752
 kvdt_Facharztstatus_map = {
 	'0': 'nein',
-	'1': 'ja'
+	'1': 'ja'	
 }
 # Anästhesie erbracht : 2761
 kvdt_Anaesthesie_erbracht_map = {
@@ -1212,10 +1220,10 @@ xdt_map_of_content_maps = {
 	'4213': xdt_Ankreuzfeld_map,
 	'4221': kvdt_belegaerztliche_Behandlung_map,
 	'4234': kvdt_anerkannte_Psychotherapie_map,
-	'4236-kvdt': kvdt_somatische_Ursachen_map,
-	'4230': xdt_gesetzlicher_Abzug_map,
+	'4236': kvdt_somatische_Ursachen_map,
 	'4239': xdt_Scheinuntergruppe_map,
-	'4236-xdt': xdt_Klasse_stationaere_Behandlung_map,
+	'4230': xdt_gesetzlicher_Abzug_map,
+	'4236': xdt_Klasse_stationaere_Behandlung_map,
 	'4261': kvdt_Kurart_map,
 	'4580': xdt_Rechnungsart_map,
 	'4608': xdt_Abdingungserklaerung_map,

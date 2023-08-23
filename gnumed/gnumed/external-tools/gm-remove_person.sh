@@ -23,7 +23,7 @@ PERSON_PK="$2"
 #
 # You may want to start studying here:
 #
-#	https://en.wikipedia.org/wiki/Database_transaction
+#	http://en.wikipedia.org/wiki/Database_transaction
 #
 # Use the Source, Luke.
 END_TX="$3"

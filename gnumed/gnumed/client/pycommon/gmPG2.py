@@ -5,15 +5,14 @@ TODO: iterator/generator batch fetching:
 	- search Google for "Geneator/Iterator Nesting Problem - Any Ideas? 2.4"
 
 winner:
-
-	def resultset_functional_batchgenerator(cursor, size=100):
-		for results in iter(lambda: cursor.fetchmany(size), []):
-			for rec in results:
-				yield rec
+def resultset_functional_batchgenerator(cursor, size=100):
+	for results in iter(lambda: cursor.fetchmany(size), []):
+		for rec in results:
+			yield rec
 """
 # =======================================================================
 __author__  = "K.Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 
 # stdlib
@@ -21,24 +20,26 @@ import time
 import sys
 import os
 import stat
+import codecs
 import logging
 import datetime as pydt
+import re as regex
+import threading
 import hashlib
 import shutil
-from typing import Union, Any, Optional
 
 
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmLoginInfo
 from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmDateTime
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmLog2
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmConnectionPool
-from Gnumed.pycommon.gmTools import prompted_input
+from Gnumed.pycommon.gmTools import prompted_input, u_replacement_character, format_dict_like
 
 
 _log = logging.getLogger('gm.db')
@@ -52,13 +53,14 @@ except ImportError:
 	print("CRITICAL ERROR: Cannot find module psycopg2 for connecting to the database server.")
 	raise
 
-import psycopg2.errorcodes as PG_error_codes
-import psycopg2.sql as PG_SQL
+import psycopg2.errorcodes as sql_error_codes
+import psycopg2.sql as psysql
+#import psycopg2.errors as PG_EXCEPTIONS
 
-# =======================================================================
 PG_ERROR_EXCEPTION = dbapi.Error
 
-default_database = 'gnumed_v23'
+# =======================================================================
+default_database = 'gnumed_v22'
 
 postgresql_version_string = None
 
@@ -90,8 +92,7 @@ known_schema_hashes = {
 	19: '57f009a159f55f77525cc0291e0c8b60', # starting with 19.12
 	20: 'baed1901ed4c2f272b56c8cb2c6d88e8',
 	21: 'e6a51a89dd22b75b61ead8f7083f251f',
-	22: 'bf45f01327fb5feb2f5d3c06ba4a6792',
-	23: 'devel'
+	22: 'bf45f01327fb5feb2f5d3c06ba4a6792'
 }
 
 map_schema_hash2version = {
@@ -122,7 +123,6 @@ map_schema_hash2version = {
 
 map_client_branch2required_db_version = {
 	'GIT tree': 0,
-	'master': 0,
 	'0.3': 9,
 	'0.4': 10,
 	'0.5': 11,
@@ -142,26 +142,26 @@ map_client_branch2required_db_version = {
 }
 
 # get columns and data types for a given table
-SQL__col_defs4table = """select
+query_table_col_defs = """select
 	cols.column_name,
 	cols.udt_name
 from
 	information_schema.columns cols
 where
-	cols.table_schema = %(schema)s
+	cols.table_schema = %s
 		and
-	cols.table_name = %(table)s
+	cols.table_name = %s
 order by
 	cols.ordinal_position"""
 
-SQL__cols4table = """select
+query_table_attributes = """select
 	cols.column_name
 from
 	information_schema.columns cols
 where
-	cols.table_schema = %(schema)s
+	cols.table_schema = %s
 		and
-	cols.table_name = %(table)s
+	cols.table_name = %s
 order by
 	cols.ordinal_position"""
 
@@ -282,12 +282,6 @@ WHERE
 	is_tc.constraint_type = 'PRIMARY KEY';
 """
 
-__MIND_MELD = '_ı/'
-__LLAP = '_\\//'
-
-
-_TLnkObj = Optional[Union[dbapi.extras.DictConnection, dbapi.extras.DictCursor]]
-
 # =======================================================================
 # login API
 # =======================================================================
@@ -307,6 +301,7 @@ def __request_login_params_tui():
 		gmLog2.add_word2hide(login.password)
 		login.port = prompted_input(prompt = "port", default = 5432)
 	except KeyboardInterrupt:
+		del login
 		_log.warning("user cancelled text mode login dialog")
 		print("user cancelled text mode login dialog")
 		raise gmExceptions.ConnectionError(_("Cannot connect to database without login information!"))
@@ -317,6 +312,7 @@ def __request_login_params_tui():
 	creds.port = login.port
 	creds.user = login.user
 	creds.password = login.password
+
 	return login, creds
 
 #---------------------------------------------------
@@ -325,15 +321,15 @@ def __request_login_params_gui_wx():
 
 	Returns gmLoginInfo.LoginInfo object
 	"""
-	import wx		# pylint: disable=import-error
+	import wx
 	# OK, wxPython was already loaded. But has the main Application instance
 	# been initialized yet ? if not, the exception will kick us out
 	if wx.GetApp() is None:
 		raise AssertionError(_("The wxPython GUI framework hasn't been initialized yet!"))
 
 	# Let's launch the login dialog
-	# if wx was not initialized/no main App loop, an exception should be raised anyway
-	from Gnumed.wxpython import gmAuthWidgets
+	# if wx was not initialized /no main App loop, an exception should be raised anyway
+	import gmAuthWidgets
 	dlg = gmAuthWidgets.cLoginDialog(None, -1)
 	dlg.ShowModal()
 	login = dlg.panel.GetLoginInfo()
@@ -352,24 +348,16 @@ def __request_login_params_gui_wx():
 	return login, creds
 
 #---------------------------------------------------
-def request_login_params(setup_pool:bool=False, force_tui:bool=False) -> tuple[gmLoginInfo.LoginInfo, gmConnectionPool.cPGCredentials]:
-	"""Request login parameters for database connection.
-
-	Args:
-		setup_pool: initialize connection pool
-		force_tui: do not attempt to use wxPython as UI
-
-	Returns:
-		A tuple with login info.
-	"""
+def request_login_params(setup_pool=False):
+	"""Request login parameters for database connection."""
 	# are we inside X ?
-	# if we aren't wxGTK would crash hard at the C-level with "can't open Display"
-	if 'DISPLAY' in os.environ and not force_tui:
+	# if we aren't wxGTK will crash hard at the C-level with "can't open Display"
+	if 'DISPLAY' in os.environ:
+		# try wxPython GUI
 		try:
-			# try wxPython GUI
 			login, creds = __request_login_params_gui_wx()
 		except Exception:
-			_log.exception('cannot request creds via wxPython')
+			pass
 		if setup_pool:
 			pool = gmConnectionPool.gmConnectionPool()
 			pool.credentials = creds
@@ -499,7 +487,7 @@ end;';
 select md5(gm.concat_table_structure(%(ver)s::integer)) AS md5;
 """
 
-def database_schema_compatible(link_obj:_TLnkObj=None, version:int=None, verbose:bool=True) -> bool:
+def database_schema_compatible(link_obj=None, version=None, verbose=True):
 	expected_hash = known_schema_hashes[version]
 	if version == 0:
 		args = {'ver': 9999}
@@ -508,7 +496,7 @@ def database_schema_compatible(link_obj:_TLnkObj=None, version:int=None, verbose
 	SQL = 'select md5(gm.concat_table_structure(%(ver)s::integer)) as md5'
 	try:
 		rows, idx = run_ro_queries(link_obj = link_obj, queries = [{'cmd': SQL, 'args': args}])
-	except dbapi.errors.AmbiguousFunction as exc:			# pylint: disable=no-member
+	except dbapi.errors.AmbiguousFunction as exc:
 		gmConnectionPool.log_pg_exception_details(exc)
 		if not hasattr(exc, 'diag'):
 			raise
@@ -535,27 +523,26 @@ def database_schema_compatible(link_obj:_TLnkObj=None, version:int=None, verbose
 	return False
 
 #------------------------------------------------------------------------
-def get_schema_version(link_obj:_TLnkObj=None) -> int:
+def get_schema_version(link_obj=None):
 	rows, idx = run_ro_queries(link_obj=link_obj, queries = [{'cmd': 'select md5(gm.concat_table_structure()) as md5'}])
 	try:
 		return map_schema_hash2version[rows[0]['md5']]
-
 	except KeyError:
-		return 'unknown database schema version, MD5 hash is [%s]' % rows[0]['md5']		# type: ignore [return-value]
+		return 'unknown database schema version, MD5 hash is [%s]' % rows[0]['md5']
 
 #------------------------------------------------------------------------
-def get_schema_structure(link_obj:_TLnkObj=None) -> str:
-	"""Get standardized text listing of database schema."""
+def get_schema_structure(link_obj=None):
 	rows, idx = run_ro_queries(link_obj=link_obj, queries = [{'cmd': 'select gm.concat_table_structure()'}])
 	return rows[0][0]
 
 #------------------------------------------------------------------------
-def get_schema_hash(link_obj:_TLnkObj=None) -> str:
+def get_schema_hash(link_obj=None):
 	rows, idx = run_ro_queries(link_obj=link_obj, queries = [{'cmd': 'select md5(gm.concat_table_structure()) as md5'}])
 	return rows[0]['md5']
 
 #------------------------------------------------------------------------
-def get_schema_revision_history(link_obj:_TLnkObj=None) -> list[str]:
+def get_schema_revision_history(link_obj=None):
+
 	if table_exists(link_obj = link_obj, schema = 'gm', table = 'schema_revision'):
 		cmd = """
 			SELECT
@@ -579,42 +566,24 @@ def get_schema_revision_history(link_obj:_TLnkObj=None) -> list[str]:
 	return rows
 
 #------------------------------------------------------------------------
-def get_db_fingerprint(conn=None, fname:str=None, with_dump:bool=False, eol:str=None):
-	"""Get a fingerprint for a GNUmed database.
-
-		A "fingerprint" is a collection of settings and typical row counts.
-
-	Args:
-		conn: a database connection
-		fname: name of file to write fingerprint to, *None* = return text
-		with_dump: include dump of schema structure (tables, views, ...)
-		eol: concatenate list by this string when returning text (rather than when writing to a file)
-
-	Returns:
-
-		* if "fname" is not None: filename
-		* if "eol" is None: list of lines with fingerprint data
-		* if "eol" is not None: lines with fingerprint data joined with "eol"
-	"""
+def get_db_fingerprint(conn=None, fname=None, with_dump=False, eol=None):
 	queries = [
-		("Version (PG)", "SELECT setting FROM pg_settings WHERE name = 'server_version'"),
-		('Encoding (PG)', "SELECT setting FROM pg_settings WHERE name = 'server_encoding'"),
-		('LC_COLLATE (PG)', "SELECT setting FROM pg_settings WHERE name = 'lc_collate'"),
-		('LC_CTYPE (PG)', "SELECT setting FROM pg_settings WHERE name = 'lc_ctype'"),
-		('Patients', "SELECT COUNT(*) FROM dem.identity"),
-		('Contacts', "SELECT COUNT(*) FROM clin.encounter"),
-		('Episodes', "SELECT COUNT(*) FROM clin.episode"),
-		('Issues', "SELECT COUNT(*) FROM clin.health_issue"),
-		('Results', "SELECT COUNT(*) FROM clin.test_result"),
-		('Vaccinations', "SELECT COUNT(*) FROM clin.vaccination"),
-		('Documents', "SELECT COUNT(*) FROM blobs.doc_med"),
-		('Objects', "SELECT COUNT(*) FROM blobs.doc_obj"),
-		('Organizations', "SELECT COUNT(*) FROM dem.org"),
-		("Organizational units", "SELECT COUNT(*) FROM dem.org_unit"),
-		('   Earliest .modified_when', "SELECT min(modified_when) FROM audit.audit_fields"),
-		('Most recent .modified_when', "SELECT max(modified_when) FROM audit.audit_fields"),
-		('      Earliest .audit_when', "SELECT min(audit_when) FROM audit.audit_trail"),
-		('   Most recent .audit_when', "SELECT max(audit_when) FROM audit.audit_trail")
+		("SELECT setting FROM pg_settings WHERE name = 'server_version'", "Version (PG)"),
+		("SELECT setting FROM pg_settings WHERE name = 'server_encoding'", "Encoding (PG)"),
+		("SELECT setting FROM pg_settings WHERE name = 'lc_collate'", "LC_COLLATE (PG)"),
+		("SELECT setting FROM pg_settings WHERE name = 'lc_ctype'", "LC_CTYPE (PG)"),
+		("SELECT count(1) FROM dem.identity", "Patients"),
+		("SELECT count(1) FROM clin.encounter", "Contacts"),
+		("SELECT count(1) FROM clin.episode", "Episodes"),
+		("SELECT count(1) FROM clin.health_issue", "Issues"),
+		("SELECT count(1) FROM clin.test_result", "Results"),
+		("SELECT count(1) FROM clin.vaccination", "Vaccinations"),
+		("SELECT count(1) FROM blobs.doc_med", "Documents"),
+		("SELECT count(1) FROM blobs.doc_obj", "Objects"),
+		("SELECT count(1) FROM dem.org", "Organizations"),
+		("SELECT count(1) FROM dem.org_unit", "Organizational units"),
+		("SELECT max(modified_when) FROM audit.audit_fields", "Most recent .modified_when"),
+		("SELECT max(audit_when) FROM audit.audit_trail", "Most recent .audit_when")
 	]
 	if conn is None:
 		conn = get_connection(readonly = True)
@@ -639,7 +608,7 @@ def get_db_fingerprint(conn=None, fname:str=None, with_dump:bool=False, eol:str=
 		lines.append('%20s: %s (v%s)' % ('Schema hash', md5_sum, map_schema_hash2version[md5_sum]))
 	except KeyError:
 		lines.append('%20s: %s' % ('Schema hash', md5_sum))
-	for label, cmd in queries:
+	for cmd, label in queries:
 		curs.execute(cmd)
 		rows = curs.fetchall()
 		lines.append('%20s: %s' % (label, rows[0][0]))
@@ -660,18 +629,7 @@ def get_db_fingerprint(conn=None, fname:str=None, with_dump:bool=False, eol:str=
 	return fname
 
 #------------------------------------------------------------------------
-def run_fingerprint_tool() -> int:
-	fname = 'db-fingerprint.txt'
-	result = get_db_fingerprint(fname = fname, with_dump = True)
-	if result == fname:
-		print('Success: %s' % fname)
-		return 0
-
-	print('Failed. Check the log for details.')
-	return -2
-
-#------------------------------------------------------------------------
-def get_current_user() -> str:
+def get_current_user():
 	rows, idx = run_ro_queries(queries = [{'cmd': 'select CURRENT_USER'}])
 	return rows[0][0]
 
@@ -786,28 +744,28 @@ where
 	return rows
 
 #------------------------------------------------------------------------
-def schema_exists(link_obj:_TLnkObj=None, schema='gm') -> bool:
-	cmd = "SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = %(schema)s)"
+def schema_exists(link_obj=None, schema='gm'):
+	cmd = """SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = %(schema)s)"""
 	args = {'schema': schema}
 	rows, idx = run_ro_queries(link_obj = link_obj, queries = [{'cmd': cmd, 'args': args}])
 	return rows[0][0]
 
 #------------------------------------------------------------------------
-def table_exists(link_obj:_TLnkObj=None, schema:str=None, table:str=None) -> bool:
+def table_exists(link_obj=None, schema=None, table=None):
 	"""Returns false, true."""
 	cmd = """
 select exists (
 	select 1 from information_schema.tables
 	where
-		table_schema = %(ns)s and
-		table_name = %(tbl)s and
+		table_schema = %s and
+		table_name = %s and
 		table_type = 'BASE TABLE'
 )"""
-	rows, idx = run_ro_queries(link_obj = link_obj, queries = [{'cmd': cmd, 'args': {'ns': schema, 'tbl': table}}])
+	rows, idx = run_ro_queries(link_obj = link_obj, queries = [{'cmd': cmd, 'args': (schema, table)}])
 	return rows[0][0]
 
 #------------------------------------------------------------------------
-def function_exists(link_obj:_TLnkObj=None, schema=None, function=None):
+def function_exists(link_obj=None, schema=None, function=None):
 
 	cmd = """
 		SELECT EXISTS (
@@ -838,12 +796,11 @@ def get_col_indices(cursor = None):
 			col_name = '%s_%s' % (col_name, col_index)
 		col_indices[col_name] = col_index
 		col_index += 1
-	return col_indices
 
+	return col_indices
 #------------------------------------------------------------------------
-def get_col_defs(link_obj:_TLnkObj=None, schema='public', table=None):
-	args = {'schema': schema, 'table': table}
-	rows, idx = run_ro_queries(link_obj = link_obj, queries = [{'cmd': SQL__col_defs4table, 'args': args}])
+def get_col_defs(link_obj=None, schema='public', table=None):
+	rows, idx = run_ro_queries(link_obj = link_obj, queries = [{'cmd': query_table_col_defs, 'args': (schema, table)}])
 	col_names = []
 	col_type = {}
 	for row in rows:
@@ -855,291 +812,16 @@ def get_col_defs(link_obj:_TLnkObj=None, schema='public', table=None):
 			col_type[row[0]] = row[1]
 	col_defs = []
 	col_defs.append(col_names)
-	col_defs.append(col_type)			# type: ignore [arg-type]
+	col_defs.append(col_type)
 	return col_defs
-
 #------------------------------------------------------------------------
-def get_col_names(link_obj:_TLnkObj=None, schema='public', table=None):
+def get_col_names(link_obj=None, schema='public', table=None):
 	"""Return column attributes of table"""
-	args = {'schema': schema, 'table': table}
-	rows, idx = run_ro_queries(link_obj = link_obj, queries = [{'cmd': SQL__cols4table, 'args': args}])
-	return [ row[0] for row in rows]
-
-#------------------------------------------------------------------------
-def revalidate_constraints(link_obj:_TLnkObj=None) -> str:
-	"""Revalidate all database constraints.
-
-	This needs quite extensive permissions, say, <postgres> at the PG level.
-
-	Returns:
-		Magic cookie on success.
-	"""
-	_log.debug('revalidating all constraints in database')
-	SQL = """DO $$
-		DECLARE
-			_rec record;
-		BEGIN
-			FOR _rec IN (
-				select con.connamespace, nsp.nspname, con.conname, con.conrelid, rel.relname
-				from pg_constraint con
-					join pg_namespace nsp on nsp.oid = con.connamespace
-					join pg_class rel on rel.oid = con.conrelid
-				where contype in ('c','f')
-			) LOOP
-				RAISE NOTICE 'validating [%] on [%.%]', _rec.conname, _rec.nspname, _rec.relname;
-				EXECUTE 'UPDATE pg_constraint SET convalidated=false WHERE conname=$1 AND connamespace=$2 AND conrelid=$3' USING _rec.conname, _rec.connamespace, _rec.conrelid;
-				EXECUTE 'ALTER TABLE ' || _rec.nspname || '.' || _rec.relname || ' VALIDATE CONSTRAINT "' || _rec.conname || '"';
-			END LOOP;
-		END
-	$$;"""
-	run_rw_queries(link_obj = link_obj, queries = [{'cmd': SQL}])
-	return __LLAP
-
-#------------------------------------------------------------------------
-def reindex_database(conn=None) -> bool: # | str:
-	"""Reindex the database "conn" is connected to.
-
-	Args:
-		conn: a read-write connection in autocommit mode with sufficient
-			PG level permissions for reindexing, say, "postgres" or the
-			database owner
-
-	Returns:
-		False on error, magic cookie on success.
-	"""
-	assert conn, '<conn> must be given'
-
-	_log.debug('rebuilding all indices in database')
-	SQL = PG_SQL.SQL('REINDEX (VERBOSE) DATABASE {}').format (
-		PG_SQL.Identifier(conn.get_dsn_parameters()['dbname'])
-	)
-	# REINDEX must be run outside transactions
-	conn.commit()
-	conn.set_session(readonly = False, autocommit = True)
-	curs = conn.cursor()
-	try:
-		run_rw_queries(link_obj = curs, queries = [{'cmd': SQL}], end_tx = True)
-		status = __MIND_MELD
-	except Exception:
-		_log.exception('reindexing failed')
-		status = False
-	finally:
-		curs.close()
-		conn.commit()
-	return status			# type: ignore [return-value]
-
-#------------------------------------------------------------------------
-def sanity_check_database_default_collation_version(conn=None) -> bool:
-	"""Check whether the database default collation version has changed.
-
-	Args:
-		conn: a psycopg2 connection, for which connection's database the collation is to be checked
-
-	Returns:
-		If this returns False you need to run
-
-			REINDEX (VERBOSE) DATABASE the_database;
-			VALIDATE CONSTRAINTS;
-			ALTER DATABASE the_database REFRESH COLLATION VERSION;
-
-		inside the affected database.
-	"""
-	SQL = 'SELECT *, pg_database_collation_actual_version(oid) FROM pg_database WHERE datname = current_database()'
-	try:
-		rows, idx = run_ro_queries(link_obj = conn, queries = [{'cmd': SQL}])
-	except dbapi.errors.UndefinedFunction as pg_exc:			# pylint: disable=no-member
-		_log.exception('cannot verify collation version, likely PG < 15')
-		gmConnectionPool.log_pg_exception_details(pg_exc)
-		return True
-
-	db = rows[0]
-	if db['datcollversion'] == db['pg_database_collation_actual_version']:
-		_log.debug('no version change in database default collation:')
-		_log.debug(db)
-		return True
-
-	_log.error('database default collation version mismatch')
-	_log.error('collation: %s', db['datcollate'])
-	_log.error('provider: %s', db['datlocprovider'])
-	if db['daticulocale']:
-		_log.error('ICU locale: %s', db['daticulocale'])
-	_log.error('version (DB): %s', db['datcollversion'])
-	_log.error('version (OS): %s', db['pg_database_collation_actual_version'])
-	_log.debug('you need to run REINDEX DATABASE/VALIDATE CONSTRAINTS etc and ALTER DATABASE db_name REFRESH COLLATION VERSION')
-	return False
-
-#------------------------------------------------------------------------
-def refresh_database_default_collation_version_information(conn=None, use_the_source_luke=False) -> bool:
-	"""Update the recorded version of the database default collation.
-
-	Args:
-		conn: a psycopg2 connection for the database intended to be updated
-		use_the_source_luke: do as you are told
-	"""
-	if not use_the_source_luke:
-		_log.error('REINDEX and VALIDATE CONSTRAINT must have been run before updating collation version information')
-		return False
-
-	if __MIND_MELD not in use_the_source_luke:
-		_log.error('REINDEX and VALIDATE CONSTRAINT must have been run before updating collation version information')
-		return False
-
-	if __LLAP not in use_the_source_luke:
-		_log.error('REINDEX and VALIDATE CONSTRAINT must have been run before updating collation version information')
-		return False
-
-	_log.debug('Kelvin: refreshing database default collation version information')
-	SQL = 'ALTER DATABASE current_database() REFRESH COLLATION VERSION'
-	try:
-		run_rw_queries(link_obj = conn, queries = [{'cmd': SQL}])
-	except Exception:
-		_log.exception('failure to update default collation version information')
-		return False
-
-	return True
-
-#------------------------------------------------------------------------
-def sanity_check_collation_versions(conn=None) -> bool:
-	"""Check whether the version of collation has changed.
-
-	Args:
-		conn: a psycopg2 connection, in which connection's database the collations are to be checked
-
-	Returns:
-		If this returns False you need to run
-
-			REINDEX (VERBOSE) DATABASE the_database;
-			VALIDATE CONSTRAINTS;
-			ALTER COLLATION collation_name REFRESH VERSION;
-
-		for each of the collations with mismatching versions from pg_collation.
-	"""
-	SQL = """
-		SELECT *, pg_collation_actual_version(oid), current_database()
-		FROM pg_collation
-		WHERE
-			collversion IS DISTINCT FROM NULL
-				AND
-			collprovider <> 'd'
-				AND
-			collversion <> pg_collation_actual_version(oid)
-	"""
-	try:
-		rows, idx = run_ro_queries(link_obj = conn, queries = [{'cmd': SQL}])
-	except dbapi.errors.UndefinedFunction as pg_exc:				# pylint: disable=no-member
-		_log.exception('cannot verify collation versions, likely PG < 15')
-		gmConnectionPool.log_pg_exception_details(pg_exc)
-		return True
-
-	if not rows:
-		_log.debug('no version changes in pg_collation entries')
-		return True
-
-	_log.error('version mismatches in pg_collation')
-	_log.debug('you need to run REINDEX DATABASE/VALIDATE CONSTRAINTS etc and ALTER COLLATION collation_name REFRESH VERSION')
-	for coll in rows:
-		_log.error(coll)
-	return False
-
-#------------------------------------------------------------------------
-def refresh_collations_version_information(conn=None, use_the_source_luke=False) -> bool:
-	"""Update the recorded version of the collation version information.
-
-	Needs to be run by the owner of the collations stored in pg_collation.
-
-	Args:
-		conn: a psycopg2 connection for the database intended to be updated
-		use_the_source_luke: do as you are told
-	"""
-	if not use_the_source_luke:
-		_log.error('REINDEX and VALIDATE CONSTRAINT must have been run before updating collation version information')
-		return False
-
-	if __MIND_MELD not in use_the_source_luke:
-		_log.error('REINDEX and VALIDATE CONSTRAINT must have been run before updating collation version information')
-		return False
-
-	if __LLAP not in use_the_source_luke:
-		_log.error('REINDEX and VALIDATE CONSTRAINT must have been run before updating collation version information')
-		return False
-
-	_log.debug('Kelvin: refreshing pg_collations row version information')
-	# https://www.postgresql.org/message-id/9aec6e6d-318e-4a36-96a4-3b898c3600c9%40manitou-mail.org
-	SQL = """DO LANGUAGE plpgsql $refresh_pg_coll_version_info$
-		DECLARE
-			_rec record;
-			_db_encoding integer;
-		BEGIN
-			SELECT encoding INTO _db_encoding FROM pg_database WHERE datname = current_database();
-			RAISE NOTICE 'removing collations for encodings other than the database encoding %', pg_encoding_to_char(_db_encoding);
-			FOR _rec IN (
-				SELECT oid, collnamespace, collname, collencoding
-				FROM pg_collation
-				WHERE
-					oid > 1000
-						AND
-					collencoding IS NOT NULL
-						AND
-					collencoding <> -1
-						AND
-					collencoding <> _db_encoding
-			) LOOP
-				RAISE NOTICE 'dropping collation #% "%.%" (encoding: %)', _rec.oid, _rec.collnamespace::regnamespace, _rec.collname, pg_encoding_to_char(_rec.collencoding);
-				BEGIN
-					EXECUTE 'DROP COLLATION ' || _rec.collnamespace::regnamespace || '."' || _rec.collname || '"';
-				EXCEPTION
-					WHEN undefined_object THEN RAISE NOTICE 'collation does not seem to exist (perhaps for the DB encoding ?)';
-				END;
-			END LOOP;
-			RAISE NOTICE 'refreshing collation version information in pg_collations';
-			FOR _rec IN (
-				SELECT collnamespace, collname
-				FROM pg_collation
-				WHERE
-					collversion IS DISTINCT FROM NULL
-						AND
-					collprovider <> 'd'
-						AND
-					collversion <> pg_collation_actual_version(oid)
-			) LOOP
-				RAISE NOTICE 'refreshing collation [%."%"] version information', _rec.collnamespace::regnamespace, _rec.collname;
-				BEGIN
-					EXECUTE 'ALTER COLLATION ' || _rec.collnamespace::regnamespace || '."' || _rec.collname || '" REFRESH VERSION';
-				EXCEPTION
-					WHEN undefined_object THEN RAISE NOTICE 'collation does not exist, refresh failed';
-				END;
-			END LOOP;
-			RAISE NOTICE 'running pg_import_system_collations(%)', 'pg_catalog'::regnamespace;
-			PERFORM pg_import_system_collations('pg_catalog'::regnamespace);
-			RAISE NOTICE 'removing collations, again, for encodings other than the database encoding';
-			FOR _rec IN (
-				SELECT oid, collnamespace, collname, collencoding
-				FROM pg_collation
-				WHERE
-					oid > 1000
-						AND
-					collencoding IS NOT NULL
-						AND
-					collencoding <> -1
-						AND
-					collencoding <> _db_encoding
-			) LOOP
-				RAISE NOTICE 'dropping collation #% "%.%" (encoding: %)', _rec.oid, _rec.collnamespace::regnamespace, _rec.collname, pg_encoding_to_char(_rec.collencoding);
-				BEGIN
-					EXECUTE 'DROP COLLATION ' || _rec.collnamespace::regnamespace || '."' || _rec.collname || '"';
-				EXCEPTION
-					WHEN undefined_object THEN RAISE NOTICE 'collation does not seem to exist (perhaps for the DB encoding ?)';
-				END;
-			END LOOP;
-		END
-	$refresh_pg_coll_version_info$;"""
-	try:
-		run_rw_queries(link_obj = conn, queries = [{'cmd': SQL}])
-	except Exception:
-		_log.exception('failure to update collations version information')
-		return False
-
-	return True
+	rows, idx = run_ro_queries(link_obj = link_obj, queries = [{'cmd': query_table_attributes, 'args': (schema, table)}])
+	cols = []
+	for row in rows:
+		cols.append(row[0])
+	return cols
 
 #------------------------------------------------------------------------
 # i18n functions
@@ -1172,7 +854,7 @@ def export_translations_from_database(filename=None):
 	return True
 
 #------------------------------------------------------------------------
-def delete_translation_from_database(link_obj:_TLnkObj=None, language=None, original=None):
+def delete_translation_from_database(link_obj=None, language=None, original=None):
 	cmd = 'DELETE FROM i18n.translations WHERE lang = %(lang)s AND orig = %(orig)s'
 	args = {'lang': language, 'orig': original}
 	run_rw_queries(link_obj = link_obj, queries = [{'cmd': cmd, 'args': args}], return_data = False, end_tx = True)
@@ -1317,53 +999,38 @@ def force_user_language(language=None):
 # query runners and helpers
 # =======================================================================
 def send_maintenance_notification():
-	cmd = 'NOTIFY "db_maintenance_warning"'
+	cmd = 'notify "db_maintenance_warning"'
 	run_rw_queries(queries = [{'cmd': cmd}], return_data = False)
 
 #------------------------------------------------------------------------
 def send_maintenance_shutdown():
-	cmd = 'NOTIFY "db_maintenance_disconnect"'
+	cmd = 'notify "db_maintenance_disconnect"'
 	run_rw_queries(queries = [{'cmd': cmd}], return_data = False)
 
 #------------------------------------------------------------------------
-def is_pg_interval(candidate:str=None) -> bool:
+def is_pg_interval(candidate=None):
 	cmd = 'SELECT %(candidate)s::interval'
 	try:
-		run_ro_queries(queries = [{'cmd': cmd, 'args': {'candidate': candidate}}])
+		rows, idx = run_ro_queries(queries = [{'cmd': cmd, 'args': {'candidate': candidate}}])
+		return True
 	except Exception:
 		cmd = 'SELECT %(candidate)s::text::interval'
 		try:
-			run_ro_queries(queries = [{'cmd': cmd, 'args': {'candidate': candidate}}])
+			rows, idx = run_ro_queries(queries = [{'cmd': cmd, 'args': {'candidate': candidate}}])
+			return True
 		except Exception:
 			return False
 
-	return True
-
 #------------------------------------------------------------------------
-def lock_row(link_obj:_TLnkObj=None, table:str=None, pk:int=None, exclusive:bool=False) -> bool:
-	"""Get advisory lock on a table row.
+def lock_row(link_obj=None, table=None, pk=None, exclusive=False):
+	"""Uses pg_advisory(_shared).
 
-	Uses pg_advisory(_shared). Technically, <table> and <pk>
-	are just conventions for reproducibly generating the lock
-	token.
-
-	Locks stack upon each other and need one unlock per lock.
-
-	Same connection: all locks succeed
-
-	Different connections:
-
-		- shared + shared: succeeds
-		- shared + exclusive: fails
-
-	Args:
-		link_obj: None/connection/cursor
-		table: the table in which to lock a row
-		pk: the PK of the row to lock.
-		exclusive: whether or not to lock _shared
-
-	Returns:
-		Whether lock was obtained or not.
+	- locks stack upon each other and need one unlock per lock
+	- same connection:
+		- all locks succeed
+	- different connections:
+		- shared + shared succeed
+		- shared + exclusive fail
 	"""
 	_log.debug('locking row: [%s] [%s] (exclusive: %s)', table, pk, exclusive)
 	if exclusive:
@@ -1378,7 +1045,7 @@ def lock_row(link_obj:_TLnkObj=None, table:str=None, pk:int=None, exclusive:bool
 	return False
 
 #------------------------------------------------------------------------
-def unlock_row(link_obj:_TLnkObj=None, table:str=None, pk:int=None, exclusive:bool=False) -> bool:
+def unlock_row(link_obj=None, table=None, pk=None, exclusive=False):
 	"""Uses pg_advisory_unlock(_shared).
 
 	- each lock needs one unlock
@@ -1396,8 +1063,8 @@ def unlock_row(link_obj:_TLnkObj=None, table:str=None, pk:int=None, exclusive:bo
 	return False
 
 #------------------------------------------------------------------------
-def row_is_locked(table=None, pk=None) -> bool:
-	"""Checks pg_locks for (ADVISORY only) locks on the row identified by table and pk.
+def row_is_locked(table=None, pk=None):
+	"""Looks at pg_locks.
 
 	- does not take into account locks other than 'advisory', however
 	"""
@@ -1420,13 +1087,13 @@ def row_is_locked(table=None, pk=None) -> bool:
 #------------------------------------------------------------------------
 # BYTEA cache handling
 #------------------------------------------------------------------------
-def __generate_cached_filename(cache_key_data) -> str:
+def __generate_cached_filename(cache_key_data):
 	md5 = hashlib.md5()
 	md5.update(('%s' % cache_key_data).encode('utf8'))
 	return os.path.join(gmTools.gmPaths().bytea_cache_dir, md5.hexdigest())
 
 #------------------------------------------------------------------------
-def __store_file_in_cache(filename, cache_key_data) -> str:
+def __store_file_in_cache(filename, cache_key_data):
 	cached_name = __generate_cached_filename(cache_key_data)
 	_log.debug('[%s] -> [%s] -> [%s]', filename, cache_key_data, cached_name)
 	if not gmTools.remove_file(cached_name, log_error = True, force = True):
@@ -1444,19 +1111,17 @@ def __store_file_in_cache(filename, cache_key_data) -> str:
 		# then constitutes a DOS attack against the cache but that's
 		# far less problematic than using the wrong data for care
 		return None
-
-	except PermissionError:
-		_log.exception('cannot set cache file [%s] permissions to [%s]', cached_name, stat.filemode(PERMS_owner_only))
-		return None
-
 	except OSError:
 		_log.exception('cannot copy file into cache: [%s] -> [%s]', filename, cached_name)
+		return None
+	except PermissionError:
+		_log.exception('cannot set cache file [%s] permissions to [%s]', cached_name, stat.filemode(PERMS_owner_only))
 		return None
 
 	return cached_name
 
 #------------------------------------------------------------------------
-def __get_filename_in_cache(cache_key_data=None, data_size=None) -> str:
+def __get_filename_in_cache(cache_key_data=None, data_size=None):
 	"""Calculate and verify filename in cache given cache key details."""
 	cached_name = __generate_cached_filename(cache_key_data)
 	try:
@@ -1483,7 +1148,7 @@ def __get_filename_in_cache(cache_key_data=None, data_size=None) -> str:
 	raise Exception('cannot remove suspicious object from cache dir: %s', cached_name)
 
 #------------------------------------------------------------------------
-def __get_file_from_cache(filename, cache_key_data=None, data_size=None, link2cached=True) -> bool:
+def __get_file_from_cache(filename, cache_key_data=None, data_size=None, link2cached=True):
 	"""Get file from cache if available."""
 	cached_filename = __get_filename_in_cache(cache_key_data = cache_key_data, data_size = data_size)
 	if cached_filename is None:
@@ -1514,39 +1179,7 @@ def __get_file_from_cache(filename, cache_key_data=None, data_size=None, link2ca
 	return False
 
 #------------------------------------------------------------------------
-def bytea2file (
-	data_query:dict=None,
-	filename:str=None,
-	chunk_size:int=0,
-	data_size:int=None,
-	data_size_query:dict=None,
-	conn=None,
-	link2cached:bool=True
-) -> bool:
-	"""Store data from a bytea field into a file.
-
-	Args:
-		data_query:
-
-		* data_query['cmd']:str, SQL to retrieve the BYTEA column (say, <data>),
-		  must contain '... SUBSTRING(data FROM %(start)s FOR %(size)s) ...',
-		  must return one row with one field of type bytea
-		* data_query['args']:dict, must contain selectors for the BYTEA row
-
-		filename: the file to store into
-		data_size: total size of the expected data, or None
-		data_size_query:
-
-		* only used when data_size is None
-		* dict {'cmd': ..., 'args': ...}
-		* must return one row with one field with the octet_length() of the data field
-
-		link2cached: if the bytea data is found in the cache, whether to return a link
-		  to the cache file or to create a copy thereof
-
-	Returns:
-		True/False based on success. Exception on errors.
-	"""
+def bytea2file(data_query=None, filename=None, chunk_size=0, data_size=None, data_size_query=None, conn=None, link2cached=True):
 
 	if data_size == 0:
 		open(filename, 'wb').close()
@@ -1554,18 +1187,13 @@ def bytea2file (
 
 	if data_size is None:
 		rows, idx = run_ro_queries(link_obj = conn, queries = [data_size_query])
-		if not rows:
-			_log.error('cannot determine size: %s', data_size_query)
-			return False
-
 		data_size = rows[0][0]
-		if data_size is None:
-			_log.error('cannot determine size: %s', data_size_query)
-			return False
-
 		if data_size == 0:
 			open(filename, 'wb').close()
 			return True
+
+		if data_size is None:
+			return False
 
 	if conn is None:
 		conn = gmConnectionPool.gmConnectionPool().get_connection()
@@ -1575,41 +1203,36 @@ def bytea2file (
 		# FIXME: start thread checking cache staleness on file
 		return True
 
-	with open(filename, 'wb') as outfile:
-		result = bytea2file_object (
-			data_query = data_query,
-			file_obj = outfile,
-			chunk_size = chunk_size,
-			data_size = data_size,
-			data_size_query = data_size_query,
-			conn = conn
-		)
+	outfile = open(filename, 'wb')
+	result = bytea2file_object (
+		data_query = data_query,
+		file_obj = outfile,
+		chunk_size = chunk_size,
+		data_size = data_size,
+		data_size_query = data_size_query,
+		conn = conn
+	)
+	outfile.close()
 	__store_file_in_cache(filename, cache_key_data)
 	return result
 
 #------------------------------------------------------------------------
-def bytea2file_object(data_query:dict=None, file_obj=None, chunk_size=0, data_size:int=None, data_size_query:dict=None, conn=None) -> bool:
-	"""Stream data from a bytea field into a file-like object.
+def bytea2file_object(data_query=None, file_obj=None, chunk_size=0, data_size=None, data_size_query=None, conn=None):
+	"""Store data from a bytea field into a file.
 
-	Args:
-		data_query:
-
-		* data_query['cmd']:str, SQL to retrieve the BYTEA column (say, <data>),
-		  must contain '... SUBSTRING(data FROM %(start)s FOR %(size)s) ...',
-		  must return one row with one field of type bytea
-		* data_query['args']:dict, must contain selectors for the BYTEA row
-
-		file_obj: a file-like Python object
-		data_size: total size of the expected data, or None
-
-		data_size_query:
-
-		* only used when data_size is None
-		* dict {'cmd': ..., 'args': ...}
-		* must return one row with one field with the octet_length() of the data field
-
-	Returns:
-		True on success. Exception on errors.
+	<data_query>
+	- dict {'cmd': ..., 'args': ...}
+	- 'cmd' must be a string containing "... substring(data from %(start)s for %(size)s) ..."
+	- 'args' must be a dict
+	- must return one row with one field of type bytea
+	<file>
+	- must be a file like Python object
+	<data_size>
+	- integer of the total size of the expected data or None
+	<data_size_query>
+	- dict {'cmd': ..., 'args': ...}
+	- must return one row with one field with the octet_length() of the data field
+	- used only when <data_size> is None
 	"""
 	if data_size == 0:
 		return True
@@ -1684,38 +1307,30 @@ def bytea2file_object(data_query:dict=None, file_obj=None, chunk_size=0, data_si
 	return True
 
 #------------------------------------------------------------------------
-def file2bytea(query:str=None, filename:str=None, args:dict=None, conn=None, file_md5:str=None) -> bool:
+def file2bytea(query=None, filename=None, args=None, conn=None, file_md5=None):
 	"""Store data from a file into a bytea field.
 
-	Args:
-		query: SQL,
+	The query must:
+	- contain a format spec identifying the row (eg a primary key)
+	  matching <args> if it is an UPDATE
+	- contain a format spec " <field> = %(data)s::bytea"
 
-		* INSERT or UPDATE
-		* must contain a format spec named '%(data)s' for the BYTEA data, say '... <BYTEA data column> = %(data)s::BYTEA'
-		* if UPDATE, must contain a format spec identifying the row (eg a primary key), say '... AND pk_column = %(pk_val)s'
-		* can contain a '... RETURNING md5(<BYTEA data column>) AS md5'
-
-		args: if UPDATE, must contain primary key placeholder matching format spec in <query>, say {'pk_val': pk_value, ...}
-
-		file_md5:
-
-		* md5 sum of the file in "filename"
-		* if given, and <query> RETURNs a column 'md5', the returned value is compared to the given value
-
-	Returns:
-		Whether operation seems to have succeeded.
+	The query CAN return the MD5 of the inserted data:
+		RETURNING md5(<field>) AS md5
+	in which case the returned hash will compared to the md5 of the file.
 	"""
+	retry_delay = 100		# milliseconds
 	attempt = 0
-	infile = None
-	while attempt < 3:
+	max_attempts = 3
+	while attempt < max_attempts:
 		attempt += 1
 		try:
 			infile = open(filename, "rb")
 		except (BlockingIOError, FileNotFoundError, PermissionError):
 			_log.exception('#%s: cannot open [%s]', attempt, filename)
-			_log.error('retrying after 100ms')
-			time.sleep(0.1)
-		break
+			_log.error('retrying after %sms', retry_delay)
+			infile = None
+			time.sleep(retry_delay / 1000)
 	if infile is None:
 		return False
 
@@ -1723,38 +1338,34 @@ def file2bytea(query:str=None, filename:str=None, args:dict=None, conn=None, fil
 	infile.close()
 	if args is None:
 		args = {}
-	args['data'] = memoryview(data_as_byte_string)		# really still needed for BYTEA input ?
+	# really still needed for BYTEA input ?
+	args['data'] = memoryview(data_as_byte_string)
 	del(data_as_byte_string)
+	# insert the data
 	if conn is None:
 		conn = get_raw_connection(readonly = False)
-		conn_close = conn.close
+		close_conn = True
 	else:
-		conn_close = lambda *x: None
-	rows, idx = run_rw_queries (
-		link_obj = conn,
-		queries = [{'cmd': query, 'args': args}],
-		end_tx = False,
-		return_data = (file_md5 is not None)
-	)
+		close_conn = False
+	rows, idx = run_rw_queries(link_obj = conn, queries = [{'cmd': query, 'args': args}], end_tx = False, return_data = (file_md5 is not None))
+	success_status = True
 	if file_md5 is None:
 		conn.commit()
-		conn_close()
-		return True
-
-	db_md5 = rows[0]['md5']
-	if file_md5 == db_md5:
-		conn.commit()
-		conn_close()
-		_log.debug('MD5 sums of data file and database BYTEA field match: [file::%s] = [DB::%s]', file_md5, db_md5)
-		return True
-
-	conn.rollback()
-	conn_close()
-	_log.error('MD5 sums of data file and database BYTEA field do not match: [file::%s] <> [DB::%s]', file_md5, db_md5)
-	return False
+	else:
+		db_md5 = rows[0]['md5']
+		if file_md5 != db_md5:
+			conn.rollback()
+			success_status = False
+			_log.error('MD5 sums of data file and database BYTEA field do not match: [file::%s] <> [DB::%s]', file_md5, db_md5)
+		else:
+			conn.commit()
+			_log.debug('MD5 sums of data file and database BYTEA field match: [file::%s] = [DB::%s]', file_md5, db_md5)
+	if close_conn:
+		conn.close()
+	return success_status
 
 #------------------------------------------------------------------------
-def file2lo(filename=None, conn=None, check_md5=False, file_md5=None):
+def file2lo(filename=None, conn=None, check_md5=False):
 	# 1 GB limit unless 64 bit Python build ...
 	file_size = os.path.getsize(filename)
 	if file_size > (1024 * 1024) * 1024:
@@ -1765,7 +1376,7 @@ def file2lo(filename=None, conn=None, check_md5=False, file_md5=None):
 		conn = get_raw_connection(readonly = False)
 		close_conn = conn.close
 	else:
-		close_conn = lambda *x: None
+		close_conn = __noop
 	_log.debug('[%s] -> large object', filename)
 
 	# insert the data
@@ -1794,7 +1405,7 @@ def file2lo(filename=None, conn=None, check_md5=False, file_md5=None):
 	return -1
 
 #------------------------------------------------------------------------
-def __file2bytea_lo(filename=None, conn=None, file_md5=None):
+def file2bytea_lo(filename=None, conn=None, file_md5=None):
 	# 1 GB limit unless 64 bit Python build ...
 	file_size = os.path.getsize(filename)
 	if file_size > (1024 * 1024) * 1024:
@@ -1805,7 +1416,7 @@ def __file2bytea_lo(filename=None, conn=None, file_md5=None):
 		conn = get_raw_connection(readonly = False)
 		close_conn = conn.close
 	else:
-		close_conn = lambda *x: None
+		close_conn = __noop
 	_log.debug('[%s] -> large object', filename)
 
 	# insert the data
@@ -1834,7 +1445,7 @@ def __file2bytea_lo(filename=None, conn=None, file_md5=None):
 	return -1
 
 #------------------------------------------------------------------------
-def __file2bytea_copy_from(table=None, columns=None, filename=None, conn=None, md5_query=None, file_md5=None):
+def file2bytea_copy_from(table=None, columns=None, filename=None, conn=None, md5_query=None, file_md5=None):
 	# md5_query: dict{'cmd': ..., 'args': ...}
 
 	# UNTESTED
@@ -1854,24 +1465,22 @@ def __file2bytea_copy_from(table=None, columns=None, filename=None, conn=None, m
 	curs.close()
 	if None in [file_md5, md5_query]:
 		conn.commit()
-#		close_conn()
+		close_conn()
 		return True
 	# verify
 	rows, idx = run_ro_queries(link_obj = conn, queries = [md5_query])
 	db_md5 = rows[0][0]
 	if file_md5 == db_md5:
 		conn.commit()
-#		close_conn()
+		close_conn()
 		_log.debug('MD5 sums of data file and database BYTEA field match: [file::%s] = [DB::%s]', file_md5, db_md5)
 		return True
-
-	if close_conn:
-		conn.close()
+	close_conn()
 	_log.error('MD5 sums of data file and database BYTEA field do not match: [file::%s] <> [DB::%s]', file_md5, db_md5)
 	return False
 
 #------------------------------------------------------------------------
-def __file2bytea_overlay(query=None, args=None, filename=None, conn=None, md5_query=None, file_md5=None):
+def file2bytea_overlay(query=None, args=None, filename=None, conn=None, md5_query=None, file_md5=None):
 	"""Store data from a file into a bytea field.
 
 	The query must:
@@ -1914,7 +1523,7 @@ def __file2bytea_overlay(query=None, args=None, filename=None, conn=None, md5_qu
 		conn = get_raw_connection(readonly = False)
 		close_conn = conn.close
 	else:
-		close_conn = lambda *x: None
+		close_conn = __noop
 
 	infile = open(filename, "rb")
 	# write chunks
@@ -2003,7 +1612,7 @@ def read_all_rows_of_table(schema=None, table=None):
 	# get PK values
 	qualified_table = '%s.%s' % (schema, table)
 	qualified_pk_name = '%s.%s.%s' % (schema, table, pk_name)
-	cmd = PG_SQL.SQL('SELECT {schema_table_pk} FROM {schema_table} ORDER BY 1'.format (
+	cmd = psysql.SQL('SELECT {schema_table_pk} FROM {schema_table} ORDER BY 1'.format (
 		schema_table_pk = qualified_pk_name,
 		schema_table = qualified_table
 	))
@@ -2014,7 +1623,7 @@ def read_all_rows_of_table(schema=None, table=None):
 
 	# dump table rows
 	_log.debug('dumping %s rows', len(rows))
-	cmd = PG_SQL.SQL('SELECT * FROM {schema_table} WHERE {schema_table_pk} = %(pk_val)s'.format (
+	cmd = psysql.SQL('SELECT * FROM {schema_table} WHERE {schema_table_pk} = %(pk_val)s'.format (
 		schema_table = qualified_table,
 		schema_table_pk = qualified_pk_name
 	))
@@ -2065,7 +1674,7 @@ def sanitize_pg_regex(expression=None, escape_all=False):
 
 	<escape_all>
 		True: try to escape *all* metacharacters
-		False: only escape those which are known to render the regex invalid
+		False: only escape those which render the regex invalid
 	"""
 	return expression.replace (
 			'(', '\('
@@ -2085,34 +1694,21 @@ def sanitize_pg_regex(expression=None, escape_all=False):
 		#']', '\]',			# not needed
 
 #------------------------------------------------------------------------
-def run_ro_queries (
-	link_obj:_TLnkObj=None,
-	queries:list[dict[str, Union[str, Union[list, dict[str, Any]]]]]=None,
-	verbose:bool=False,
-	return_data:bool=True,
-	get_col_idx:bool=False
-) -> tuple[list[dbapi.extras.DictRow], Optional[dict[str, int]]]:
+def run_ro_queries(link_obj=None, queries=None, verbose=False, return_data=True, get_col_idx=False):
 	"""Run read-only queries.
 
-	Args:
-		link_obj: a psycopg2 cursor or connection, can be used to continue transactions, or None
-		queries: a list of dicts:
-			[
-				{'cmd': <SQL string with %(name)s placeholders>, 'args': <dict>},
-				{...},
-				...
-			]
-		return_data: attempt to fetch data produced by the last query and return that
-		get_col_idx: return column index for row data from psycopg2
-
-	Returns:
-		A tuple holding (data rows, column index in row data as per DB-API)
+	<queries> must be a list of dicts:
+		[
+			{'cmd': <string>, 'args': <dict> or <tuple>},
+			{...},
+			...
+		]
 	"""
 	if isinstance(link_obj, dbapi._psycopg.cursor):
 		curs = link_obj
-		curs_close = lambda *x: None
-		tx_rollback = lambda *x: None
-		readonly_rollback_just_in_case = lambda *x: None
+		curs_close = lambda *x:None
+		tx_rollback = lambda *x:None
+		readonly_rollback_just_in_case = lambda *x:None
 	elif isinstance(link_obj, dbapi._psycopg.connection):
 		curs = link_obj.cursor()
 		curs_close = curs.close
@@ -2123,7 +1719,7 @@ def run_ro_queries (
 			# do not rollback readonly queries on passed-in readwrite
 			# connections just in case because they may have already
 			# seen fully legitimate write action which would get lost
-			readonly_rollback_just_in_case = lambda *x: None
+			readonly_rollback_just_in_case = lambda *x:None
 	elif link_obj is None:
 		conn = get_connection(readonly = True, verbose = verbose)
 		curs = conn.cursor()
@@ -2158,8 +1754,8 @@ def run_ro_queries (
 			except PG_ERROR_EXCEPTION as pg_exc2:
 				_log.exception('cannot rollback transaction')
 				gmConnectionPool.log_pg_exception_details(pg_exc2)
-			if pg_exc.pgcode == PG_error_codes.INSUFFICIENT_PRIVILEGE:
-				details = 'Query: [%s]' % curs.query.decode(errors = 'replace').strip().strip('\n').strip().strip('\n')
+			if pg_exc.pgcode == sql_error_codes.INSUFFICIENT_PRIVILEGE:
+				details = 'Query: [%s]' % curs.query.strip().strip('\n').strip().strip('\n')
 				if curs.statusmessage != '':
 					details = 'Status: %s\n%s' % (
 						curs.statusmessage.strip().strip('\n').strip().strip('\n'),
@@ -2209,93 +1805,78 @@ def run_ro_queries (
 	return (data, col_idx)
 
 #------------------------------------------------------------------------
-def run_rw_queries (
-	link_obj:_TLnkObj=None,
-	queries:list[dict[str, Any]]=None,	#[str, Union[str, Union[list, dict[str, Any]]]]
-	#queries:list[dict[str, Union[str, Union[list[Any], dict[str, Any]]]]]=None,
-	end_tx:bool=False,
-	return_data:bool=None,
-	get_col_idx:bool=False,
-	verbose:bool=False
-) -> tuple[list[dbapi.extras.DictRow], Optional[dict[str, int]]]:
-	"""Convenience function for running a transaction that is supposed to get committed.
+def run_rw_queries(link_obj=None, queries=None, end_tx=False, return_data=None, get_col_idx=False, verbose=False):
+	"""Convenience function for running a transaction
+	   that is supposed to get committed.
 
-	Args:
-		link_obj: None, cursor, connection
-		queries:
+	<link_obj>
+		can be either:
+		- a cursor
+		- a connection
 
-		* a list of dicts [{'cmd': <string>, 'args': <dict> or <tuple>)
-		* to be executed as a single transaction
-		* the last query may usefully return rows, such as:
+	<queries>
+		is a list of dicts [{'cmd': <string>, 'args': <dict> or <tuple>)
+		to be executed as a single transaction, the last
+		query may usefully return rows (such as a
+		"SELECT currval('some_sequence')" statement)
 
-			SELECT currval('some_sequence');
-				or
-			INSERT/UPDATE ... RETURNING some_value;
-
-		end_tx:
-
-		* controls whether the transaction is finalized (eg.
+	<end_tx>
+		- controls whether the transaction is finalized (eg.
 		  COMMITted/ROLLed BACK) or not, this allows the
 		  call to run_rw_queries() to be part of a framing
 		  transaction
-		* if link_obj is a *connection* then "end_tx" will
+		- if link_obj is a *connection* then <end_tx> will
 		  default to False unless it is explicitly set to
 		  True which is taken to mean "yes, you do have full
 		  control over the transaction" in which case the
 		  transaction is properly finalized
-		* if link_obj is a *cursor* we CANNOT finalize the
+		- if link_obj is a *cursor* we CANNOT finalize the
 		  transaction because we would need the connection for that
-		* if link_obj is *None* "end_tx" will, of course, always
-		  be True, because we always have full control over the
-		  connection, not ending the transaction would be pointless
+		- if link_obj is *None* <end_tx> will, of course, always be True
 
-		return_data:
+	<return_data>
+		- if true, the returned data will include the rows
+		  the last query selected
+		- if false, it returns None instead
 
-		* if true, the returned data will include the rows
-		    the last query selected
-		* if false, it returns None instead
+	<get_col_idx>
+		- if true, the returned data will include a dictionary
+		  mapping field names to column positions
+		- if false, the returned data returns None instead
 
-		get_col_idx:
-
-		* True: the returned tuple will include a dictionary
-		    mapping field names to column positions
-		* False: the returned tuple includes None instead of a field mapping dictionary
-
-	Returns:
-
-		* (None, None) if last query did not return rows
-		* ("fetchall() result", <index>) if last query returned any rows and "return_data" was True
-
-		* for *index* see "get_col_idx"
+	method result:
+		- returns a tuple (data, idx)
+		- <data>:
+			* (None, None) if last query did not return rows
+			* ("fetchall() result", <index>) if last query returned any rows
+			* for <index> see <get_col_idx>
 	"""
-	assert queries is not None, '<queries> must not be None'
-
-	if link_obj is None:
-		conn = get_connection(readonly = False)
+	if isinstance(link_obj, dbapi._psycopg.cursor):
+		conn_close = lambda *x:None
+		conn_commit = lambda *x:None
+		tx_rollback = lambda *x:None
+		curs = link_obj
+		curs_close = lambda *x:None
+		notices_accessor = curs.connection
+	elif isinstance(link_obj, dbapi._psycopg.connection):
+		conn_close = lambda *x:None
+		if end_tx:
+			conn_commit = link_obj.commit
+			tx_rollback = link_obj.rollback
+		else:
+			conn_commit = lambda *x:None
+			tx_rollback = lambda *x:None
+		curs = link_obj.cursor()
+		curs_close = curs.close
+		notices_accessor = link_obj
+	elif link_obj is None:
+		conn = get_connection(readonly=False)
 		conn_close = conn.close
 		conn_commit = conn.commit
 		tx_rollback = conn.rollback
 		curs = conn.cursor()
 		curs_close = curs.close
 		notices_accessor = conn
-	elif isinstance(link_obj, dbapi._psycopg.connection):
-		conn_close = lambda *x: None
-		if end_tx:
-			conn_commit = link_obj.commit
-			tx_rollback = link_obj.rollback
-		else:
-			conn_commit = lambda *x: None
-			tx_rollback = lambda *x: None
-		curs = link_obj.cursor()
-		curs_close = curs.close
-		notices_accessor = link_obj
-	elif isinstance(link_obj, dbapi._psycopg.cursor):
-		conn_close = lambda *x: None
-		conn_commit = lambda *x: None
-		tx_rollback = lambda *x: None
-		curs = link_obj
-		curs_close = lambda *x: None
-		notices_accessor = curs.connection
 	else:
 		raise ValueError('link_obj must be cursor, connection or None but not [%s]' % link_obj)
 
@@ -2329,8 +1910,8 @@ def run_rw_queries (
 				_log.exception('cannot rollback transaction')
 				gmConnectionPool.log_pg_exception_details(pg_exc2)
 			# privilege problem
-			if pg_exc.pgcode == PG_error_codes.INSUFFICIENT_PRIVILEGE:
-				details = 'Query: [%s]' % curs.query.decode(errors = 'replace').strip().strip('\n').strip().strip('\n')
+			if pg_exc.pgcode == sql_error_codes.INSUFFICIENT_PRIVILEGE:
+				details = 'Query: [%s]' % curs.query.strip().strip('\n').strip().strip('\n')
 				if curs.statusmessage != '':
 					details = 'Status: %s\n%s' % (
 						curs.statusmessage.strip().strip('\n').strip().strip('\n'),
@@ -2404,11 +1985,12 @@ def run_rw_queries (
 	curs_close()
 	conn_commit()
 	conn_close()
+
 	return (data, col_idx)
 
 #------------------------------------------------------------------------
-def run_insert(link_obj:_TLnkObj=None, schema=None, table=None, values=None, returning=None, end_tx=False, get_col_idx=False, verbose=False):
-	"""Generates and runs SQL for an INSERT query.
+def run_insert(link_obj=None, schema=None, table=None, values=None, returning=None, end_tx=False, get_col_idx=False, verbose=False):
+	"""Generates SQL for an INSERT query.
 
 	values: dict of values keyed by field to insert them into
 	"""
@@ -2453,12 +2035,13 @@ def run_insert(link_obj:_TLnkObj=None, schema=None, table=None, values=None, ret
 # =======================================================================
 # connection handling API
 # -----------------------------------------------------------------------
-def get_raw_connection(verbose:bool=False, readonly:bool=True, connection_name:str=None, autocommit:bool=False) -> dbapi._psycopg.connection:
+def get_raw_connection(verbose=False, readonly=True, connection_name=None, autocommit=False):
 	"""Get a raw, unadorned connection.
 
-	* this will not set any parameters such as encoding, timezone, datestyle
-	* the only requirement is valid connection parameters having been passed to the connection pool
-	* hence it can be used for "service" connections for verifying encodings etc
+	- this will not set any parameters such as encoding, timezone, datestyle
+	- the only requirement is valid connection parameters having been passed to the connection pool
+	- hence it can be used for "service" connections
+	  for verifying encodings etc
 	"""
 	return gmConnectionPool.gmConnectionPool().get_raw_connection (
 		readonly = readonly,
@@ -2468,7 +2051,7 @@ def get_raw_connection(verbose:bool=False, readonly:bool=True, connection_name:s
 	)
 
 # =======================================================================
-def get_connection(readonly:bool=True, verbose:bool=False, pooled:bool=True, connection_name:str=None, autocommit:bool=False) -> dbapi._psycopg.connection:
+def get_connection(readonly=True, verbose=False, pooled=True, connection_name=None, autocommit=False):
 	return gmConnectionPool.gmConnectionPool().get_connection (
 		readonly = readonly,
 		verbose = verbose,
@@ -2488,9 +2071,8 @@ def shutdown():
 # ======================================================================
 # internal helpers
 #-----------------------------------------------------------------------
-def log_pg_exception(exc:Exception, msg:str=None):
-	gmConnectionPool.log_pg_exception_details(exc)
-	_log.exception(msg)
+def __noop():
+	pass
 
 #-----------------------------------------------------------------------
 def log_database_access(action=None):
@@ -2502,61 +2084,63 @@ def log_database_access(action=None):
 	)
 
 #-----------------------------------------------------------------------
-def sanity_check_time_skew(tolerance:int=60) -> bool:
+def sanity_check_time_skew(tolerance=60):
 	"""Check server time and local time to be within
 	the given tolerance of each other.
 
-	Args:
-		tolerance: seconds
+	tolerance: seconds
 	"""
 	_log.debug('maximum skew tolerance (seconds): %s', tolerance)
+
 	cmd = "SELECT now() at time zone 'UTC'"
-	conn = get_raw_connection(readonly = True)
+	conn = get_raw_connection(readonly=True)
 	curs = conn.cursor()
+
 	start = time.time()
 	rows, idx = run_ro_queries(link_obj = curs, queries = [{'cmd': cmd}])
 	end = time.time()
 	client_now_as_utc = pydt.datetime.utcnow()
+
 	curs.close()
 	conn.commit()
+
 	server_now_as_utc = rows[0][0]
 	query_duration = end - start
 	_log.info('server "now" (UTC): %s', server_now_as_utc)
 	_log.info('client "now" (UTC): %s', client_now_as_utc)
 	_log.debug('wire roundtrip (seconds): %s', query_duration)
+
 	if query_duration > tolerance:
 		_log.error('useless to check client/server time skew, wire roundtrip > tolerance')
 		return False
 
 	if server_now_as_utc > client_now_as_utc:
-		current_skew = server_now_as_utc - client_now_as_utc
+		real_skew = server_now_as_utc - client_now_as_utc
 	else:
-		current_skew = client_now_as_utc - server_now_as_utc
-	_log.debug('client/server time skew: %s', current_skew)
-	if current_skew > pydt.timedelta(seconds = tolerance):
+		real_skew = client_now_as_utc - server_now_as_utc
+
+	_log.debug('client/server time skew: %s', real_skew)
+
+	if real_skew > pydt.timedelta(seconds = tolerance):
 		_log.error('client/server time skew > tolerance')
 		return False
 
 	return True
 
 #-----------------------------------------------------------------------
-def sanity_check_database_settings(hipaa:bool=True) -> tuple:
-	"""Check database settings for sanity.
+def sanity_check_database_settings(hipaa:bool=False) -> (int, str):
+	"""Checks database settings.
 
-	Args:
-		hipaa: how to check HIPAA relevant settings, as fatal or warning
-
-	Returns:
-		(status, message)
-
-		status
-
-		* 0: no problem
-		* 1: non-fatal problem
-		* 2: fatal problem
+	returns (status, message)
+	status:
+		0: no problem
+		1: non-fatal problem
+		2: fatal problem
 	"""
 	_log.debug('checking database settings')
+
 	conn = get_connection()
+
 	# - version string
 	global postgresql_version_string
 	if postgresql_version_string is None:
@@ -2565,8 +2149,8 @@ def sanity_check_database_settings(hipaa:bool=True) -> tuple:
 		postgresql_version_string = curs.fetchone()['version']
 		curs.close()
 		_log.info('PostgreSQL version (string): "%s"' % postgresql_version_string)
-	# - postgresql settings
-	options2check:dict[str, list] = {
+
+	options2check = {
 		# setting: [expected value, risk, fatal?]
 		'allow_system_table_mods': [['off'], 'system breakage', False],
 		'check_function_bodies': [['on'], 'suboptimal error detection', False],
@@ -2577,7 +2161,7 @@ def sanity_check_database_settings(hipaa:bool=True) -> tuple:
 		'full_page_writes': [['on'], 'data loss/corruption', False],
 		'lc_messages': [['C'], 'suboptimal error detection', False],
 		'password_encryption': [['on', 'md5', 'scram-sha-256'], 'breach of confidentiality', False],
-		#'regex_flavor': [[u'advanced'], u'query breakage', False],					# 9.0 doesn't support this anymore, and default now "advanced" anyway
+		#u'regex_flavor': [[u'advanced'], u'query breakage', False],					# 9.0 doesn't support this anymore, default now advanced anyway
 		'synchronous_commit': [['on'], 'data loss/corruption', False],
 		'sql_inheritance': [['on'], 'query breakage, data loss/corruption', True],	# IF returned (<PG10): better be ON, if NOT returned (PG10): hardwired
 		'ignore_checksum_failure': [['off'], 'data loss/corruption', False],		# starting with PG 9.3
@@ -2589,10 +2173,11 @@ def sanity_check_database_settings(hipaa:bool=True) -> tuple:
 	else:
 		options2check['log_connections'] = [['on'], 'non-compliance with HIPAA', None]
 		options2check['log_disconnections'] = [['on'], 'non-compliance with HIPAA', None]
-	cmd = 'SELECT name, setting FROM pg_settings WHERE name = ANY(%(settings)s)'
+
+	cmd = "SELECT name, setting from pg_settings where name in %(settings)s"
 	rows, idx = run_ro_queries (
 		link_obj = conn,
-		queries = [{'cmd': cmd, 'args': {'settings': list(options2check)}}],
+		queries = [{'cmd': cmd, 'args': {'settings': tuple(options2check)}}],
 		get_col_idx = False
 	)
 	found_error = False
@@ -2604,7 +2189,7 @@ def sanity_check_database_settings(hipaa:bool=True) -> tuple:
 		values_expected = options2check[option][0]
 		risk = options2check[option][1]
 		fatal_setting = options2check[option][2]
-		if not value_found in values_expected:
+		if value_found not in values_expected:
 			if fatal_setting is True:
 				found_error = True
 			elif fatal_setting is False:
@@ -2618,30 +2203,6 @@ def sanity_check_database_settings(hipaa:bool=True) -> tuple:
 			msg.append(_(' option [%s]: %s') % (option, value_found))
 			msg.append(_('  risk: %s') % risk)
 			_log.warning('PG option [%s] set to [%s], expected %s, risk: <%s>' % (option, value_found, values_expected, risk))
-	# - collations
-	if not sanity_check_database_default_collation_version(conn = conn):
-		found_problem = True
-		msg.append(_(' collation version mismatch between database and operating system'))
-		msg.append(_('  risk: data corruption (duplicate entries, faulty sorting)'))
-	if not sanity_check_collation_versions(conn = conn):
-		found_problem = True
-		msg.append(_(' collations with version mismatch'))
-		msg.append(_('  risk: data corruption (duplicate entries, faulty sorting)'))
-	# - database encoding
-	curs = conn.cursor()
-	try:
-		curs.execute('SELECT pg_encoding_to_char(encoding) FROM pg_database WHERE datname = current_database()')
-		encoding = curs.fetchone()['pg_encoding_to_char']
-		if encoding != 'UTF8':
-			found_problem = True
-			msg.append(_(' database encoding not UTF8 but rather: %s') % encoding)
-			msg.append(_('  risk: multilingual data storage problems'))
-			_log.warning('PG database encoding not UTF8 but [%s]', encoding)
-	except dbapi.Error:
-		_log.exception('cannot verify database encoding (probably PG < 15)')
-	finally:
-		curs.close()
-	# preloaded libraries
 #	SQL = "SELECT name, setting from pg_settings where name = 'shared_preload_libraries';"
 #	rows, idx = run_ro_queries (link_obj = conn, queries = [{'cmd': SQL, 'args': None}])
 #	if rows:
@@ -2680,7 +2241,9 @@ if __name__ == "__main__":
 	if sys.argv[1] != 'test':
 		sys.exit()
 
-	logging.basicConfig(level = logging.DEBUG)
+	from Gnumed.pycommon.gmTools import file2md5
+
+	logging.basicConfig(level=logging.DEBUG)
 
 	#--------------------------------------------------------------------
 	def test_file2bytea():
@@ -2692,6 +2255,7 @@ if __name__ == "__main__":
 			{'cmd': 'create table test_bytea (data bytea)'}
 		])
 		try:
+			#file2bytea(query = 'insert into test_bytea values (%(data)s::bytea) returning md5(data) as md5', filename = sys.argv[2], file_md5 = file2md5(sys.argv[2], True))
 			file2bytea(query = 'insert into test_bytea values (%(data)s::bytea)', filename = sys.argv[2])
 		except Exception:
 			_log.exception('error')
@@ -2701,87 +2265,87 @@ if __name__ == "__main__":
 		])
 
 	#--------------------------------------------------------------------
-#	def test_file2bytea_lo():
-#		login, creds = request_login_params()
-#		pool = gmConnectionPool.gmConnectionPool()
-#		pool.credentials = creds
-#
-#		lo_oid = file2bytea_lo (
-#			filename = sys.argv[2]
-#			#, file_md5 = file2md5(sys.argv[2], True)
-#		)
-#		print(lo_oid)
+	def test_file2bytea_lo():
+		login, creds = request_login_params()
+		pool = gmConnectionPool.gmConnectionPool()
+		pool.credentials = creds
+
+		lo_oid = file2bytea_lo (
+			filename = sys.argv[2]
+			#, file_md5 = file2md5(sys.argv[2], True)
+		)
+		print(lo_oid)
 #		if lo_oid != -1:
 #			run_rw_queries(queries = [
 #				{'cmd': u'select lo_unlink(%(loid)s::oid)', 'args': {'loid': lo_oid}}
 #			])
 
 	#--------------------------------------------------------------------
-#	def test_file2bytea_copy_from():
-#		login, creds = request_login_params()
-#		pool = gmConnectionPool.gmConnectionPool()
-#		pool.credentials = creds
-#
-#		run_rw_queries(queries = [
-#			{'cmd': 'drop table if exists test_bytea'},
-#			{'cmd': 'create table test_bytea (pk serial primary key, data bytea)'},
-#			{'cmd': "insert into test_bytea (data) values (NULL::bytea)"}
-#		])
-#
-#		md5_query = {
-#			'cmd': 'select md5(data) AS md5 FROM test_bytea WHERE pk = %(pk)s',
-#			'args': {'pk': 1}
-#		}
-#
-#		file2bytea_copy_from (
-#			table = 'test_bytea',
-#			columns = ['data'],
-#			filename = sys.argv[2],
-#			md5_query = md5_query,
-#			file_md5 = file2md5(sys.argv[2], True)
-#		)
-#
-#		run_rw_queries(queries = [
-#			{'cmd': 'drop table if exists test_bytea'}
-#		])
+	def test_file2bytea_copy_from():
+		login, creds = request_login_params()
+		pool = gmConnectionPool.gmConnectionPool()
+		pool.credentials = creds
 
-#	#--------------------------------------------------------------------
-#	def test_file2bytea_overlay():
-#		login, creds = request_login_params()
-#		pool = gmConnectionPool.gmConnectionPool()
-#		pool.credentials = creds
-#
-#		run_rw_queries(queries = [
-#			{'cmd': 'drop table if exists test_bytea'},
-#			{'cmd': 'create table test_bytea (pk serial primary key, data bytea)'},
-#			{'cmd': "insert into test_bytea (data) values (NULL::bytea)"}
-#		])
-#
-#		cmd = """
-#		update test_bytea
-#		set data = overlay (
-#			coalesce(data, ''::bytea)
-#			placing %(data)s::bytea
-#			from %(start)s
-#			for %(size)s
-#		)
-#		where
-#			pk > %(pk)s
-#		"""
-#		md5_cmd = 'select md5(data) from test_bytea'
-#		args = {'pk': 0}
-#		file2bytea_overlay (
-#			query = cmd,
-#			args = args,
-#			filename = sys.argv[2],
-#			conn = None,
-#			md5_query = md5_cmd,
-#			file_md5 = file2md5(sys.argv[2], True)
-#		)
-#
-#		run_rw_queries(queries = [
-#			{'cmd': 'drop table test_bytea'}
-#		])
+		run_rw_queries(queries = [
+			{'cmd': 'drop table if exists test_bytea'},
+			{'cmd': 'create table test_bytea (pk serial primary key, data bytea)'},
+			{'cmd': "insert into test_bytea (data) values (NULL::bytea)"}
+		])
+
+		md5_query = {
+			'cmd': 'select md5(data) AS md5 FROM test_bytea WHERE pk = %(pk)s',
+			'args': {'pk': 1}
+		}
+
+		file2bytea_copy_from (
+			table = 'test_bytea',
+			columns = ['data'],
+			filename = sys.argv[2],
+			md5_query = md5_query,
+			file_md5 = file2md5(sys.argv[2], True)
+		)
+
+		run_rw_queries(queries = [
+			{'cmd': 'drop table if exists test_bytea'}
+		])
+
+	#--------------------------------------------------------------------
+	def test_file2bytea_overlay():
+		login, creds = request_login_params()
+		pool = gmConnectionPool.gmConnectionPool()
+		pool.credentials = creds
+
+		run_rw_queries(queries = [
+			{'cmd': 'drop table if exists test_bytea'},
+			{'cmd': 'create table test_bytea (pk serial primary key, data bytea)'},
+			{'cmd': "insert into test_bytea (data) values (NULL::bytea)"}
+		])
+
+		cmd = """
+		update test_bytea
+		set data = overlay (
+			coalesce(data, ''::bytea)
+			placing %(data)s::bytea
+			from %(start)s
+			for %(size)s
+		)
+		where
+			pk > %(pk)s
+		"""
+		md5_cmd = 'select md5(data) from test_bytea'
+		args = {'pk': 0}
+		file2bytea_overlay (
+			query = cmd,
+			args = args,
+			filename = sys.argv[2],
+			conn = None,
+			md5_query = md5_cmd,
+			file_md5 = file2md5(sys.argv[2], True)
+		)
+
+		run_rw_queries(queries = [
+			{'cmd': 'drop table test_bytea'}
+		])
 
 	#--------------------------------------------------------------------
 	def test_get_connection():
@@ -2793,68 +2357,67 @@ if __name__ == "__main__":
 
 		print('')
 		dsn = 'foo'
-		print(dsn)
 		try:
-			conn = get_connection()
-		except dbapi.ProgrammingError:
+			conn = get_connection(dsn=dsn)
+		except dbapi.ProgrammingError as e:
 			print("1) SUCCESS: get_connection(%s) failed as expected" % dsn)
-			typ, val = sys.exc_info()[:2]
-			print (' ', typ)
-			print (' ', val)
+			t, v = sys.exc_info()[:2]
+			print (' ', t)
+			print (' ', v)
 
 		print('')
 		dsn = 'dbname=gnumed_v22'
 		try:
-			conn = get_connection()
+			conn = get_connection(dsn=dsn)
 			print("2) ERROR: get_connection() did not fail")
 		except cAuthenticationError:
 			print("2) SUCCESS: get_connection(%s) failed as expected" % dsn)
-			typ, val = sys.exc_info()[:2]
-			print(' ', typ)
-			print(' ', val)
+			t, v = sys.exc_info()[:2]
+			print(' ', t)
+			print(' ', v)
 
 		print('')
 		dsn = 'dbname=gnumed_v22 user=abc'
 		try:
-			conn = get_connection()
+			conn = get_connection(dsn=dsn)
 			print("3) ERROR: get_connection() did not fail")
 		except cAuthenticationError:
 			print("3) SUCCESS: get_connection(%s) failed as expected" % dsn)
-			typ, val = sys.exc_info()[:2]
-			print(' ', typ)
-			print(' ', val)
+			t, v = sys.exc_info()[:2]
+			print(' ', t)
+			print(' ', v)
 
 		print('')
 		dsn = 'dbname=gnumed_v22 user=any-doc password=abc'
 		try:
-			conn = get_connection()
+			conn = get_connection(dsn=dsn)
 			print("4) ERROR: get_connection() did not fail")
 		except cAuthenticationError:
 			print("4) SUCCESS: get_connection(%s) failed as expected" % dsn)
-			typ, val = sys.exc_info()[:2]
-			print(' ', typ)
-			print(' ', val)
+			t, v = sys.exc_info()[:2]
+			print(' ', t)
+			print(' ', v)
 
 		print('')
 		dsn = 'dbname=gnumed_v22 user=any-doc password=any-doc'
-		conn = get_connection(readonly=True)
+		conn = get_connection(dsn=dsn, readonly=True)
 		print('5) SUCCESS: get_connection(ro)')
 
 		dsn = 'dbname=gnumed_v22 user=any-doc password=any-doc'
-		conn = get_connection(readonly=False, verbose=True)
+		conn = get_connection(dsn=dsn, readonly=False, verbose=True)
 		print('6) SUCCESS: get_connection(rw)')
 
 		print('')
 		dsn = 'dbname=gnumed_v22 user=any-doc'
 		try:
-			conn = get_connection()
+			conn = get_connection(dsn=dsn)
 			print("8) SUCCESS:", dsn)
 			print('pid:', conn.get_backend_pid())
 		except cAuthenticationError:
 			print("4) SUCCESS: get_connection(%s) failed" % dsn)
-			typ, val = sys.exc_info()[:2]
-			print(' ', typ)
-			print(' ', val)
+			t, v = sys.exc_info()[:2]
+			print(' ', t)
+			print(' ', v)
 
 		try:
 			curs = conn.cursor()
@@ -2875,8 +2438,8 @@ if __name__ == "__main__":
 
 		print("testing run_ro_queries()")
 
-		#dsn = 'dbname=gnumed_v22 user=any-doc password=any-doc'
-		conn = get_connection(readonly = True)
+		dsn = 'dbname=gnumed_v22 user=any-doc password=any-doc'
+		conn = get_connection(dsn, readonly=True)
 
 		data, idx = run_ro_queries(link_obj=conn, queries=[{'cmd': 'SELECT version()'}], return_data=True, get_col_idx=True, verbose=True)
 		print(data)
@@ -2899,11 +2462,11 @@ if __name__ == "__main__":
 			data, idx = run_ro_queries(link_obj=curs, queries=[{'cmd': 'selec 1'}], return_data=True, get_col_idx=True, verbose=True)
 			print(data)
 			print(idx)
-		except dbapi.ProgrammingError:
+		except psycopg2.ProgrammingError:
 			print('SUCCESS: run_ro_queries("selec 1") failed as expected')
-			typ, val = sys.exc_info()[:2]
-			print(' ', typ)
-			print(' ', val)
+			t, v = sys.exc_info()[:2]
+			print(' ', t)
+			print(' ', v)
 
 		curs.close()
 
@@ -2923,7 +2486,7 @@ if __name__ == "__main__":
 		login, creds = request_login_params()
 		pool = gmConnectionPool.gmConnectionPool()
 		pool.credentials = creds
-		conn = get_connection(readonly = True)
+		conn = get_connection('', readonly=True)
 		curs = conn.cursor()
 		curs.execute('SELECT * from clin.clin_narrative where narrative = %s', ['a'])
 
@@ -2970,9 +2533,6 @@ if __name__ == "__main__":
 		pool = gmConnectionPool.gmConnectionPool()
 		pool.credentials = creds
 		print(sanity_check_database_settings(hipaa = True))
-		status, msg = sanity_check_database_settings()
-		print(status)
-		print(msg)
 
 	#--------------------------------------------------------------------
 	def test_sanity_check_time_skew():
@@ -3027,7 +2587,7 @@ if __name__ == "__main__":
 				if result != test[2]:
 					print("test:", test)
 					print("result:", result, "expected:", test[2])
-			except dbapi.IntegrityError as e:
+			except psycopg2.IntegrityError as e:
 				print(e)
 				if test[2] is None:
 					continue
@@ -3062,9 +2622,7 @@ SELECT to_timestamp (foofoo,'YYMMDD.HH24MI') FROM (
 		E'\\\\2'						-- replacement
 	) AS foofoo
 ) AS foo"""
-		cmd = u"SELECT 'infinity'::timestamp with time zone"
-		rows, idx = run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
-		print(idx)
+		rows, idx = run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 		print(rows)
 		print(rows[0])
 		print(rows[0][0])
@@ -3153,7 +2711,7 @@ SELECT to_timestamp (foofoo,'YYMMDD.HH24MI') FROM (
 		login, creds = request_login_params()
 		pool = gmConnectionPool.gmConnectionPool()
 		pool.credentials = creds
-		#conn = get_connection()
+		conn = get_connection()
 		run_rw_queries(queries = [{'cmd': 'SELEC 1'}])
 
 	#--------------------------------------------------------------------
@@ -3174,32 +2732,6 @@ SELECT to_timestamp (foofoo,'YYMMDD.HH24MI') FROM (
 		print(get_db_fingerprint(with_dump = True, eol = '\n'))
 
 	#--------------------------------------------------------------------
-	def test_revalidate_constraints():
-		login, creds = request_login_params()
-		pool = gmConnectionPool.gmConnectionPool()
-		pool.credentials = creds
-		revalidate_constraints()
-
-	#--------------------------------------------------------------------
-	def test_reindex_database():
-		login, creds = request_login_params()
-		pool = gmConnectionPool.gmConnectionPool()
-		pool.credentials = creds
-		print(reindex_database())
-
-	#--------------------------------------------------------------------
-	def test_sanity_check_collation_versions():
-		print('DB default collation valid:', sanity_check_database_default_collation_version())
-		print('explicit collations valid:', sanity_check_collation_versions())
-
-	#--------------------------------------------------------------------
-	def test_refresh_collations_version_information():
-		print('fails:', refresh_collations_version_information())
-		print('fails:', refresh_collations_version_information(use_the_source_luke = __MIND_MELD))
-		print('fails:', refresh_collations_version_information(use_the_source_luke = __LLAP))
-		print('works:', refresh_collations_version_information(use_the_source_luke = [__MIND_MELD, __LLAP]))
-
-	#--------------------------------------------------------------------
 	# run tests
 
 	# legacy:
@@ -3217,7 +2749,7 @@ SELECT to_timestamp (foofoo,'YYMMDD.HH24MI') FROM (
 	#test_sanitize_pg_regex()
 	#test_is_pg_interval()
 	#test_sanity_check_time_skew()
-	#test_sanity_check_database_settings()
+	test_sanity_check_database_settings()
 	#test_get_foreign_key_details()
 	#test_get_index_name()
 	#test_set_user_language()
@@ -3229,33 +2761,5 @@ SELECT to_timestamp (foofoo,'YYMMDD.HH24MI') FROM (
 	#test_faulty_SQL()
 	#test_log_settings()
 	#test_get_db_fingerprint()
-	#test_revalidate_constraints()
-	#test_reindex_database()
-
-	#print(dbapi.extras.DictRow)
-	#print(dbapi._psycopg.connection)
-	#print(dbapi._psycopg.cursor)
-
-	request_login_params(setup_pool = True, force_tui = True)
-
-	rows, idx = run_ro_queries(queries = [{'cmd': 'select 1 as one, 2 as two'}], get_col_idx = True)
-	#print(type(idx))
-	#print(type(rows))
-	r = rows[0]
-	for field in r.keys():
-		#print(field)
-		print(field, r[field])
-	#print(type(rows[0]))
-
-	#test_sanity_check_collation_versions()
-	#test_sanity_check_database_settings()
-	#test_refresh_collations_version_information()
-
-#	try:
-#		run_ro_queries(queries = [{'cmd': 'select no_function(1)'}])
-#	except dbapi.errors.UndefinedFunction as e:
-#		print(type(e))
-#		for s in dir(e.diag):
-#			print(s, getattr(e.diag, s))
 
 # ======================================================================

@@ -5,7 +5,7 @@ Copyright: authors
 """
 #============================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 import sys
 import logging
@@ -416,13 +416,13 @@ __xml_intake_template = """
 
 def __format_intake_as_timeline_xml(intake):
 	if intake['discontinued'] is None:
-		if intake['planned_duration'] is None:
+		if intake['duration'] is None:
 			if intake['seems_inactive']:
 				end = intake['started']
 			else:
 				end = now
 		else:
-			end = intake['started'] + intake['planned_duration']
+			end = intake['started'] + intake['duration']
 	else:
 		end = intake['discontinued']
 
@@ -556,7 +556,7 @@ def create_timeline_file(patient=None, filename=None, include_documents=False, i
 			timeline.write(__format_vaccination_as_timeline_xml(vacc))
 
 	timeline.write('\n<!--\n========================================\n Substance intakes\n======================================== -->')
-	for intake in emr.get_current_medications(include_inactive = True):
+	for intake in emr.get_current_medications(include_inactive = True, include_unapproved = False):
 		timeline.write(__format_intake_as_timeline_xml(intake))
 
 	if include_documents:
@@ -637,6 +637,7 @@ def create_fake_timeline_file(patient=None, filename=None):
 
 	- needed because .clear_timeline() doesn't really work
 	"""
+	emr = patient.emr
 	global now
 	now = gmDateTime.pydt_now_here()
 

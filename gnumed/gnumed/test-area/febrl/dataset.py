@@ -459,7 +459,7 @@ class DataSetCOL(DataSet):
         col_count += field_length  # Increase column counter by field length,
                                    # this should be start column of next field
 
-      # Now only initialize file according to parallel write mode
+      # Now only initialse file according to parallel write mode
       #
       if (self.parallelwrite == 'all') or \
          ((self.parallelwrite == 'host') and (parallel.rank() == 0)):
@@ -520,7 +520,7 @@ class DataSetCOL(DataSet):
         col_count += field_length  # Increase column counter by field length,
                                    # this should be start column of next field
 
-      # Now only initialize file according to parallel write mode
+      # Now only initialse file according to parallel write mode
       #
       if (self.parallelwrite == 'all') or \
          ((self.parallelwrite == 'host') and (parallel.rank() == 0)):
@@ -964,7 +964,7 @@ class DataSetCSV(DataSet):
       if (self.parallelwrite == 'all'):
         self.file_name = self.file_name+'-P%i' % (parallel.rank())
 
-      # Now only initialize file according to parallel write mode
+      # Now only initialse file according to parallel write mode
       #
       if (self.parallelwrite == 'all') or \
          ((self.parallelwrite == 'host') and (parallel.rank() == 0)):
@@ -1009,7 +1009,7 @@ class DataSetCSV(DataSet):
       if (self.parallelwrite == 'all'):
         self.file_name = self.file_name+'-P%i' % (parallel.rank())
 
-      # Now only initialize file according to parallel write mode
+      # Now only initialse file according to parallel write mode
       #
       if (self.parallelwrite == 'all') or \
          ((self.parallelwrite == 'host') and (parallel.rank() == 0)):
@@ -1319,7 +1319,7 @@ class DataSetSQL(DataSet):
        database_name        The name of the database to connect to.
        database_user        The user name for the database.
        database_password    The corresponding password, if not set at
-                            initialisation, it is queried interactively.
+                            initalisation, it is queried interactively.
        database_block_size  The maximum number of records read in a block.
                             Default value is 10,000.
   """
@@ -1797,7 +1797,7 @@ class DataSetPGSQL(DataSet):
        database_name        The name of the database to connect to.
        database_user        The user name for the database.
        database_password    The corresponding password, if not set at
-                            initialisation, it is queried interactively.
+                            initalisation, it is queried interactively.
        database_block_size  The maximum number of records read in a block.
                             Default value is 10,000.
   """

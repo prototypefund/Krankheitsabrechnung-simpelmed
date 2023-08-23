@@ -3,10 +3,13 @@
 FIXME: store screen size
 """
 #============================================================================
+# $Source: /home/ncq/Projekte/cvs2git/vcs-mirror/gnumed/gnumed/client/wxpython/gmSnellen.py,v $
+# $Id: gmSnellen.py,v 1.6 2009-12-21 15:12:53 ncq Exp $
+__version__ = "$Revision: 1.6 $"
 __author__ = "Ian Haywood, Karsten Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
-import math, random, sys
+import math, random, sys, logging
 
 
 import wx
@@ -14,7 +17,7 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+from Gnumed.pycommon import gmI18N
 
 ID_SNELLENMENU = wx.NewId()
 ID_SNELLENBUTTON = wx.NewId()
@@ -526,6 +529,9 @@ double-click ends""")), 0, wx.ALL, 15)
 # main
 #----------------------------------------------------------------------------
 if __name__ == '__main__':
+
+	gmI18N.activate_locale()
+	gmI18N.install_domain('gnumed')
 
 	class TestApp (wx.App):
 		def OnInit (self):

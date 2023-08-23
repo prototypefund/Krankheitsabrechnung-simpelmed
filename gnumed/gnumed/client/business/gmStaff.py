@@ -11,14 +11,11 @@ import logging
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmNull
 from Gnumed.pycommon import gmBorg
 from Gnumed.pycommon import gmLog2
-from Gnumed.pycommon import gmCfgDB
-from Gnumed.pycommon import gmTools
 
 
 _log = logging.getLogger('gm.staff')
@@ -39,8 +36,7 @@ class cStaff(gmBusinessDBObject.cBusinessDBObject):
 				short_alias = %(short_alias)s,
 				comment = gm.nullify_empty_string(%(comment)s),
 				is_active = %(is_active)s,
-				db_user = %(db_user)s,
-				public_key = %(public_key)s
+				db_user = %(db_user)s
 			WHERE
 				pk = %(pk_staff)s
 					AND
@@ -48,7 +44,7 @@ class cStaff(gmBusinessDBObject.cBusinessDBObject):
 			RETURNING
 				xmin AS xmin_staff"""
 	]
-	_updatable_fields = ['short_alias', 'comment', 'is_active', 'db_user', 'public_key']
+	_updatable_fields = ['short_alias', 'comment', 'is_active', 'db_user']
 
 	#--------------------------------------------------------
 	def __init__(self, aPK_obj=None, row=None):
@@ -83,7 +79,6 @@ class cStaff(gmBusinessDBObject.cBusinessDBObject):
 			if self.__is_current_user:
 				_log.debug('will not modify database account association of CURRENT_USER staff member')
 				return
-
 		gmBusinessDBObject.cBusinessDBObject.__setitem__(self, attribute, value)
 
 	#--------------------------------------------------------
@@ -112,14 +107,17 @@ class cStaff(gmBusinessDBObject.cBusinessDBObject):
 			self.__inbox = gmProviderInbox.cProviderInbox(provider_id = self._payload[self._idx['pk_staff']])
 		return self.__inbox
 
-	inbox = property(_get_inbox)
+	def _set_inbox(self, inbox):
+		return
+
+	inbox = property(_get_inbox, _set_inbox)
 
 	#--------------------------------------------------------
 	def _get_identity(self):
 		from Gnumed.business.gmPerson import cPerson
 		return cPerson(self._payload[self._idx['pk_identity']])
 
-	identity = property(_get_identity)
+	identity = property(_get_identity, lambda x:x)
 
 	#--------------------------------------------------------
 	def set_role(self, conn=None, role=None):
@@ -140,28 +138,10 @@ class cStaff(gmBusinessDBObject.cBusinessDBObject):
 		)
 		if not rows[0][0]:
 			return False
-
 		self.refetch_payload()
 		return True
 
 	role = property(lambda x:x, set_role)
-
-	#--------------------------------------------------------
-	def _get_public_key_file(self):
-		if not self._payload['public_key']:
-			return None
-
-		pk_fname = gmTools.get_unique_filename()
-		with open(pk_fname, mode = 'wt', encoding = 'utf8') as pk_f:
-			pk_f.write(self._payload['public_key'])
-		return pk_fname
-
-	def _set_public_key_file(self, pk_fname):
-		with open(pk_fname, mode = 'r', encoding = 'utf8') as pk_f:
-			self['public_key'] = pk_f.read()
-		self.save()
-
-	public_key_file = property(_get_public_key_file, _set_public_key_file)
 
 #============================================================
 def get_staff_list(active_only=False):
@@ -208,7 +188,7 @@ def create_staff(conn=None, db_account=None, password=None, identity=None, short
 		rows, idx = gmPG2.run_rw_queries(link_obj = conn, queries = queries, end_tx = True)
 		created = True
 	except gmPG2.dbapi.IntegrityError as e:
-		if e.pgcode != gmPG2.PG_error_codes.UNIQUE_VIOLATION:
+		if e.pgcode != gmPG2.sql_error_codes.UNIQUE_VIOLATION:
 			raise
 
 	if created:
@@ -231,7 +211,7 @@ def delete_staff(conn=None, pk_staff=None):
 		rows, idx = gmPG2.run_rw_queries(link_obj = conn, queries = queries, end_tx = True)
 		deleted = True
 	except gmPG2.dbapi.IntegrityError as e:
-		if e.pgcode != gmPG2.PG_error_codes.FOREIGN_KEY_VIOLATION:		# 23503  foreign_key_violation
+		if e.pgcode != gmPG2.sql_error_codes.FOREIGN_KEY_VIOLATION:		# 23503  foreign_key_violation
 			raise
 
 	if deleted:
@@ -276,29 +256,6 @@ def deactivate_staff(conn=None, pk_staff=None):
 	)
 	return True
 
-#------------------------------------------------------------
-def get_public_keys_of_passphrase_trustees(as_files:bool=False) -> list[str]:
-	"""Retrieve the public keys of passphrase trustees.
-
-	Returns:
-		List of keys or list of keyfile names, depending on 'as_files'.
-	"""
-	pub_keys = gmCfgDB.get4site (
-		option = 'horstspace.export.public_keys_of_passphrase_trustees',
-		default = []
-	)
-	if not as_files or not pub_keys:
-		return pub_keys
-
-	fnames = []
-	for pub_key in pub_keys:
-		pubk_fname = gmTools.get_unique_filename()
-		with open(pubk_fname, mode = 'wt', encoding = 'utf8') as pubk_f:
-			pubk_f.write(pub_key)
-		fnames.append(pubk_fname)
-	return fnames
-
-#============================================================
 #============================================================
 def set_current_provider_to_logged_on_user():
 	gmCurrentProvider(provider = cStaff())
@@ -375,6 +332,7 @@ if __name__ == '__main__':
 	if sys.argv[1] != 'test':
 		sys.exit()
 
+	import datetime
 	from Gnumed.pycommon import gmI18N
 	from Gnumed.pycommon import gmDateTime
 
@@ -386,44 +344,23 @@ if __name__ == '__main__':
 	def test_staff():
 		staff = cStaff()
 		print(staff)
-		#print(staff.inbox)
-		#print(staff.inbox.messages)
-		print(staff.public_key_file)
-
+		print(staff.inbox)
+		print(staff.inbox.messages)
 	#--------------------------------------------------------
 	def test_current_provider():
 		staff = cStaff()
 		provider = gmCurrentProvider(provider = staff)
 		print(provider)
-		#print(provider.inbox)
-		#print(provider.inbox.messages)
+		print(provider.inbox)
+		print(provider.inbox.messages)
 		print(provider.database_language)
-		#tmp = provider.database_language
-		#provider.database_language = None
-		#print(provider.database_language)
-		#provider.database_language = tmp
-		#print(provider.database_language)
-		print(provider.public_key_file)
-
+		tmp = provider.database_language
+		provider.database_language = None
+		print(provider.database_language)
+		provider.database_language = tmp
+		print(provider.database_language)
 	#--------------------------------------------------------
-	def test_set_pubkey():
-		staff = cStaff(aPK_obj = 1)
-		print(staff)
-		staff.public_key_file = sys.argv[2]
-		print(staff.public_key_file)
-
-	#--------------------------------------------------------
-	def test_trustee_pkeys():
-		print("passphrase trustees' public keys:")
-		print('keys:', get_public_keys_of_passphrase_trustees(as_files = False))
-		print('key files:', get_public_keys_of_passphrase_trustees(as_files = True))
-
-	#--------------------------------------------------------
-	gmPG2.request_login_params(setup_pool = True, force_tui = True)
-
-	#test_staff()
+	test_staff()
 	#test_current_provider()
-	#test_trustee_pkeys()
-	test_set_pubkey()
 
 #============================================================

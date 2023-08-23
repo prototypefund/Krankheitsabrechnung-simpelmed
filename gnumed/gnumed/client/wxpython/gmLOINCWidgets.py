@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""GNUmed LOINC handling widgets."""
+#from __future__ import print_function
+
+__doc__ = """GNUmed LOINC handling widgets."""
 
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
@@ -15,7 +17,11 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+#	from Gnumed.pycommon import gmI18N
+#	gmI18N.activate_locale()
+#	gmI18N.install_domain(domain = 'gnumed')
+from Gnumed.pycommon import gmTools
+from Gnumed.pycommon import gmMatchProvider
 from Gnumed.pycommon import gmNetworkTools
 from Gnumed.pycommon import gmDispatcher
 
@@ -36,7 +42,7 @@ def update_loinc_reference_data():
 	gmDispatcher.send(signal = 'statustext', msg = _('Updating LOINC data can take quite a while...'), beep = True)
 
 	# download
-	loinc_zip = gmNetworkTools.download_file(url = 'https://www.gnumed.de/downloads/data/loinc/loinctab.zip', suffix = '.zip')
+	loinc_zip = gmNetworkTools.download_file(url = 'http://www.gnumed.de/downloads/data/loinc/loinctab.zip', suffix = '.zip')
 	if loinc_zip is None:
 		wx.EndBusyCursor()
 		gmGuiHelpers.gm_show_warning (

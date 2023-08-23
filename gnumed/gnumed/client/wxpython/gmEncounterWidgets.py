@@ -19,8 +19,7 @@ import wx
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
-from Gnumed.pycommon import gmCfgDB
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
@@ -159,11 +158,13 @@ def sanity_check_encounter_of_active_patient(parent=None, msg=None):
 	if not pat.connected:
 		return True
 
-	check_enc = gmCfgDB.get4user (
+	dbcfg = gmCfg.cCfgSQL()
+	check_enc = bool(dbcfg.get2 (
 		option = 'encounter.show_editor_before_patient_change',
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'user',
 		default = True					# True: if needed, not always unconditionally
-	)
+	))
 
 	if not check_enc:
 		return True
@@ -241,9 +242,11 @@ def select_encounters(parent=None, patient=None, single_selection=True, encounte
 
 	#--------------------
 	def new():
-		enc_type = gmCfgDB.get4user (
+		cfg_db = gmCfg.cCfgSQL()
+		enc_type = cfg_db.get2 (
 			option = 'encounter.default_type',
-			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'user'
 		)
 		if enc_type is None:
 			enc_type = gmEMRStructItems.get_most_commonly_used_encounter_type()
@@ -945,22 +948,23 @@ if __name__ == '__main__':
 	#----------------------------------------------------------------
 	def test_encounter_edit_area_panel():
 		app = wx.PyWidgetTester(size = (200, 300))
-		#emr = pat.emr
-		#enc = emr.active_encounter
-		enc = gmEMRStructItems.cEncounter(1)
-		#pnl = 
-		cEncounterEditAreaPnl(app.frame, -1, encounter=enc)
+		emr = pat.emr
+		enc = emr.active_encounter
+		#enc = gmEMRStructItems.cEncounter(1)
+		pnl = cEncounterEditAreaPnl(app.frame, -1, encounter=enc)
 		app.frame.Show(True)
 		app.MainLoop()
-
+		return
 	#----------------------------------------------------------------
 	def test_encounter_edit_area_dialog():
 		app = wx.PyWidgetTester(size = (200, 300))
-		#emr = pat.emr
-		#enc = emr.active_encounter
-		enc = gmEMRStructItems.cEncounter(1)
+		emr = pat.emr
+		enc = emr.active_encounter
+		#enc = gmEMRStructItems.cEncounter(1)
+
 		dlg = cEncounterEditAreaDlg(parent=app.frame, id=-1, size = (400,400), encounter=enc)
 		dlg.ShowModal()
+
 #		pnl = cEncounterEditAreaDlg(app.frame, -1, encounter=enc)
 #		app.frame.Show(True)
 #		app.MainLoop()

@@ -8,6 +8,7 @@ __license__ = "GPL"
 
 import sys
 import logging
+import io
 import decimal
 import re as regex
 import os.path
@@ -15,12 +16,13 @@ import os.path
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 
 from Gnumed.pycommon import gmDateTime
 if __name__ == '__main__':
+	from Gnumed.pycommon import gmLog2
 	from Gnumed.pycommon import gmI18N
 	gmI18N.activate_locale()
+	gmI18N.install_domain('gnumed')
 	gmDateTime.init()
 from Gnumed.pycommon import gmExceptions
 from Gnumed.pycommon import gmBusinessDBObject
@@ -28,13 +30,13 @@ from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmHooks
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 
 from Gnumed.business import gmOrganization
 from Gnumed.business import gmCoding
 
 _log = logging.getLogger('gm.lab')
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 #============================================================
 HL7_RESULT_STATI = {
@@ -53,7 +55,7 @@ HL7_RESULT_STATI = {
 }
 
 URL_test_result_information = 'http://www.laborlexikon.de'
-URL_test_result_information_search = "https://www.google.de/search?as_oq=%(search_term)s&num=10&as_sitesearch=laborlexikon.de"
+URL_test_result_information_search = "http://www.google.de/search?as_oq=%(search_term)s&num=10&as_sitesearch=laborlexikon.de"
 
 #============================================================
 def _on_test_result_modified():
@@ -209,7 +211,7 @@ class cTestPanel(gmBusinessDBObject.cBusinessDBObject):
 		if len(codes) > 0:
 			txt += '\n'
 			for c in codes:
-				txt += '    %s: %s (%s - %s)\n' % (
+				txt += '  %s: %s (%s - %s)\n' % (
 					c['code'],
 					c['term'],
 					c['name_short'],
@@ -279,7 +281,7 @@ class cTestPanel(gmBusinessDBObject.cBusinessDBObject):
 					SELECT DISTINCT ON (c_vtr.pk_test_type) c_vtr.pk_test_type
 					FROM clin.v_test_results c_vtr
 					WHERE
-						c_vtr.pk_test_type = ANY(%%(pks)s)
+						c_vtr.pk_test_type IN %%(pks)s
 								AND
 						c_vtr.pk_patient = %%(pat)s
 				)
@@ -287,7 +289,7 @@ class cTestPanel(gmBusinessDBObject.cBusinessDBObject):
 
 		args = {
 			'pat': pk_patient,
-			'pks': [ tt['pk_test_type'] for tt in self._payload[self._idx['test_types']] ]
+			'pks': tuple([ tt['pk_test_type'] for tt in self._payload[self._idx['test_types']] ])
 		}
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 		return [ cMeasurementType(row = {'pk_field': 'pk_test_type', 'idx': idx, 'data': r}) for r in rows ]
@@ -327,8 +329,8 @@ class cTestPanel(gmBusinessDBObject.cBusinessDBObject):
 		if len(loincs) == 0:
 			cmd = 'DELETE FROM clin.lnk_loinc2test_panel WHERE fk_test_panel = %(pk_pnl)s'
 		else:
-			cmd = 'DELETE FROM clin.lnk_loinc2test_panel WHERE fk_test_panel = %(pk_pnl)s AND loinc <> ALL(%(loincs)s)'
-		queries.append({'cmd': cmd, 'args': {'loincs': loincs, 'pk_pnl': self._payload[self._idx['pk_test_panel']]}})
+			cmd = 'DELETE FROM clin.lnk_loinc2test_panel WHERE fk_test_panel = %(pk_pnl)s AND loinc NOT IN %(loincs)s'
+		queries.append({'cmd': cmd, 'args': {'loincs': tuple(loincs), 'pk_pnl': self._payload[self._idx['pk_test_panel']]}})
 		# add those not there yet
 		if len(loincs) > 0:
 			for loinc in loincs:
@@ -351,22 +353,22 @@ class cTestPanel(gmBusinessDBObject.cBusinessDBObject):
 
 		rows, idx = gmPG2.run_ro_queries (
 			queries = [{
-				'cmd': _SQL_get_test_types % 'pk_test_type = ANY(%(pks)s) ORDER BY unified_abbrev',
-				'args': {'pks': [ tt['pk_test_type'] for tt in self._payload[self._idx['test_types']] ]}
+				'cmd': _SQL_get_test_types % 'pk_test_type IN %(pks)s ORDER BY unified_abbrev',
+				'args': {'pks': tuple([ tt['pk_test_type'] for tt in self._payload[self._idx['test_types']] ])}
 			}],
 			get_col_idx = True
 		)
 		return [ cMeasurementType(row = {'data': r, 'idx': idx, 'pk_field': 'pk_test_type'}) for r in rows ]
 
-	test_types = property(_get_test_types)
+	test_types = property(_get_test_types, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_generic_codes(self):
 		if len(self._payload[self._idx['pk_generic_codes']]) == 0:
 			return []
 
-		cmd = gmCoding._SQL_get_generic_linked_codes % 'pk_generic_code = ANY(%(pks)s)'
-		args = {'pks': self._payload[self._idx['pk_generic_codes']]}
+		cmd = gmCoding._SQL_get_generic_linked_codes % 'pk_generic_code IN %(pks)s'
+		args = {'pks': tuple(self._payload[self._idx['pk_generic_codes']])}
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 		return [ gmCoding.cGenericLinkedCode(row = {'data': r, 'idx': idx, 'pk_field': 'pk_lnk_code2item'}) for r in rows ]
 
@@ -375,10 +377,10 @@ class cTestPanel(gmBusinessDBObject.cBusinessDBObject):
 		# remove all codes
 		if len(self._payload[self._idx['pk_generic_codes']]) > 0:
 			queries.append ({
-				'cmd': 'DELETE FROM clin.lnk_code2tst_pnl WHERE fk_item = %(tp)s AND fk_generic_code = ANY(%(codes)s)',
+				'cmd': 'DELETE FROM clin.lnk_code2tst_pnl WHERE fk_item = %(tp)s AND fk_generic_code IN %(codes)s',
 				'args': {
 					'tp': self._payload[self._idx['pk_test_panel']],
-					'codes': self._payload[self._idx['pk_generic_codes']]
+					'codes': tuple(self._payload[self._idx['pk_generic_codes']])
 				}
 			})
 		# add new codes
@@ -578,6 +580,8 @@ class cMetaTestType(gmBusinessDBObject.cBusinessDBObject):
 			'mloinc': self._payload[self._idx['loinc']],
 			'when': date
 		}
+		WHERE_meta = ''
+
 		SQL = """
 			SELECT * FROM clin.v_test_results
 			WHERE
@@ -623,7 +627,7 @@ class cMetaTestType(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 		return [ cMeasurementType(row = {'pk_field': 'pk_test_type', 'data': r, 'idx': idx}) for r in rows ]
 
-	included_test_types = property(_get_included_test_types)
+	included_test_types = property(_get_included_test_types, lambda x:x)
 
 #------------------------------------------------------------
 def create_meta_type(name=None, abbreviation=None, return_existing=False):
@@ -719,7 +723,7 @@ class cMeasurementType(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}])
 		return rows[0][0]
 
-	in_use = property(_get_in_use)
+	in_use = property(_get_in_use, lambda x:x)
 
 	#--------------------------------------------------------
 	def get_most_recent_results(self, patient=None, max_no_of_results=1):
@@ -735,7 +739,7 @@ class cMeasurementType(gmBusinessDBObject.cBusinessDBObject):
 			return []
 
 		return get_most_recent_results_in_loinc_group (
-			loincs = list(self._payload[self._idx['loinc']]),
+			loincs = tuple(self._payload[self._idx['loinc']]),
 			max_no_of_results = max_no_of_results,
 			patient = patient
 			# ?
@@ -764,7 +768,7 @@ class cMeasurementType(gmBusinessDBObject.cBusinessDBObject):
 
 		return [ cTestPanel(aPK_obj = pk) for pk in self._payload[self._idx['pk_test_panels']] ]
 
-	test_panels = property(_get_test_panels)
+	test_panels = property(_get_test_panels, lambda x:x)
 
 	#--------------------------------------------------------
 	def get_meta_test_type(self, real_one_only=True):
@@ -774,7 +778,7 @@ class cMeasurementType(gmBusinessDBObject.cBusinessDBObject):
 			return None
 		return cMetaTestType(aPK_obj = self._payload[self._idx['pk_meta_test_type']])
 
-	meta_test_type = property(get_meta_test_type)
+	meta_test_type = property(get_meta_test_type, lambda x:x)
 
 	#--------------------------------------------------------
 	def get_temporally_closest_normal_range(self, unit, timestamp=None):
@@ -889,7 +893,7 @@ LIMIT 1"""
 			return None
 		return rows[0]['val_unit']
 
-	temporally_closest_unit = property(get_temporally_closest_unit)
+	temporally_closest_unit = property(get_temporally_closest_unit, lambda x:x)
 
 	#--------------------------------------------------------
 	def format(self, patient=None):
@@ -960,12 +964,13 @@ def get_measurement_types(order_by=None, loincs=None, return_pks=False):
 	where_parts = []
 	if loincs is not None:
 		if len(loincs) > 0:
-			where_parts.append('loinc = ANY(%(loincs)s)')
-			args['loincs'] = loincs
+			where_parts.append('loinc IN %(loincs)s')
+			args['loincs'] = tuple(loincs)
 	if len(where_parts) == 0:
 		where_parts.append('TRUE')
 	WHERE_clause = ' AND '.join(where_parts)
 	cmd = (_SQL_get_test_types % WHERE_clause) + gmTools.coalesce(order_by, '', ' ORDER BY %s')
+	#cmd = 'select * from clin.v_test_types %s' % gmTools.coalesce(order_by, '', 'order by %s')
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 	if return_pks:
 		return [ r['pk_test_type'] for r in rows ]
@@ -1432,7 +1437,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			self._payload[self._idx['val_normal_max']] is not None
 		)
 
-	has_normal_min_or_max = property(_get_has_normal_min_or_max)
+	has_normal_min_or_max = property(_get_has_normal_min_or_max, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_normal_min_max(self):
@@ -1449,7 +1454,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			gmTools.coalesce(self._payload[self._idx['val_normal_max']], '?')
 		)
 
-	normal_min_max = property(_get_normal_min_max)
+	normal_min_max = property(_get_normal_min_max, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_formatted_normal_range(self):
@@ -1479,7 +1484,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			return None
 		return range_info
 
-	formatted_normal_range = property(_get_formatted_normal_range)
+	formatted_normal_range = property(_get_formatted_normal_range, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_has_clinical_min_or_max(self):
@@ -1489,7 +1494,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			self._payload[self._idx['val_target_max']] is not None
 		)
 
-	has_clinical_min_or_max = property(_get_has_clinical_min_or_max)
+	has_clinical_min_or_max = property(_get_has_clinical_min_or_max, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_clinical_min_max(self):
@@ -1506,7 +1511,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			gmTools.coalesce(self._payload[self._idx['val_target_max']], '?')
 		)
 
-	clinical_min_max = property(_get_clinical_min_max)
+	clinical_min_max = property(_get_clinical_min_max, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_formatted_clinical_range(self):
@@ -1536,7 +1541,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			return None
 		return range_info
 
-	formatted_clinical_range = property(_get_formatted_clinical_range)
+	formatted_clinical_range = property(_get_formatted_clinical_range, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_temporally_closest_normal_range(self):
@@ -1577,7 +1582,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			return None
 		return cTestResult(row = {'pk_field': 'pk_test_result', 'idx': idx, 'data': rows[0]})
 
-	temporally_closest_normal_range = property(_get_temporally_closest_normal_range)
+	temporally_closest_normal_range = property(_get_temporally_closest_normal_range, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_formatted_range(self):
@@ -1640,13 +1645,13 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 
 		return None
 
-	formatted_range = property(_get_formatted_range)
+	formatted_range = property(_get_formatted_range, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_test_type(self):
 		return cMeasurementType(aPK_obj = self._payload[self._idx['pk_test_type']])
 
-	test_type = property(_get_test_type)
+	test_type = property(_get_test_type, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_considered_elevated(self):
@@ -1677,7 +1682,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 				return True
 		return None
 
-	is_considered_elevated = property(_get_is_considered_elevated)
+	is_considered_elevated = property(_get_is_considered_elevated, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_considered_lowered(self):
@@ -1708,7 +1713,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 				return True
 		return None
 
-	is_considered_lowered = property(_get_is_considered_lowered)
+	is_considered_lowered = property(_get_is_considered_lowered, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_considered_abnormal(self):
@@ -1720,7 +1725,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			return False
 		return self._payload[self._idx['is_technically_abnormal']]
 
-	is_considered_abnormal = property(_get_is_considered_abnormal)
+	is_considered_abnormal = property(_get_is_considered_abnormal, lambda x:x)
 
 	#--------------------------------------------------------
 	def _set_reference_range(self, ref_range):
@@ -1819,7 +1824,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 
 		return None
 
-	formatted_abnormality_indicator = property(_get_formatted_abnormality_indicator)
+	formatted_abnormality_indicator = property(_get_formatted_abnormality_indicator, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_long_text(self):
@@ -1830,7 +1835,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			return True
 		return False
 
-	is_long_text = property(_get_is_long_text)
+	is_long_text = property(_get_is_long_text, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_estimate_numeric_value_from_alpha(self):
@@ -1850,7 +1855,7 @@ class cTestResult(gmBusinessDBObject.cBusinessDBObject):
 			return None
 		return val * factor
 
-	estimate_numeric_value_from_alpha = property(_get_estimate_numeric_value_from_alpha)
+	estimate_numeric_value_from_alpha = property(_get_estimate_numeric_value_from_alpha, lambda x:x)
 
 	#--------------------------------------------------------
 	def set_review(self, technically_abnormal=None, clinically_relevant=None, comment=None, make_me_responsible=False):
@@ -2036,15 +2041,19 @@ def get_test_results(pk_patient=None, encounters=None, episodes=None, order_by=N
 	if pk_patient is not None:
 		where_parts.append('pk_patient = %(pat)s')
 		args = {'pat': pk_patient}
+
 #	if tests is not None:
-#		where_parts.append(u'pk_test_type = ANY(%(tests)s)')
-#		args['tests'] = tests
+#		where_parts.append(u'pk_test_type IN %(tests)s')
+#		args['tests'] = tuple(tests)
+
 	if encounters is not None:
-		where_parts.append('pk_encounter = ANY(%(encs)s)')
-		args['encs'] = encounters
+		where_parts.append('pk_encounter IN %(encs)s')
+		args['encs'] = tuple(encounters)
+
 	if episodes is not None:
-		where_parts.append('pk_episode = ANY(%(epis)s)')
-		args['epis'] = episodes
+		where_parts.append('pk_episode IN %(epis)s')
+		args['epis'] = tuple(episodes)
+
 	if order_by is None:
 		order_by = ''
 	else:
@@ -2179,8 +2188,8 @@ def get_result_at_timestamp(timestamp=None, test_type=None, loinc=None, toleranc
 	if test_type is not None:
 		where_parts.append('pk_test_type = %(ttyp)s')		# consider: pk_meta_test_type = %(pkmtt)s / self._payload[self._idx['pk_meta_test_type']]
 	elif loinc is not None:
-		where_parts.append('((loinc_tt = ANY(%(loinc)s)) OR (loinc_meta = ANY(%(loinc)s)))')
-		args['loinc'] = loinc
+		where_parts.append('((loinc_tt IN %(loinc)s) OR (loinc_meta IN %(loinc)s))')
+		args['loinc'] = tuple(loinc)
 
 	if tolerance_interval is None:
 		where_parts.append('clin_when = %(ts)s')
@@ -2269,7 +2278,7 @@ def get_most_recent_results_in_loinc_group(loincs=None, max_no_of_results=1, pat
 	"""
 	assert (max_no_of_results > 0), '<max_no_of_results> must be >0'
 
-	args = {'pat': patient, 'loincs': loincs}
+	args = {'pat': patient, 'loincs': tuple(loincs)}
 	if max_age is None:
 		max_age_cond = ''
 	else:
@@ -2282,7 +2291,7 @@ def get_most_recent_results_in_loinc_group(loincs=None, max_no_of_results=1, pat
 			WHERE
 				pk_patient = %%(pat)s
 					AND
-				unified_loinc = ANY(%%(loincs)s)
+				unified_loinc IN %%(loincs)s
 				%s
 		) AS distinct_results
 		ORDER BY
@@ -2426,8 +2435,8 @@ def get_most_recent_result_for_test_types(pk_test_types=None, pk_patient=None, r
 	args = {'pat': pk_patient}
 
 	if pk_test_types is not None:
-		where_parts.append('pk_test_type = ANY(%(ttyps)s)')
-		args['ttyps'] = pk_test_types
+		where_parts.append('pk_test_type IN %(ttyps)s')
+		args['ttyps'] = tuple(pk_test_types)
 
 	order_by = 'ORDER BY clin_when DESC' if order_by is None else 'ORDER BY %s' % order_by
 
@@ -2481,8 +2490,8 @@ def get_oldest_result(test_type=None, loinc=None, patient=None):
 	if test_type is not None:
 		where_parts.append('pk_test_type = %(ttyp)s')		# consider: pk_meta_test_type = %(pkmtt)s / self._payload[self._idx['pk_meta_test_type']]
 	elif loinc is not None:
-		where_parts.append('((loinc_tt = ANY(%(loinc)s)) OR (loinc_meta = ANY(%(loinc)s)))')
-		args['loinc'] = loinc
+		where_parts.append('((loinc_tt IN %(loinc)s) OR (loinc_meta IN %(loinc)s))')
+		args['loinc'] = tuple(loinc)
 
 	cmd = """
 		SELECT * FROM clin.v_test_results
@@ -2729,50 +2738,6 @@ def __format_test_results_latex(results=None):
 	return tex % ' \\tabularnewline\n \\hline\n'.join(rows)
 
 #============================================================
-GPLOT_DATAFILE_HEADER = """#
-# -------------------------------------------------------------
-# GNUmed test results export for Gnuplot plotting
-# -------------------------------------------------------------
-#
-# There is one (gnuplot) index per test type. Two blank
-# lines will separate indices.
-#
-# The first line of each index contains test type abbreviation
-# and test type name which can be used as title for plots:
-#  set key ... autotitle columnheader)
-#
-# Each index contains one test result per line.
-#
-# Columns in each line:
-#   1 - clin_when at full precision:
-#        set timefmt "%%Y-%%m-%%d_%%H:%%M"
-#        timecolumn(1, "%%Y-%%m-%%d_%%H:%%M")
-#   2 - value
-#   3 - unit
-#   4 - unified (target or normal) range: lower bound
-#   5 - unified (target or normal) range: upper bound
-#   6 - normal range: lower bound
-#   7 - normal range: upper bound
-#   8 - target range: lower bound
-#   9 - target range: upper bound
-#  10 - clin_when formatted into string (say, as x-axis tic label)
-#
-# If the timestamp of consecutive test results is on one and the
-# same day one blank line is inserted such that a discontinuous
-# line can be plotted if desired.
-#
-# -------------------------------------------------------------
-#
-# the file
-#
-#  <%s.conf>
-#
-# will contain various gnuplot settings specific to this plot,
-# such as <ylabel>, <y2label>, <title>,
-# there will also be settings suitable for stacked multiplots
-# -------------------------------------------------------------
-"""
-
 def export_results_for_gnuplot(results=None, filename=None, show_year=True, patient=None):
 
 	sandbox_dir = os.path.join(gmTools.gmPaths().tmp_dir, 'gplot')
@@ -2782,16 +2747,16 @@ def export_results_for_gnuplot(results=None, filename=None, show_year=True, pati
 	if filename is None:
 		filename = gmTools.get_unique_filename(prefix = 'gm2gpl-', suffix = '.dat', tmp_dir = sandbox_dir)
 
-	# sort results into groups by test type
-	results_grouped_by_test_type = {}
+	# sort results into series by test type
+	series = {}
 	for r in results:
 		try:
-			results_grouped_by_test_type[r['unified_name']].append(r)
+			series[r['unified_name']].append(r)
 		except KeyError:
-			results_grouped_by_test_type[r['unified_name']] = [r]
+			series[r['unified_name']] = [r]
 
 	conf_name = '%s.conf' % filename
-	gplot_conf = open(conf_name, mode = 'wt', encoding = 'utf8')
+	gplot_conf = io.open(conf_name, mode = 'wt', encoding = 'utf8')
 	gplot_conf.write('# settings for stacked multiplot layouts:\n')
 	sub_title = _('plotted %s (GNUmed v%s)') % (
 		gmDateTime.pydt_now_here().strftime('%Y %b %d %H:%M'),
@@ -2800,44 +2765,72 @@ def export_results_for_gnuplot(results=None, filename=None, show_year=True, pati
 	if patient is None:
 		plot_title = sub_title
 	else:
-		plot_title = '%s - %s\\n{/*0.8 %s}' % (
+		plot_title = '%s - %s\\n%s' % (
 			patient.get_description_gender(with_nickname = False).strip(),
 			patient.get_formatted_dob(format = '%Y %b %d', none_string = _('unknown DOB'), honor_estimation = True),
 			sub_title
 		)
 	gplot_conf.write('multiplot_title = "%s"\n' % plot_title)
-	gplot_conf.write('multiplot_no_of_tests = %s	# number of index blocks (resp. test types)\n' % len(results_grouped_by_test_type))
+	gplot_conf.write('multiplot_no_of_tests = %s	# number of index blocks (resp. test types)\n' % len(series))
 	gplot_conf.write('array multiplot_y_labels[multiplot_no_of_tests]	# list for ylabels suitable for stacked multiplots\n')
 	gplot_conf.write('\n')
 	gplot_conf.write('# settings for individual plots, stacked or not:\n')
 
-	gplot_data = open(filename, mode = 'wt', encoding = 'utf8')
-	gplot_data.write(GPLOT_DATAFILE_HEADER % filename)
+	gplot_data = io.open(filename, mode = 'wt', encoding = 'utf8')
+	gplot_data.write('# -------------------------------------------------------------\n')
+	gplot_data.write('# GNUmed test results export for Gnuplot plotting\n')
+	gplot_data.write('# -------------------------------------------------------------\n')
+	gplot_data.write('# first line of each index: test type abbreviation & name,\n')
+	gplot_data.write('# can be used as title for plots: set key ... autotitle columnheader\n')
+	gplot_data.write('#\n')
+	gplot_data.write('# Columns in each index:\n')
+	gplot_data.write('# 1 - clin_when at full precision\n')
+	gplot_data.write('#      set timefmt "%Y-%m-%d_%H:%M"\n')
+	gplot_data.write('#      timecolumn(1, "%Y-%m-%d_%H:%M")\n')
+	gplot_data.write('# 2 - value\n')
+	gplot_data.write('# 3 - unit\n')
+	gplot_data.write('# 4 - unified (target or normal) range: lower bound\n')
+	gplot_data.write('# 5 - unified (target or normal) range: upper bound\n')
+	gplot_data.write('# 6 - normal range: lower bound\n')
+	gplot_data.write('# 7 - normal range: upper bound\n')
+	gplot_data.write('# 8 - target range: lower bound\n')
+	gplot_data.write('# 9 - target range: upper bound\n')
+	gplot_data.write('# 10 - clin_when formatted into string (say, as x-axis tic label)\n')
+	gplot_data.write('#\n')
+	gplot_data.write('# index rows are NOT sorted by clin_when, so plotting\n')
+	gplot_data.write('# with lined styles will make the lines go all over\n')
+	gplot_data.write('# -------------------------------------------------------------\n')
+	gplot_data.write('#\n')
+	gplot_data.write('# the file <%s.conf>\n' % filename)
+	gplot_data.write('# will contain various gnuplot settings specific to this plot,\n')
+	gplot_data.write('# such as <ylabel>, <y2label>, <title>,\n')
+	gplot_data.write('# there will also be settings suitable for stacked multiplots\n')
+	gplot_data.write('# -------------------------------------------------------------\n')
 
-	test_type_groups = list(results_grouped_by_test_type)
-	for test_type_idx in range(len(test_type_groups)):
-		test_type = test_type_groups[test_type_idx]
-		if len(results_grouped_by_test_type[test_type]) == 0:
+	series_keys = list(series)
+	for test_type_idx in range(len(series_keys)):
+		test_type = series_keys[test_type_idx]
+		if len(series[test_type]) == 0:
 			continue
-		first_result = results_grouped_by_test_type[test_type][0]
+		result = series[test_type][0]
 		if test_type_idx == 0:
 			gplot_conf.write('set title "%s" enhanced\n' % plot_title)
 			gplot_conf.write('\n')
-			gplot_conf.write('set ylabel "%s"\n' % first_result['unified_name'])
+			gplot_conf.write('set ylabel "%s"\n' % result['unified_name'])
 		elif test_type_idx == 1:
-			gplot_conf.write('set y2label "%s"\n' % first_result['unified_name'])
-		gplot_conf.write('multiplot_y_labels[%s] = "%s (%s)"\n' % (test_type_idx + 1, first_result['unified_name'], first_result['unified_abbrev']))
+			gplot_conf.write('set y2label "%s"\n' % result['unified_name'])
+		gplot_conf.write('multiplot_y_labels[%s] = "%s (%s)"\n' % (test_type_idx + 1, result['unified_name'], result['unified_abbrev']))
 		title = '%s (%s)' % (
-			first_result['unified_abbrev'],
-			first_result['unified_name']
+			result['unified_abbrev'],
+			result['unified_name']
 		)
 		gplot_data.write('\n\n"%s" "%s"\n' % (title, title))
 		prev_date = None
 		prev_year = None
-		for result in sorted(results_grouped_by_test_type[test_type], key=lambda result:result['clin_when']):
+		for result in series[test_type]:
 			curr_date = gmDateTime.pydt_strftime(result['clin_when'], '%Y-%m-%d', 'utf8', gmDateTime.acc_days)
 			if curr_date == prev_date:
-				gplot_data.write('# %s\n\n' % _('blank line inserted to allow for discontinued-line style drawing of same-day values:'))
+				gplot_data.write('\n# %s\n' % _('blank line inserted to allow for discontinued line drawing of same-day values'))
 			if show_year:
 				if result['clin_when'].year == prev_year:
 					when_template = '%b %d %H:%M'
@@ -2852,6 +2845,7 @@ def export_results_for_gnuplot(results=None, filename=None, show_year=True, pati
 			if val is None:
 				continue		# skip distinctly non-numericable values
 			gplot_data.write ('%s %s "%s" %s %s %s %s %s %s "%s"\n' % (
+				#result['clin_when'].strftime('%Y-%m-%d_%H:%M'),
 				gmDateTime.pydt_strftime(result['clin_when'], '%Y-%m-%d_%H:%M', 'utf8', gmDateTime.acc_minutes),
 				val,
 				gmTools.coalesce(result['val_unit'], '"<?>"'),
@@ -2872,6 +2866,118 @@ def export_results_for_gnuplot(results=None, filename=None, show_year=True, pati
 	gplot_conf.close()
 
 	return filename
+
+#============================================================
+class cLabResult(gmBusinessDBObject.cBusinessDBObject):
+	"""Represents one lab result."""
+
+	_cmd_fetch_payload = """
+		select *, xmin_test_result from v_results4lab_req
+		where pk_result=%s"""
+	_cmds_lock_rows_for_update = [
+		"""select 1 from test_result where pk=%(pk_result)s and xmin=%(xmin_test_result)s for update"""
+	]
+	_cmds_store_payload = [
+		"""update test_result set
+				clin_when = %(val_when)s,
+				narrative = %(progress_note_result)s,
+				fk_type = %(pk_test_type)s,
+				val_num = %(val_num)s::numeric,
+				val_alpha = %(val_alpha)s,
+				val_unit = %(val_unit)s,
+				val_normal_min = %(val_normal_min)s,
+				val_normal_max = %(val_normal_max)s,
+				val_normal_range = %(val_normal_range)s,
+				val_target_min = %(val_target_min)s,
+				val_target_max = %(val_target_max)s,
+				val_target_range = %(val_target_range)s,
+				abnormality_indicator = %(abnormal)s,
+				norm_ref_group = %(ref_group)s,
+				note_provider = %(note_provider)s,
+				material = %(material)s,
+				material_detail = %(material_detail)s
+			where pk = %(pk_result)s""",
+		"""select xmin_test_result from v_results4lab_req where pk_result=%(pk_result)s"""
+		]
+
+	_updatable_fields = [
+		'val_when',
+		'progress_note_result',
+		'val_num',
+		'val_alpha',
+		'val_unit',
+		'val_normal_min',
+		'val_normal_max',
+		'val_normal_range',
+		'val_target_min',
+		'val_target_max',
+		'val_target_range',
+		'abnormal',
+		'ref_group',
+		'note_provider',
+		'material',
+		'material_detail'
+	]
+	#--------------------------------------------------------
+	def __init__(self, aPK_obj=None, row=None):
+		"""Instantiate.
+
+		aPK_obj as dict:
+			- patient_id
+			- when_field (see view definition)
+			- when
+			- test_type
+			- val_num
+			- val_alpha
+			- unit
+		"""
+		# instantiate from row data ?
+		if aPK_obj is None:
+			gmBusinessDBObject.cBusinessDBObject.__init__(self, row=row)
+			return
+		pk = aPK_obj
+		# find PK from row data ?
+		if type(aPK_obj) == dict:
+			# sanity checks
+			if None in [aPK_obj['patient_id'], aPK_obj['when'], aPK_obj['when_field'], aPK_obj['test_type'], aPK_obj['unit']]:
+				raise gmExceptions.ConstructorError('parameter error: %s' % aPK_obj)
+			if (aPK_obj['val_num'] is None) and (aPK_obj['val_alpha'] is None):
+				raise gmExceptions.ConstructorError('parameter error: val_num and val_alpha cannot both be None')
+			# get PK
+			where_snippets = [
+				'pk_patient=%(patient_id)s',
+				'pk_test_type=%(test_type)s',
+				'%s=%%(when)s' % aPK_obj['when_field'],
+				'val_unit=%(unit)s'
+			]
+			if aPK_obj['val_num'] is not None:
+				where_snippets.append('val_num=%(val_num)s::numeric')
+			if aPK_obj['val_alpha'] is not None:
+				where_snippets.append('val_alpha=%(val_alpha)s')
+
+			where_clause = ' and '.join(where_snippets)
+			cmd = "select pk_result from v_results4lab_req where %s" % where_clause
+			data = gmPG.run_ro_query('historica', cmd, None, aPK_obj)
+			if data is None:
+				raise gmExceptions.ConstructorError('error getting lab result for: %s' % aPK_obj)
+			if len(data) == 0:
+				raise gmExceptions.NoSuchClinItemError('no lab result for: %s' % aPK_obj)
+			pk = data[0][0]
+		# instantiate class
+		gmBusinessDBObject.cBusinessDBObject.__init__(self, aPK_obj=pk)
+	#--------------------------------------------------------
+	def get_patient(self):
+		cmd = """
+			select
+				%s,
+				vbp.title,
+				vbp.firstnames,
+				vbp.lastnames,
+				vbp.dob
+			from v_active_persons vbp
+			where vbp.pk_identity = %%s""" % self._payload[self._idx['pk_patient']]
+		pat = gmPG.run_ro_query('historica', cmd, None, self._payload[self._idx['pk_patient']])
+		return pat[0]
 
 #============================================================
 class cLabRequest(gmBusinessDBObject.cBusinessDBObject):
@@ -2929,39 +3035,40 @@ class cLabRequest(gmBusinessDBObject.cBusinessDBObject):
 				raise gmExceptions.ConstructorError('[%s:??]: cannot derive PK from [%s]' % (self.__class__.__name__, aPK_obj))
 			# generate query
 			where_snippets = []
+			vals = {}
 			where_snippets.append('request_id=%(req_id)s')
 			if type(aPK_obj['lab']) == int:
 				where_snippets.append('pk_test_org=%(lab)s')
 			else:
 				where_snippets.append('lab_name=%(lab)s')
-#			where_clause = ' and '.join(where_snippets)
-#			cmd = "select pk_request from v_lab_requests where %s" % where_clause
-#			# get pk
-#			data = gmPG2.run_ro_query('historica', cmd, None, aPK_obj)
-#			if data is None:
-#				raise gmExceptions.ConstructorError('[%s:??]: error getting lab request for [%s]' % (self.__class__.__name__, aPK_obj))
-#			if len(data) == 0:
-#				raise gmExceptions.NoSuchClinItemError('[%s:??]: no lab request for [%s]' % (self.__class__.__name__, aPK_obj))
-#			pk = data[0][0]
+			where_clause = ' and '.join(where_snippets)
+			cmd = "select pk_request from v_lab_requests where %s" % where_clause
+			# get pk
+			data = gmPG.run_ro_query('historica', cmd, None, aPK_obj)
+			if data is None:
+				raise gmExceptions.ConstructorError('[%s:??]: error getting lab request for [%s]' % (self.__class__.__name__, aPK_obj))
+			if len(data) == 0:
+				raise gmExceptions.NoSuchClinItemError('[%s:??]: no lab request for [%s]' % (self.__class__.__name__, aPK_obj))
+			pk = data[0][0]
 		# instantiate class
 		gmBusinessDBObject.cBusinessDBObject.__init__(self, aPK_obj=pk)
-#	#--------------------------------------------------------
-#	def get_patient(self):
-#		cmd = """
-#			select vpi.pk_patient, vbp.title, vbp.firstnames, vbp.lastnames, vbp.dob
-#			from v_pat_items vpi, v_active_persons vbp
-#			where
-#				vpi.pk_item=%s
-#					and
-#				vbp.pk_identity=vpi.pk_patient"""
-#		pat = gmPG2.run_ro_query('historica', cmd, None, self._payload[self._idx['pk_item']])
-#		if pat is None:
-#			_log.error('cannot get patient for lab request [%s]' % self._payload[self._idx['pk_item']])
-#			return None
-#		if len(pat) == 0:
-#			_log.error('no patient associated with lab request [%s]' % self._payload[self._idx['pk_item']])
-#			return None
-#		return pat[0]
+	#--------------------------------------------------------
+	def get_patient(self):
+		cmd = """
+			select vpi.pk_patient, vbp.title, vbp.firstnames, vbp.lastnames, vbp.dob
+			from v_pat_items vpi, v_active_persons vbp
+			where
+				vpi.pk_item=%s
+					and
+				vbp.pk_identity=vpi.pk_patient"""
+		pat = gmPG.run_ro_query('historica', cmd, None, self._payload[self._idx['pk_item']])
+		if pat is None:
+			_log.error('cannot get patient for lab request [%s]' % self._payload[self._idx['pk_item']])
+			return None
+		if len(pat) == 0:
+			_log.error('no patient associated with lab request [%s]' % self._payload[self._idx['pk_item']])
+			return None
+		return pat[0]
 
 #============================================================
 # convenience functions
@@ -2974,73 +3081,150 @@ def create_lab_request(lab=None, req_id=None, pat_id=None, encounter_id=None, ep
 			(False, error message)
 			(None, housekeeping_todo primary key)
 	"""
-	pass
-#	req = None
-#	aPK_obj = {
-#		'lab': lab,
-#		'req_id': req_id
-#	}
-#	try:
-#		req = cLabRequest (aPK_obj)
-#	except gmExceptions.NoSuchClinItemError as msg:
-#		_log.info('%s: will try to create lab request' % str(msg))
-#	except gmExceptions.ConstructorError as msg:
-#		_log.exception(str(msg), sys.exc_info(), verbose=0)
-#		return (False, msg)
+	req = None
+	aPK_obj = {
+		'lab': lab,
+		'req_id': req_id
+	}
+	try:
+		req = cLabRequest (aPK_obj)
+	except gmExceptions.NoSuchClinItemError as msg:
+		_log.info('%s: will try to create lab request' % str(msg))
+	except gmExceptions.ConstructorError as msg:
+		_log.exception(str(msg), sys.exc_info(), verbose=0)
+		return (False, msg)
 	# found
-#	if req is not None:
-#		db_pat = req.get_patient()
-#		db_pat = None
-#		if db_pat is None:
-#			_log.error('cannot cross-check patient on lab request')
-#			return (None, '')
-#		# yes but ambiguous
-#		if pat_id != db_pat[0]:
-#			_log.error('lab request found for [%s:%s] but patient mismatch: expected [%s], in DB [%s]' % (lab, req_id, pat_id, db_pat))
-#			me = '$RCSfile: gmPathLab.py,v $ $Revision: 1.81 $'
-#			to = 'user'
-#			prob = _('The lab request already exists but belongs to a different patient.')
-#			sol = _('Verify which patient this lab request really belongs to.')
-#			ctxt = _('lab [%s], request ID [%s], expected link with patient [%s], currently linked to patient [%s]') % (lab, req_id, pat_id, db_pat)
-#			cat = 'lab'
-#			status, data = gmPG2.add_housekeeping_todo(me, to, prob, sol, ctxt, cat)
-#			return (None, None)
-#		return (True, req)
-#	# not found
-#	queries = []
-#	if type(lab) is int:
-#		cmd = "insert into lab_request (fk_encounter, fk_episode, fk_test_org, request_id) values (%s, %s, %s, %s)"
-#	else:
-#		cmd = "insert into lab_request (fk_encounter, fk_episode, fk_test_org, request_id) values (%s, %s, (select pk from test_org where internal_OBSOLETE_name=%s), %s)"
-#	queries.append((cmd, [encounter_id, episode_id, str(lab), req_id]))
-#	cmd = "select currval('lab_request_pk_seq')"
-#	queries.append((cmd, []))
-#	# insert new
-#	result, err = (None, 'error')
-#	#result, err = gmPG2.run_commit('historica', queries, True)
-#	if result is None:
-#		return (False, err)
-#	try:
-#		req = cLabRequest(aPK_obj=result[0][0])
-#	except gmExceptions.ConstructorError as msg:
-#		_log.exception(str(msg), sys.exc_info(), verbose=0)
-#		return (False, msg)
-#	return (True, req)
+	if req is not None:
+		db_pat = req.get_patient()
+		if db_pat is None:
+			_log.error('cannot cross-check patient on lab request')
+			return (None, '')
+		# yes but ambigous
+		if pat_id != db_pat[0]:
+			_log.error('lab request found for [%s:%s] but patient mismatch: expected [%s], in DB [%s]' % (lab, req_id, pat_id, db_pat))
+			me = '$RCSfile: gmPathLab.py,v $ $Revision: 1.81 $'
+			to = 'user'
+			prob = _('The lab request already exists but belongs to a different patient.')
+			sol = _('Verify which patient this lab request really belongs to.')
+			ctxt = _('lab [%s], request ID [%s], expected link with patient [%s], currently linked to patient [%s]') % (lab, req_id, pat_id, db_pat)
+			cat = 'lab'
+			status, data = gmPG.add_housekeeping_todo(me, to, prob, sol, ctxt, cat)
+			return (None, data)
+		return (True, req)
+	# not found
+	queries = []
+	if type(lab) is int:
+		cmd = "insert into lab_request (fk_encounter, fk_episode, fk_test_org, request_id) values (%s, %s, %s, %s)"
+	else:
+		cmd = "insert into lab_request (fk_encounter, fk_episode, fk_test_org, request_id) values (%s, %s, (select pk from test_org where internal_OBSOLETE_name=%s), %s)"
+	queries.append((cmd, [encounter_id, episode_id, str(lab), req_id]))
+	cmd = "select currval('lab_request_pk_seq')"
+	queries.append((cmd, []))
+	# insert new
+	result, err = gmPG.run_commit('historica', queries, True)
+	if result is None:
+		return (False, err)
+	try:
+		req = cLabRequest(aPK_obj=result[0][0])
+	except gmExceptions.ConstructorError as msg:
+		_log.exception(str(msg), sys.exc_info(), verbose=0)
+		return (False, msg)
+	return (True, req)
+#------------------------------------------------------------
+def create_lab_result(patient_id=None, when_field=None, when=None, test_type=None, val_num=None, val_alpha=None, unit=None, encounter_id=None, request=None):
+	tres = None
+	data = {
+		'patient_id': patient_id,
+		'when_field': when_field,
+		'when': when,
+		'test_type': test_type,
+		'val_num': val_num,
+		'val_alpha': val_alpha,
+		'unit': unit
+	}
+	try:
+		tres = cLabResult(aPK_obj=data)
+		# exists already, so fail
+		_log.error('will not overwrite existing test result')
+		_log.debug(str(tres))
+		return (None, tres)
+	except gmExceptions.NoSuchClinItemError:
+		_log.debug('test result not found - as expected, will create it')
+	except gmExceptions.ConstructorError as msg:
+		_log.exception(str(msg), sys.exc_info(), verbose=0)
+		return (False, msg)
+	if request is None:
+		return (False, _('need lab request when inserting lab result'))
+	# not found
+	if encounter_id is None:
+		encounter_id = request['pk_encounter']
+	queries = []
+	cmd = "insert into test_result (fk_encounter, fk_episode, fk_type, val_num, val_alpha, val_unit) values (%s, %s, %s, %s, %s, %s)"
+	queries.append((cmd, [encounter_id, request['pk_episode'], test_type, val_num, val_alpha, unit]))
+	cmd = "insert into lnk_result2lab_req (fk_result, fk_request) values ((select currval('test_result_pk_seq')), %s)"
+	queries.append((cmd, [request['pk_request']]))
+	cmd = "select currval('test_result_pk_seq')"
+	queries.append((cmd, []))
+	# insert new
+	result, err = gmPG.run_commit('historica', queries, True)
+	if result is None:
+		return (False, err)
+	try:
+		tres = cLabResult(aPK_obj=result[0][0])
+	except gmExceptions.ConstructorError as msg:
+		_log.exception(str(msg), sys.exc_info(), verbose=0)
+		return (False, msg)
+	return (True, tres)
+#------------------------------------------------------------
+def get_unreviewed_results(limit=50):
+	# sanity check
+	if limit < 1:
+		limit = 1
+	# retrieve one more row than needed so we know there's more available ;-)
+	lim = limit + 1
+	cmd = """
+		select pk_result
+		from v_results4lab_req
+		where reviewed is false
+		order by pk_patient
+		limit %s""" % lim
+	rows = gmPG.run_ro_query('historica', cmd)
+	if rows is None:
+		_log.error('error retrieving unreviewed lab results')
+		return (None, _('error retrieving unreviewed lab results'))
+	if len(rows) == 0:
+		return (False, [])
+	# more than LIMIT rows ?
+	if len(rows) == lim:
+		more_avail = True
+		# but deliver only LIMIT rows so that our assumption holds true...
+		del rows[limit]
+	else:
+		more_avail = False
+	results = []
+	for row in rows:
+		try:
+			results.append(cLabResult(aPK_obj=row[0]))
+		except gmExceptions.ConstructorError:
+			_log.exception('skipping unreviewed lab result [%s]' % row[0], sys.exc_info(), verbose=0)
+	return (more_avail, results)
+
 #------------------------------------------------------------
 def get_pending_requests(limit=250):
 	lim = limit + 1
 	cmd = "select pk from lab_request where is_pending is true limit %s" % lim
-	rows = gmPG2.run_ro_queries(queries = cmd)
+	rows = gmPG.run_ro_query('historica', cmd)
 	if rows is None:
 		_log.error('error retrieving pending lab requests')
 		return (None, None)
 	if len(rows) == 0:
 		return (False, [])
+	results = []
 	# more than LIMIT rows ?
 	if len(rows) == lim:
 		too_many = True
 		# but deliver only LIMIT rows so that our assumption holds true...
-		rows = rows[:limit]
+		del rows[limit]
 	else:
 		too_many = False
 	requests = []
@@ -3072,7 +3256,7 @@ def get_next_request_ID(lab=None, incrementor_func=None):
 			from v_lab_requests vlr
 			where %s
 		)""" % lab_snippet
-	rows = gmPG2.run_ro_queries(cmd, None, lab)
+	rows = gmPG.run_ro_query('historica', cmd, None, lab)
 	if rows is None:
 		_log.warning('error getting most recently used request ID for lab [%s]' % lab)
 		return ''
@@ -3142,6 +3326,9 @@ if __name__ == '__main__':
 
 	import time
 
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
+
 	#------------------------------------------
 	def test_create_test_result():
 		tr = create_test_result (
@@ -3168,6 +3355,28 @@ if __name__ == '__main__':
 		#print r.temporally_closest_normal_range
 		print(r.estimate_numeric_value_from_alpha)
 	#------------------------------------------
+	def test_lab_result():
+		print("test_result()")
+#		lab_result = cLabResult(aPK_obj=4)
+		data = {
+			'patient_id': 12,
+			'when_field': 'val_when',
+			'when': '2000-09-17 18:23:00+02',
+			'test_type': 9,
+			'val_num': 17.3,
+			'val_alpha': None,
+			'unit': 'mg/l'
+		}
+		lab_result = cLabResult(aPK_obj=data)
+		print(lab_result)
+		fields = lab_result.get_fields()
+		for field in fields:
+			print(field, ':', lab_result[field])
+		print("updatable:", lab_result.get_updatable_fields())
+		print(time.time())
+		print(lab_result.get_patient())
+		print(time.time())
+	#------------------------------------------
 	def test_request():
 		print("test_request()")
 		try:
@@ -3191,8 +3400,7 @@ if __name__ == '__main__':
 		print(time.time())
 	#--------------------------------------------------------
 	def test_unreviewed():
-		#data = get_unreviewed_results()
-		data = []
+		data = get_unreviewed_results()
 		for result in data:
 			print(result)
 	#--------------------------------------------------------
@@ -3301,17 +3509,6 @@ if __name__ == '__main__':
 			print(t.format())
 
 	#--------------------------------------------------------
-	def test_export_result_for_gnuplot():
-
-		results = get_test_results(pk_patient = 12)
-		print(results)
-		export_results_for_gnuplot(results=results, filename='test.gpl', show_year=True, patient=None)
-
-	#--------------------------------------------------------
-
-	#print(GPLOT_DATAFILE_HEADER % 'test')
-
-	gmPG2.request_login_params(setup_pool = True)
 
 	#test_result()
 	#test_create_test_result()
@@ -3328,7 +3525,6 @@ if __name__ == '__main__':
 	#test_calculate_bmi()
 	#test_test_panel()
 	#test_get_most_recent_results_for_panel()
-	#test_get_most_recent_results_in_loinc_group()
-	test_export_result_for_gnuplot()
+	test_get_most_recent_results_in_loinc_group()
 
 #============================================================

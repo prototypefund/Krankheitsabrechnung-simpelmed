@@ -50,15 +50,20 @@ Ad hoc call stack logging recipe:
 # - ascii_ctrl2mnemonic()
 #========================================================================
 __author__  = "K. Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 
 # stdlib
 import logging
 import sys
 import os
+import io
+import codecs
+import locale
 import datetime as pydt
 import random
+import time
+import calendar
 
 
 _logfile_name = None
@@ -124,7 +129,6 @@ AsciiName = ['<#0-0x00-nul>',
 # external API
 #===============================================================
 def flush():
-	"""Log a <synced> line and flush handlers."""
 	logger = logging.getLogger('gm.logging')
 	logger.critical('-------- synced log file -------------------------------')
 	root_logger = logging.getLogger()
@@ -133,7 +137,6 @@ def flush():
 
 #===============================================================
 def log_instance_state(instance):
-	"""Log the state of a class instance."""
 	logger = logging.getLogger('gm.logging')
 	logger.debug('state of %s', instance)
 	for attr in [ a for a in dir(instance) if not a.startswith('__') ]:
@@ -144,20 +147,7 @@ def log_instance_state(instance):
 		logger.debug('  %s: %s', attr, val)
 
 #===============================================================
-def log_stack_trace(message:str=None, t=None, v=None, tb=None):
-	"""Log exception details and stack trace.
-
-	(t,v,tb) are what sys.exc_info() returns.
-
-	If any of (t,v,tb) is None it is attempted to be
-	retrieved from sys.exc_info().
-
-	Args:
-		message: arbitrary message to add in
-		t: an exception type
-		v: an exception value
-		tb: a traceback object
-	"""
+def log_stack_trace(message=None, t=None, v=None, tb=None):
 
 	logger = logging.getLogger('gm.logging')
 
@@ -222,18 +212,9 @@ def log_stack_trace(message:str=None, t=None, v=None, tb=None):
 			logger.debug('%20s = %s', varname, value)
 
 #---------------------------------------------------------------
-def log_multiline(level, message:str=None, line_prefix:str=None, text:str=None):
-	"""Log multi-line text in a standard format.
-
-	Args:
-		level: a log level
-		message: an arbitrary message to add in
-		line_prefix: a string to prefix lines with
-		text: the multi-line text to log
-	"""
+def log_multiline(level, message=None, line_prefix=None, text=None):
 	if text is None:
 		return
-
 	if message is None:
 		message = 'multiline text:'
 	if line_prefix is None:
@@ -264,17 +245,11 @@ def log_step(level:int=logging.DEBUG, message:str=None, restart:bool=False):
 #===============================================================
 __words2hide = []
 
-def add_word2hide(word:str):
-	"""Add a string to the list of strings to be scrubbed from logging output.
-
-	Useful for hiding credentials etc.
-	"""
+def add_word2hide(word):
 	if word is None:
 		return
-
 	if word.strip() == '':
 		return
-
 	if word not in __words2hide:
 		__words2hide.append(str(word))
 
@@ -305,8 +280,7 @@ def __setup_logging():
 	if not __get_logfile_name():
 		return False
 
-	print("Log file:", _logfile_name)
-	_logfile = open(_logfile_name, mode = 'wt', encoding = 'utf8', errors = 'replace')
+	_logfile = io.open(_logfile_name, mode = 'wt', encoding = 'utf8', errors = 'replace')
 	global __original_logger_write_func
 	__original_logger_write_func = _logfile.write
 	_logfile.write = __safe_logger_write_func
@@ -321,6 +295,8 @@ def __setup_logging():
 	)
 	logging.captureWarnings(True)
 	logger = logging.getLogger()
+	logger.log_stack_trace = log_stack_trace
+	logger.log_multiline = log_multiline
 
 	# start logging
 	#logger = logging.getLogger('gm.logging')
@@ -356,8 +332,8 @@ def __get_logfile_name():
 			_logfile_name = os.path.abspath(os.path.expanduser(os.path.join(dir_name, file_name)))
 			return True
 
-	# else store it in ~/.local/gnumed/logs/def_log_basename/default_logfile_name
-	dir_name = os.path.expanduser(os.path.join('~', '.local', 'gnumed', 'logs', def_log_basename))
+	# else store it in ~/.gnumed/logs/def_log_basename/default_logfile_name
+	dir_name = os.path.expanduser(os.path.join('~', '.gnumed', 'logs', def_log_basename))
 	try:
 		os.makedirs(dir_name)
 	except OSError as e:

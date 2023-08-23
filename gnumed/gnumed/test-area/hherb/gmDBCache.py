@@ -76,7 +76,7 @@ class DBcache:
 		self.notifylock = threading.Lock()	#for multithreaded applications:
 		                                        #to prevent dirty widget updates
 		self.notifyqueue = 0	#for multithreaded applications:
-		                        #to prevent unnecessary widget updates
+		                        #to prevent unneccessary widget updates
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -416,7 +416,7 @@ if __name__ == "__main__":
 		import sys
 		sys.exit(1)
 
-	print "List of tables in current database:"
+	print "List of tables in curent database:"
 	print "-----------------------------------------------------"
 	print tablelist.pprint()
 

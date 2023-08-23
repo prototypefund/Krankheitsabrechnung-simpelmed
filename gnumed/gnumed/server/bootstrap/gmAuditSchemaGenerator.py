@@ -9,7 +9,7 @@ Any table that needs to be audited (all modifications
 logged) must be recorded in the table "audit.audited_tables".
 
 This script creates the triggers, functions and tables
-necessary to establish the audit trail. Some or all
+neccessary to establish the audit trail. Some or all
 audit trail tables may have been created previously but
 need not contain all columns of the audited table. Do not
 put any constraints on the audit trail tables except for
@@ -18,7 +18,7 @@ audited table.
 """
 #==================================================================
 __author__ = "Horst Herb, Karsten.Hilbert@gmx.net"
-__license__ = "GPL v2 or later"		# (details at https://www.gnu.org)
+__license__ = "GPL v2 or later"		# (details at http://www.gnu.org)
 
 import sys, os.path, string, logging, io
 

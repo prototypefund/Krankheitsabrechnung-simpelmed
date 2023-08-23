@@ -12,17 +12,21 @@ The manuals should reside where the manual_path points to.
 		 Robin Dunn's extraordinary wxPython sample
 """
 #===========================================================
+# $Source: /home/ncq/Projekte/cvs2git/vcs-mirror/gnumed/gnumed/client/wxpython/gui/gmManual.py,v $
+# $Id: gmManual.py,v 1.49 2009-07-17 09:27:38 ncq Exp $
+__version__ = "$Revision: 1.49 $"
 __author__ = "H.Herb, I.Haywood, H.Berger, K.Hilbert"
 
-import os, os.path, logging
+import os, sys, os.path, logging
 
 import wx
 import wx.html
 
 from Gnumed.pycommon import gmTools
-from Gnumed.wxpython import gmPlugin
+from Gnumed.wxpython import gmPlugin, images_for_gnumed_browser16_16, images_gnuMedGP_Toolbar
 
 _log = logging.getLogger('gm.ui')
+_log.info(__version__)
 
 ID_MANUALCONTENTS = wx.NewId()
 ID_MANUALBACK = wx.NewId()
@@ -36,10 +40,6 @@ ID_MANUALADDBOOKMARK = wx.NewId()
 ID_MANUALVIEWSOURCE = wx.NewId()
 ID_MANUALRELOAD = wx.NewId()
 ID_VIEWSOURCE  = wx.NewId()
-
-if __name__ == '__main__':
-	_ = lambda x:x
-
 #===========================================================
 class ManualHtmlWindow(wx.html.HtmlWindow):
 	def __init__(self, parent, id):

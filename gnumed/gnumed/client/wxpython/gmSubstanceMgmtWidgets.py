@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""GNUmed drug / substance reference widgets."""
+#from __future__ import print_function
+
+__doc__ = """GNUmed drug / substance reference widgets."""
 
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
@@ -17,10 +19,12 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain = 'gnumed')
 
 from Gnumed.pycommon import gmDispatcher
-from Gnumed.pycommon import gmCfgDB
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmShellAPI
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmMatchProvider
@@ -63,15 +67,24 @@ def configure_drug_data_source(parent=None):
 
 #============================================================
 def get_drug_database(parent=None, patient=None):
-	opt = 'external.drug_data.default_source'
-	wp = gmPraxis.gmCurrentPraxisBranch().active_workplace
+	dbcfg = gmCfg.cCfgSQL()
+
 	# load from option
-	default_db = gmCfgDB.get4workplace(option = opt, workplace = wp)
+	default_db = dbcfg.get2 (
+		option = 'external.drug_data.default_source',
+		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'workplace'
+	)
+
 	# not configured -> try to configure
 	if default_db is None:
 		gmDispatcher.send('statustext', msg = _('No default drug database configured.'), beep = True)
 		configure_drug_data_source(parent = parent)
-		default_db = gmCfgDB.get4workplace(option = opt, workplace = wp)
+		default_db = dbcfg.get2 (
+			option = 'external.drug_data.default_source',
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace'
+		)
 		# still not configured -> return
 		if default_db is None:
 			gmGuiHelpers.gm_show_error (
@@ -89,7 +102,11 @@ def get_drug_database(parent=None, patient=None):
 		_log.error('faulty default drug data source configuration: %s', default_db)
 		# try to configure
 		configure_drug_data_source(parent = parent)
-		default_db = gmCfgDB.get4workplace(option = opt, workplace = wp)
+		default_db = dbcfg.get2 (
+			option = 'external.drug_data.default_source',
+			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace'
+		)
 		# deconfigured or aborted (and thusly still misconfigured) ?
 		try:
 			drug_db = gmDrugDataSources.drug_data_source_interfaces[default_db]()
@@ -116,9 +133,12 @@ def jump_to_ifap_deprecated(import_drugs=False, emr=None):
 		gmDispatcher.send('statustext', msg = _('Cannot import drugs from IFAP into chart without chart.'))
 		return False
 
-	ifap_cmd = gmCfgDB.get4workplace (
+	dbcfg = gmCfg.cCfgSQL()
+
+	ifap_cmd = dbcfg.get2 (
 		option = 'external.ifap-win.shell_command',
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'workplace',
 		default = 'wine "C:\Ifapwin\WIAMDB.EXE"'
 	)
 	found, binary = gmShellAPI.detect_external_binary(ifap_cmd)
@@ -128,14 +148,15 @@ def jump_to_ifap_deprecated(import_drugs=False, emr=None):
 	ifap_cmd = binary
 
 	if import_drugs:
-		transfer_file = os.path.expanduser(gmCfgDB.get4workplace (
+		transfer_file = os.path.expanduser(dbcfg.get2 (
 			option = 'external.ifap-win.transfer_file',
 			workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+			bias = 'workplace',
 			default = '~/.wine/drive_c/Ifapwin/ifap2gnumed.csv'
 		))
 		# file must exist for Ifap to write into it
 		try:
-			open(transfer_file, mode = 'wt').close()
+			f = io.open(transfer_file, mode = 'wt').close()
 		except IOError:
 			_log.exception('Cannot create IFAP <-> GNUmed transfer file [%s]', transfer_file)
 			gmDispatcher.send('statustext', msg = _('Cannot create IFAP <-> GNUmed transfer file [%s].') % transfer_file)
@@ -149,9 +170,9 @@ def jump_to_ifap_deprecated(import_drugs=False, emr=None):
 		# COMMENT: this file must exist PRIOR to invoking IFAP
 		# COMMENT: or else IFAP will not write data into it ...
 		try:
-			csv_file = open(transfer_file, mode = 'rt', encoding = 'latin1')						# FIXME: encoding unknown
+			csv_file = io.open(transfer_file, mode = 'rt', encoding = 'latin1')						# FIXME: encoding unknown
 		except Exception:
-			_log.exception('cannot access [%s]', transfer_file)
+			_log.exception('cannot access [%s]', fname)
 			csv_file = None
 
 		if csv_file is not None:
@@ -700,7 +721,7 @@ def manage_drug_components(parent=None):
 		items = [ [
 			'%s%s' % (c['substance'], gmTools.coalesce(c['atc_substance'], '', ' [%s]')),
 			'%s %s' % (c['amount'], c.formatted_units),
-			'%s%s' % (c['drug_product'], gmTools.coalesce(c['atc_drug'], '', ' [%s]')),
+			'%s%s' % (c['product'], gmTools.coalesce(c['atc_drug'], '', ' [%s]')),
 			c['l10n_preparation'],
 			gmTools.coalesce(c['external_code'], '', '%%s [%s]' % c['external_code_type']),
 			c['pk_component']
@@ -836,7 +857,7 @@ class cDrugComponentEAPnl(wxgDrugComponentEAPnl.wxgDrugComponentEAPnl, gmEditAre
 
 	#----------------------------------------------------------------
 	def _refresh_from_existing(self):
-		self._TCTRL_product_name.SetValue('%s (%s)' % (self.data['drug_product'], self.data['l10n_preparation']))
+		self._TCTRL_product_name.SetValue('%s (%s)' % (self.data['product'], self.data['l10n_preparation']))
 		self._TCTRL_components.SetValue(' / '.join(self.data.containing_drug['components']))
 		details = []
 		if self.data['atc_drug'] is not None:
@@ -892,7 +913,7 @@ def edit_drug_product(parent=None, drug_product=None, single_entry=False):
 					' "%s" (%s)\n'
 					'\n'
 					'because it is currently taken by patients.\n'
-				) % (drug_product['drug_product'], drug_product['l10n_preparation'])
+				) % (drug_product['product'], drug_product['l10n_preparation'])
 			)
 			return False
 
@@ -950,7 +971,7 @@ def manage_drug_products(parent=None, ignore_OK_button=False):
 						' "%s" (%s)\n'
 						'\n'
 						'because it is in use.'
-					) % (product['drug_product'], product['l10n_preparation'])
+					) % (product['product'], product['l10n_preparation'])
 				)
 				return False
 
@@ -967,7 +988,7 @@ def manage_drug_products(parent=None, ignore_OK_button=False):
 					' "%s" (%s)\n'
 					'\n'
 					'because it is in use.'
-				) % (product['drug_product'], product['l10n_preparation'])
+				) % (product['product'], product['l10n_preparation'])
 			)
 			return False
 
@@ -983,7 +1004,7 @@ def manage_drug_products(parent=None, ignore_OK_button=False):
 		drugs = gmMedication.get_drug_products()
 		items = [ [
 			'%s%s' % (
-				d['drug_product'],
+				d['product'],
 				gmTools.bool2subst(d['is_fake_product'], ' (%s)' % _('fake'), '')
 			),
 			d['l10n_preparation'],
@@ -1029,7 +1050,7 @@ def manage_components_of_drug_product(parent=None, product=None):
 					' "%s" (%s)\n'
 					'\n'
 					'because it is currently taken by patients.\n'
-				) % (product['drug_product'], product['l10n_preparation'])
+				) % (product['product'], product['l10n_preparation'])
 			)
 			return False
 
@@ -1047,7 +1068,7 @@ def manage_components_of_drug_product(parent=None, product=None):
 		right_col = _('Components of drug')
 		comp_doses = []
 	else:
-		right_col = '%s (%s)' % (product['drug_product'], product['l10n_preparation'])
+		right_col = '%s (%s)' % (product['product'], product['l10n_preparation'])
 		msg = _(
 			'Adjust the components of "%s"\n'
 			'\n'
@@ -1207,7 +1228,7 @@ class cDrugProductEAPnl(wxgDrugProductEAPnl.wxgDrugProductEAPnl, gmEditArea.cGen
 
 	#----------------------------------------------------------------
 	def _save_as_update(self):
-		self.data['drug_product'] = self._PRW_product_name.GetValue().strip()
+		self.data['product'] = self._PRW_product_name.GetValue().strip()
 		self.data['preparation'] = gmTools.coalesce (
 			self._PRW_preparation.GetData(),
 			self._PRW_preparation.GetValue()
@@ -1246,7 +1267,7 @@ class cDrugProductEAPnl(wxgDrugProductEAPnl.wxgDrugProductEAPnl, gmEditArea.cGen
 
 	#----------------------------------------------------------------
 	def _refresh_from_existing(self):
-		self._PRW_product_name.SetText(self.data['drug_product'], self.data['pk_drug_product'])
+		self._PRW_product_name.SetText(self.data['product'], self.data['pk_drug_product'])
 		self._PRW_preparation.SetText(self.data['preparation'], self.data['preparation'])
 		self._CHBOX_is_fake.SetValue(self.data['is_fake_product'])
 		comp_str = ''
@@ -1326,7 +1347,7 @@ def edit_single_component_generic_drug(parent=None, drug=None, single_entry=Fals
 #					' "%s" (%s)\n'
 #					'\n'
 #					'because it is currently taken by patients.\n'
-#				) % (drug['drug_product'], drug['l10n_preparation'])
+#				) % (drug['product'], drug['l10n_preparation'])
 #			)
 #			return False
 
@@ -1392,7 +1413,7 @@ def manage_single_component_generic_drugs(parent=None, ignore_OK_button=False):
 						'\n'
 						'because it is a vaccine. Please edit it\n'
 						'from the vaccine management section !\n'
-					) % (product['drug_product'], product['l10n_preparation'])
+					) % (product['product'], product['l10n_preparation'])
 				)
 				return False
 
@@ -1410,7 +1431,7 @@ def manage_single_component_generic_drugs(parent=None, ignore_OK_button=False):
 					'\n'
 					'because it is a vaccine. Please delete it\n'
 					'from the vaccine management section !\n'
-				) % (product['drug_product'], product['l10n_preparation'])
+				) % (product['product'], product['l10n_preparation'])
 			)
 			return False
 		gmMedication.delete_drug_product(pk_drug_product = product['pk_drug_product'])
@@ -1425,7 +1446,7 @@ def manage_single_component_generic_drugs(parent=None, ignore_OK_button=False):
 		drugs = gmMedication.get_drug_products()
 		items = [ [
 			'%s%s' % (
-				d['drug_product'],
+				d['product'],
 				gmTools.bool2subst(d['is_fake_product'], ' (%s)' % _('fake'), '')
 			),
 			d['l10n_preparation'],
@@ -1635,6 +1656,6 @@ if __name__ == '__main__':
 	#manage_substance_intakes()
 	edit_single_component_generic_drug (
 		single_entry = True,
-		fields = {'substance': {'value': 'Ibuprofen', 'data': None}},
+		fields = {'substance': {'value': val, 'data': None}},
 		return_drug = True
 	)

@@ -6,7 +6,7 @@ This script is designed for importing GNUmed SOAP input "bundles".
 
 	- "bundle" is list of dicts
 	- each "bundle" is processed dict by dict
-	- the dicts in the list are INDEPENDENT of each other
+	- the dicts in the list are INDEPENDANT of each other
 	- each dict contains information for one new clin_narrative row
 	- each dict has the keys: 'soap', 'types', 'text', 'clin_context'
 		- 'soap':
@@ -24,15 +24,16 @@ This script is designed for importing GNUmed SOAP input "bundles".
 			  Its 'episode_id' must always be supplied.
 """
 #===============================================================
+__version__ = "$Revision: 1.24 $"
 __author__ = "Carlos Moro <cfmoro1976@yahoo.es>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 # stdlib
-import sys, logging
+import sys, re, logging
 
 
 # GNUmed
-from Gnumed.pycommon import gmDispatcher
+from Gnumed.pycommon import gmExceptions, gmI18N, gmDispatcher
 from Gnumed.business import gmClinNarrative, gmPerson, gmPersonSearch
 
 

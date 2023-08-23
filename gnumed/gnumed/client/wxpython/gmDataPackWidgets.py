@@ -1,7 +1,7 @@
 """GNUmed data pack related widgets."""
 #================================================================
 __author__ = 'karsten.hilbert@gmx.net'
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 # stdlib
 import logging
@@ -15,9 +15,9 @@ import wx
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
-from Gnumed.pycommon import gmCfgINI
-from Gnumed.pycommon import gmCfgDB
+
+from Gnumed.pycommon import gmCfg2
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmNetworkTools
 from Gnumed.pycommon import gmPG2
@@ -29,10 +29,10 @@ from Gnumed.wxpython import gmCfgWidgets
 
 
 _log = logging.getLogger('gm.ui')
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 
-default_dpl_url = 'https://www.gnumed.de/downloads/data/data-packs.conf'
+default_dpl_url = 'http://www.gnumed.de/downloads/data/data-packs.conf'
 dpl_url_option = 'horstspace.data_packs.url'
 #================================================================
 def install_data_pack(data_pack=None):
@@ -186,9 +186,12 @@ def install_data_pack(data_pack=None):
 
 #----------------------------------------------------------------
 def load_data_packs_list():
-	dpl_url = gmCfgDB.get4workplace (
+
+	dbcfg = gmCfg.cCfgSQL()
+	dpl_url = dbcfg.get2 (
 		option = dpl_url_option,
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'workplace',
 		default = default_dpl_url
 	)
 
@@ -338,6 +341,11 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
+
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
+#	from Gnumed.pycommon import gmPG2
 
 	#--------------------------------------------------------
 #	def test_generic_codes_prw():

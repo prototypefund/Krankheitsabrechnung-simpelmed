@@ -7,7 +7,9 @@ This module implements functions a macro can legally use.
 __author__ = "K.Hilbert <karsten.hilbert@gmx.net>"
 
 import sys
+import time
 import random
+import types
 import logging
 import os
 import io
@@ -22,11 +24,16 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+	from Gnumed.pycommon import gmLog2
+from Gnumed.pycommon import gmI18N
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
+from Gnumed.pycommon import gmGuiBroker
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmBorg
 from Gnumed.pycommon import gmExceptions
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmMimeLib
 from Gnumed.pycommon import gmShellAPI
@@ -34,6 +41,7 @@ from Gnumed.pycommon import gmCrypto
 
 from Gnumed.business import gmPerson
 from Gnumed.business import gmStaff
+from Gnumed.business import gmDemographicRecord
 from Gnumed.business import gmMedication
 from Gnumed.business import gmPathLab
 from Gnumed.business import gmPersonSearch
@@ -57,7 +65,7 @@ from Gnumed.wxpython import gmAddressWidgets
 
 
 _log = logging.getLogger('gm.scripting')
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 #=====================================================================
 # values for the following placeholders must be injected from the outside before
@@ -99,14 +107,6 @@ __known_variant_placeholders = {
 		args: <text>//<template>
 			text: utf8 text, will always be encoded in 'binary' mode with utf8 as encoding
 			template: %s-template into which to insert the QR code png file path
-	""",
-
-	# control flow
-	'yes_no': """Ask user a yes-no question and return content based on answer.
-		args: msg=<message>//yes=<yes>//no=<no>
-			<message>: shown in the yes/no dialog presented to the user
-			<yes>: returned if the user selects "yes"
-			<no>: returned if the user selects "no"
 	""",
 
 	# text manipulation
@@ -273,19 +273,14 @@ __known_variant_placeholders = {
 		to the patient in some way or other,
 		args: optional template//optional cache ID
 		template: %s-style formatting template
-		cache ID: used to differentiate separate cached invocations of this placeholder, if necessary
+		cache ID: used to differentiate separate cached invocations of this placeholder
 	""",
 
 	# patient demographics:
 	'name': "args: template for name parts arrangement",
 	'date_of_birth': "args: strftime date/time format directive",
 
-	'patient_address': """Return one patient address.
-		Options:
-			type: the type of address to use, asks user if empty
-			fmt: if set to 'mapurl': return formatted as URL pointing to an online map
-			tmpl: the formatting template, if <fmt> is not 'mapurl'
-	""",
+	'patient_address': "args: <type of address>//<optional formatting template>",
 	'adr_street': "args: <type of address>, cached per type",
 	'adr_number': "args: <type of address>, cached per type",
 	'adr_subunit': "args: <type of address>, cached per type",
@@ -370,7 +365,7 @@ __known_variant_placeholders = {
 	'current_meds_for_rx': """formats substance intakes either by substance (non-product intakes) or by producdt (once per product intake, even if multi-component):
 		args: <line template>
 		<line_template>: template into which to insert each intake, keys from
-		clin.v_intakes__active, special additional keys:
+		clin.v_substance_intakes, special additional keys:
 			%(contains)s -- list of components
 			%(amount2dispense)s -- how much/many to dispense""",
 
@@ -521,7 +516,7 @@ __known_variant_placeholders = {
 known_variant_placeholders = list(__known_variant_placeholders)
 
 
-# https://help.libreoffice.org/Common/List_of_Regular_Expressions
+# http://help.libreoffice.org/Common/List_of_Regular_Expressions
 # except that OOo cannot be non-greedy |-(
 #default_placeholder_regex = r'\$<.+?>\$'				# previous working placeholder
 	# regex logic:
@@ -560,7 +555,7 @@ def show_placeholders():
 	ph_file = io.open(fname, mode = 'wt', encoding = 'utf8', errors = 'replace')
 
 	ph_file.write('Here you can find some more documentation on placeholder use:\n')
-	ph_file.write('\n https://www.gnumed.de/bin/view/Gnumed/GmManualLettersForms\n\n\n')
+	ph_file.write('\n http://wiki.gnumed.de/bin/view/Gnumed/GmManualLettersForms\n\n\n')
 
 	ph_file.write('Variable placeholders:\n')
 	ph_file.write('Usage: $<PLACEHOLDER_NAME::ARGUMENTS::REGION_DEFINITION>$)\n')
@@ -627,20 +622,20 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 	def __init__(self, *args, **kwargs):
 
 		self.pat = gmPerson.gmCurrentPatient()
-		self.debug:bool = False
+		self.debug = False
 
-		self.invalid_placeholder_template:str = _('invalid placeholder >>>>>%s<<<<<')
+		self.invalid_placeholder_template = _('invalid placeholder >>>>>%s<<<<<')
 
-		self.__injected_placeholders:dict = {}
-		self.__cache:dict = {}
+		self.__injected_placeholders = {}
+		self.__cache = {}
 
-		self.__esc_style:str = None
+		self.__esc_style = None
 		self.__esc_func = lambda x:x
 
-		self.__ellipsis:str = None
-		self.__args_divider:str = '//'
-		self.__data_encoding:str = None
-		self.__data_encoding_strict:bool = False
+		self.__ellipsis = None
+		self.__args_divider = '//'
+		self.__data_encoding = None
+		self.__data_encoding_strict = False
 
 	#--------------------------------------------------------
 	# external API
@@ -678,9 +673,6 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 	escape_style = property(lambda x:x, _set_escape_style)
 
 	#--------------------------------------------------------
-	def _get_escape_function(self):
-		return self.__esc_func
-
 	def _set_escape_function(self, escape_function=None):
 		if escape_function is None:
 			self.__esc_func = lambda x:x
@@ -690,35 +682,26 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		self.__esc_func = escape_function
 		return
 
-	escape_function = property(_get_escape_function, _set_escape_function)
+	escape_function = property(lambda x:x, _set_escape_function)
 
 	#--------------------------------------------------------
-	def _get_ellipsis(self):
-		return self.__ellipsis
-
 	def _set_ellipsis(self, ellipsis):
 		if ellipsis == 'NONE':
 			ellipsis = None
 		self.__ellipsis = ellipsis
 
-	ellipsis = property(_get_ellipsis, _set_ellipsis)
+	ellipsis = property(lambda x: self.__ellipsis, _set_ellipsis)
 
 	#--------------------------------------------------------
-	def _get_arguments_divider(self):
-		return self.__args_divider
-
 	def _set_arguments_divider(self, divider):
 		if divider == 'DEFAULT':
 			divider = '//'
 		self.__args_divider = divider
 
-	arguments_divider = property(_get_arguments_divider, _set_arguments_divider)
+	arguments_divider = property(lambda x: self.__args_divider, _set_arguments_divider)
 
 	#--------------------------------------------------------
-	def _get_data_encoding(self) -> str:
-		return self.__data_encoding
-
-	def _set_data_encoding(self, encoding:str):
+	def _set_data_encoding(self, encoding):
 		if encoding == 'NONE':
 			self.__data_encoding = None
 			self.__data_encoding_strict = False
@@ -731,16 +714,16 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 			codecs.lookup(encoding)
 			self.__data_encoding = encoding
 		except LookupError:
-			_log.error('<codecs> module can NOT handle encoding [%s]' % encoding)
+			_log.error('<codecs> module can NOT handle encoding [%s]' % enc)
 
-	data_encoding = property(_get_data_encoding, _set_data_encoding)
+	data_encoding = property(lambda x: self.__data_encoding, _set_data_encoding)
 
 	#--------------------------------------------------------
-	placeholder_regex = property(lambda x: default_placeholder_regex)
+	placeholder_regex = property(lambda x: default_placeholder_regex, lambda x:x)
 
-	first_pass_placeholder_regex = property(lambda x: first_pass_placeholder_regex)
-	second_pass_placeholder_regex = property(lambda x: second_pass_placeholder_regex)
-	third_pass_placeholder_regex = property(lambda x: third_pass_placeholder_regex)
+	first_pass_placeholder_regex = property(lambda x: first_pass_placeholder_regex, lambda x:x)
+	second_pass_placeholder_regex = property(lambda x: second_pass_placeholder_regex, lambda x:x)
+	third_pass_placeholder_regex = property(lambda x: third_pass_placeholder_regex, lambda x:x)
 
 	#--------------------------------------------------------
 	def __parse_region_definition(self, region_str):
@@ -1042,7 +1025,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 				lines.append('error formatting encounter')
 				_log.exception('problem formatting encounter list')
 				_log.error('template: %s', template)
-				_log.error('encounter: %s', enc)
+				_log.error('encounter: %s', encounter)
 
 		return '\n'.join(lines)
 	#--------------------------------------------------------
@@ -1091,6 +1074,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		cats = list('soapu')
 		cats.append(None)
 		template = '%s'
+		interactive = True
 		line_length = 9999
 		time_range = None
 
@@ -1311,7 +1295,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 
 		if len(values) == 2:
 			male_value, female_value = values
-			other_value = '<unknown gender>'
+			other_value = '<unkown gender>'
 		elif len(values) == 3:
 			male_value, female_value, other_value = values
 		else:
@@ -1448,20 +1432,13 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 	#--------------------------------------------------------
 	def _get_variant_receiver_country(self, data='%s'):
 		return self.__get_variant_receiver_part(data = data, part = 'l10n_country')
-
 	#--------------------------------------------------------
 	def _get_variant_patient_address(self, data=''):
-		kwds = {'fmt': 'not_defined'}
-		pos = {
-			'type': '',
-			'tmpl': _('%(street)s %(number)s, %(postcode)s %(urb)s, %(l10n_region)s, %(l10n_country)s')
-		}
-		opts = self._parse_ph_options (
-			option_data = data,
-			kwd_defaults = kwds,
-			pos_default = pos
-		)
-		adr_type = opts['type']
+
+		data_parts = data.split(self.__args_divider)
+
+		# address type
+		adr_type = data_parts[0].strip()
 		orig_type = adr_type
 		if adr_type != '':
 			adrs = self.pat.get_addresses(address_type = adr_type)
@@ -1475,21 +1452,22 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 				if self.debug:
 					return _('no address type replacement selected')
 				return ''
-
 			adr_type = adr['address_type']
-
 		adr = self.pat.get_addresses(address_type = adr_type)[0]
-		if opts['fmt'] == 'mapurl':
-			return adr.as_map_url
+
+		# formatting template
+		template = _('%(street)s %(number)s, %(postcode)s %(urb)s, %(l10n_region)s, %(l10n_country)s')
+		if len(data_parts) > 1:
+			if data_parts[1].strip() != '':
+				template = data_parts[1]
 
 		try:
-			return opts['tmpl'] % adr.fields_as_dict(escape_style = self.__esc_style)
-
+			return template % adr.fields_as_dict(escape_style = self.__esc_style)
 		except Exception:
 			_log.exception('error formatting address')
-			_log.error('template: %s', opts['tmpl'])
-		return None
+			_log.error('template: %s', template)
 
+		return None
 	#--------------------------------------------------------
 	def __get_variant_adr_part(self, data='?', part=None):
 		requested_type = data.strip()
@@ -1625,10 +1603,10 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 			return ''
 
 		if options['fmt'] == 'txt':
-			return options['tmpl'] % self._escape(self.pat.MECARD)
+			return template % self._escape(self.pat.MECARD)
 
 		if options['fmt'] == 'mcf':
-			return options['tmpl'] % self.pat.export_as_mecard()
+			return template % self.pat.export_as_mecard()
 
 		if options['fmt'] == 'qr':
 			qr_filename = gmTools.create_qrcode(text = self.pat.MECARD)
@@ -1717,10 +1695,10 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 			return ''
 
 		if options['fmt'] == 'txt':
-			return options['tmpl'] % self._escape(gmPraxis.gmCurrentPraxisBranch().MECARD)
+			return template % self._escape(gmPraxis.gmCurrentPraxisBranch().MECARD)
 
 		if options['fmt'] == 'mcf':
-			return options['tmpl'] % gmPraxis.gmCurrentPraxisBranch().export_as_mecard()
+			return template % gmPraxis.gmCurrentPraxisBranch().export_as_mecard()
 
 		if options['fmt'] == 'qr':
 			qr_filename = gmTools.create_qrcode(text = gmPraxis.gmCurrentPraxisBranch().MECARD)
@@ -1812,7 +1790,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		if len(options) > 1:
 			issuer = options[1].strip()
 			if issuer == '':
-				issuer = None
+				issue = None
 		else:
 			issuer = None
 
@@ -1845,7 +1823,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 	#--------------------------------------------------------
 	def _get_variant_current_provider_title(self, data=None):
 		if data is None:
-			data = u'%(title)s'
+			template = u'%(title)s'
 		elif data.strip() == u'':
 			data = u'%(title)s'
 		return self._get_variant_current_provider_name(data = data)
@@ -1872,14 +1850,12 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 			return [_('template is missing')]
 		if data.strip() == '':
 			return [_('template is empty')]
-		prov = gmStaff.gmCurrentProvider()
-		name = prov.identity.get_active_name()
+		name = gmStaff.gmCurrentProvider().identity.get_active_name()
 		parts = {
 			'title': self._escape(gmTools.coalesce(name['title'], '')),
 			'firstnames': self._escape(name['firstnames']),
 			'lastnames': self._escape(name['lastnames']),
-			'preferred': self._escape(gmTools.coalesce(name['preferred'], '')),
-			'alias': self._escape(prov['short_alias'])
+			'preferred': self._escape(gmTools.coalesce(name['preferred'], ''))
 		}
 		return data % parts
 
@@ -2034,7 +2010,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 			if intake['pk_drug_product'] is None:
 				unique_intakes[intake['pk_substance']] = intake
 			else:
-				unique_intakes[intake['drug_product']] = intake
+				unique_intakes[intake['product']] = intake
 		del intakes2export
 		unique_intakes = unique_intakes.values()
 
@@ -2210,13 +2186,13 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 			fields_dict = intake.fields_as_dict(date_format = '%Y %b %d', escape_style = self.__esc_style)
 			fields_dict['medically_formatted_start'] = self._escape(intake.medically_formatted_start)
 			if intake['pk_drug_product'] is None:
-				fields_dict['drug_product'] = self._escape(_('generic %s') % fields_dict['substance'])
+				fields_dict['product'] = self._escape(_('generic %s') % fields_dict['substance'])
 				fields_dict['contains'] = self._escape('%s %s%s' % (fields_dict['substance'], fields_dict['amount'], fields_dict['unit']))
-				intakes2show[fields_dict['drug_product']] = fields_dict
+				intakes2show[fields_dict['product']] = fields_dict
 			else:
 				comps = [ c.split('::') for c in intake.containing_drug['components'] ]
 				fields_dict['contains'] = self._escape('; '.join([ '%s %s%s' % (c[0], c[1], c[2]) for c in comps ]))
-				intakes2show[intake['drug_product']] = fields_dict		# this will make multi-component drugs unique
+				intakes2show[intake['product']] = fields_dict		# this will make multi-component drugs unique
 
 		intakes2dispense = {}
 		for product, intake in intakes2show.items():
@@ -2241,7 +2217,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		lines = []
 		for a in abuses:
 			fields = a.fields_as_dict(date_format = '%Y %b %d', escape_style = self.__esc_style)
-			fields['use_type'] = a.use_type_string
+			fields['harmful_use_type'] = a.harmful_use_type_string
 			lines.append(template % fields)
 		return '\n'.join(lines)
 
@@ -2266,6 +2242,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		else:
 			current_meds = emr.get_current_medications (
 				include_inactive = False,
+				include_unapproved = True,
 				order_by = 'product, substance'
 			)
 			if len(current_meds) == 0:
@@ -2487,7 +2464,9 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		template = '%s'
 		if len(data_parts) > 1:
 			template = data_parts[1]
+
 		expansion = gmKeywordExpansionWidgets.expand_keyword(keyword = keyword, show_list_if_needed = True)
+
 		if expansion is None:
 			if self.debug:
 				return self._escape(_('no textual expansion found for keyword <%s>') % keyword)
@@ -2529,7 +2508,12 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 			return ''
 
 		if expansion['is_encrypted']:
-			saved_fname = gmCrypto.gpg_decrypt_file(filename = saved_fname)
+			pwd = wx.GetPasswordFromUser (
+				message = _('Enter your GnuPG passphrase for decryption of [%s]') % expansion['keyword'],
+				caption = _('GnuPG passphrase prompt'),
+				default_value = ''
+			)
+			saved_fname = gmCrypto.gpg_decrypt_file(filename = saved_fname, passphrase = pwd)
 			if saved_fname is None:
 				if self.debug:
 					return self._escape(_('cannot decrypt data of binary expansion keyword <%s>') % keyword)
@@ -2571,22 +2555,6 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		# selecting the range so all we need to do here
 		# is to return the data itself
 		return data
-
-	#--------------------------------------------------------
-	def _get_variant_yes_no(self, data=None):
-		if data is None:
-			return None
-
-		defaults = {'msg': None, 'yes': None, 'no': ''}
-		msg, yes_txt, no_txt = self.__parse_ph_options(option_defs = defaults, options_string = data)
-		if None in [msg, yes_txt]:
-			return self._escape(u'YES_NO lacks proper definition')
-
-		yes = gmGuiHelpers.gm_show_question(question = msg, cancel_button = False, title = 'Placeholder question')
-		if yes:
-			return self._escape(yes_txt)
-
-		return self._escape(no_txt)
 
 	#--------------------------------------------------------
 	def _get_variant_if_not_empty(self, data=None):
@@ -2871,12 +2839,6 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		_log.debug('options: %s', options_string)
 		legacy_options = []
 		options2return = option_defs.copy()
-		if options_string.strip() == '':
-			return tuple([ options2return[o_name] for o_name in options2return.keys() ])
-
-		if '=' not in options_string:
-			return tuple([ 'invalid param fmt' for o_name in options2return.keys() ])
-
 		options = options_string.split(self.__args_divider)
 		for opt in options:
 			opt_parts = opt.split('=', 1)
@@ -3021,8 +2983,8 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		dict2return = {}
 		for key in dict(dict_like):
 			# FIXME: harden against BYTEA fields
-			#if type(self._payload[key]) == ...
-			#	dict2return[key] = _('<%s bytes of binary data>') % len(self._payload[key])
+			#if type(self._payload[self._idx[key]]) == ...
+			#	dict2return[key] = _('<%s bytes of binary data>') % len(self._payload[self._idx[key]])
 			#	continue
 			val = dict_like[key]
 			if val is None:
@@ -3053,7 +3015,7 @@ class gmPlaceholderHandler(gmBorg.cBorg):
 		return dict2return
 
 #---------------------------------------------------------------------
-def test_placeholders_interactively():
+def test_placeholders():
 
 	_log.debug('testing for placeholders with pattern: %s', first_pass_placeholder_regex)
 
@@ -3176,6 +3138,15 @@ class cMacroPrimitives:
 			_log.error('non-authenticated raise_gnumed()')
 			return 0
 		return "cMacroPrimitives.raise_gnumed() not implemented"
+	#-----------------------------------------------------------------
+	def get_loaded_plugins(self, auth_cookie = None):
+		if not self.__attached:
+			return 0
+		if auth_cookie != self.__auth_cookie:
+			_log.error('non-authenticated get_loaded_plugins()')
+			return 0
+		gb = gmGuiBroker.GuiBroker()
+		return list(gb['horstspace.notebook.gui'])
 
 	#-----------------------------------------------------------------
 	def raise_notebook_plugin(self, auth_cookie = None, a_plugin = None):
@@ -3223,44 +3194,34 @@ class cMacroPrimitives:
 		self.__pat.locked = True
 		self.__pat_lock_cookie = str(random.random())
 		return (1, self.__pat_lock_cookie)
-
 	#-----------------------------------------------------------------
 	def lock_into_patient(self, auth_cookie = None, search_params = None):
 		if not self.__attached:
 			return (0, _('request rejected, you are not attach()ed'))
-
 		if auth_cookie != self.__auth_cookie:
 			_log.error('non-authenticated lock_into_patient()')
 			return (0, _('rejected lock_into_patient(), not authenticated'))
-
 		if self.__pat.locked:
 			_log.error('patient is already locked')
 			return (0, _('already locked into a patient'))
-
 		searcher = gmPersonSearch.cPatientSearcher_SQL()
 		if type(search_params) == dict:
-			idents = searcher.get_identities(search_dict = search_params)
+			idents = searcher.get_identities(search_dict=search_params)
 			raise Exception("must use dto, not search_dict")
-
 		else:
-			idents = searcher.get_identities(search_term = search_params)
+			idents = searcher.get_identities(search_term=search_params)
 		if idents is None:
-			return (0, _('error searching for patient with [%s]') % search_params)
-
+			return (0, _('error searching for patient with [%s]/%s') % (search_term, search_dict))
 		if len(idents) == 0:
-			return (0, _('no patient found for [%s]') % search_params)
-
+			return (0, _('no patient found for [%s]/%s') % (search_term, search_dict))
 		# FIXME: let user select patient
 		if len(idents) > 1:
-			return (0, _('several matching patients found for [%s]') % search_params)
-
+			return (0, _('several matching patients found for [%s]/%s') % (search_term, search_dict))
 		if not gmPatSearchWidgets.set_active_patient(patient = idents[0]):
-			return (0, _('cannot activate patient [%s] (%s)') % (str(idents[0]), search_params))
-
+			return (0, _('cannot activate patient [%s] (%s/%s)') % (str(idents[0]), search_term, search_dict))
 		self.__pat.locked = True
 		self.__pat_lock_cookie = str(random.random())
 		return (1, self.__pat_lock_cookie)
-
 	#-----------------------------------------------------------------
 	def unlock_patient(self, auth_cookie = None, unlock_cookie = None):
 		if not self.__attached:
@@ -3341,10 +3302,8 @@ if __name__ == '__main__':
 	if sys.argv[1] != 'test':
 		sys.exit()
 
-	del _
-	from Gnumed.pycommon import gmI18N
 	gmI18N.activate_locale()
-	gmI18N.install_domain('gnumed')
+	gmI18N.install_domain()
 
 	#--------------------------------------------------------
 	def test_placeholders():
@@ -3362,7 +3321,7 @@ if __name__ == '__main__':
 
 		print('DOB (YYYY-MM-DD):', handler['date_of_birth::%Y-%m-%d'])
 
-		wx.PyWidgetTester(size = (200, 50))
+		app = wx.PyWidgetTester(size = (200, 50))
 
 		ph = 'progress_notes::ap'
 		print('%s: %s' % (ph, handler[ph]))
@@ -3445,7 +3404,7 @@ if __name__ == '__main__':
 
 		listener = gmScriptingListener.cScriptingListener(macro_executor = cMacroPrimitives(personality='unit test'), port=9999)
 
-		s = xmlrpc.client.ServerProxy('https://localhost:9999')
+		s = xmlrpc.client.ServerProxy('http://localhost:9999')
 		print("should fail:", s.attach())
 		print("should fail:", s.attach('wrong cookie'))
 		print("should work:", s.version())
@@ -3714,7 +3673,7 @@ if __name__ == '__main__':
 			#u'$<soap::soapu //%(soap_cat)s: %(date)s | %(provider)s | %(narrative)s::9999>$'
 			#u'$<test_results:://%c::>$'
 			#u'$<test_results::%(unified_abbrev)s: %(unified_val)s %(val_unit)s//%c::>$'
-			#'$<most_recent_test_results::tmpl=%(unified_name)s & %(unified_val)s%(val_unit)s & [%(unified_target_min)s--%(unified_target_max)s] %(unified_target_range)s & %(clin_when)s \\tabularnewline::>$'		#<dfmt=...>//<tmpl=...>//<sep=...>
+			'$<most_recent_test_results::tmpl=%(unified_name)s & %(unified_val)s%(val_unit)s & [%(unified_target_min)s--%(unified_target_max)s] %(unified_target_range)s & %(clin_when)s \\tabularnewline::>$'		#<dfmt=...>//<tmpl=...>//<sep=...>
 			#u'$<reminders:://::>$'
 			#u'$<current_meds_for_rx::%(product)s (%(contains)s): dispense %(amount2dispense)s ::>$'
 			#u'$<praxis::%(branch)s (%(praxis)s)::>$'
@@ -3731,7 +3690,7 @@ if __name__ == '__main__':
 			#u'$<receiver_country::, %s::120>$',
 			#u'$<external_care::%(issue)s: %(provider)s of %(unit)s@%(organization)s (%(comment)s)::1024>$',
 			#u'$<url_escape::hello world ü::>$',
-			#u'$<substance_abuse::%(substance)s (%(use_type)s) last=%(last_checked_when)s stop=%(discontinued)s // %(notes)s::>$',
+			#u'$<substance_abuse::%(substance)s (%(harmful_use_type)s) last=%(last_checked_when)s stop=%(discontinued)s // %(notes)s::>$',
 			#u'bill_adr_region::region %s::1234',
 			#u'bill_adr_country::%s::1234',
 			#u'bill_adr_subunit::subunit: %s::1234',
@@ -3745,16 +3704,8 @@ if __name__ == '__main__':
 			#u'$<praxis_scan2pay::fmt=txt::>$',
 			#u'$<praxis_scan2pay::fmt=qr::>$'
 			#u'$<bill_scan2pay::fmt=txt::>$',
-			#u'$<bill_scan2pay::fmt=qr::>$',
-			#'$<yes_no::msg=do you want to select yes or no or something else ?  Look at the title//yes=it was yes//no=oh no!::>$'
-			'$<data_snippet::autograph-ncq//path=<%s>//image/jpg//.jpg::250>$',
+			#u'$<bill_scan2pay::fmt=qr::>$'
 		]
-
-		from Gnumed.pycommon import gmPG2
-		from Gnumed.pycommon import gmConnectionPool
-		l, creds = gmPG2.request_login_params()
-		pool = gmConnectionPool.gmConnectionPool()
-		pool.credentials = creds
 
 		handler = gmPlaceholderHandler()
 		handler.debug = True
@@ -3790,12 +3741,12 @@ if __name__ == '__main__':
 	#--------------------------------------------------------
 	def test_parse_ph_options():
 		handler = gmPlaceholderHandler()
-		option_str = '//select//pos1//opt1=one//opt2=2//opt3=drei//positional_further_down//fmt=qr//%s//tmpl=__%s__//switch=with=equal_sig//empty_kwd='
+		option_str = '//select//pos1//opt1=one//opt2=2//opt3=drei//positional_further_down//fmt=qr//%s//tmpl=__%s__//switch=with=equal_sig'
 		switches = {'select': False, 'verbose': False, 'switch=with=equal_sign': None}
-		kwds = {'opt1': 1, 'opt2': 'two', 'opt4': 'vier', 'fmt': 'qr', 'tmpl': '--%s--', 'switch': 'what ??', 'empty_kwd': ''}
+		kwds = {'opt1': 1, 'opt2': 'two', 'opt4': 'vier', 'fmt': 'qr', 'tmpl': '--%s--', 'switch': 'what ??'}
 		pos = {'empty': None, 'firstpos': 'egal', 'farther_away': None, 'tmpl':None, 'one too many': 99999}
 
-		opts = handler._parse_ph_options (
+		opts = handler._parse_ph_options_new (
 			options_data = option_str
 			#, switch_defaults = switches
 			#, kwd_defaults = kwds
@@ -3807,7 +3758,7 @@ if __name__ == '__main__':
 			print(' ', key, '-->', opts[key])
 
 		input()
-		opts = handler._parse_ph_options (
+		opts = handler._parse_ph_options_new (
 			options_data = option_str
 			, switch_defaults = switches
 			#, kwd_defaults = kwds
@@ -3820,7 +3771,7 @@ if __name__ == '__main__':
 			print(' ', key, '-->', opts[key])
 
 		input()
-		opts = handler._parse_ph_options (
+		opts = handler._parse_ph_options_new (
 			options_data = option_str
 			, switch_defaults = switches
 			, kwd_defaults = kwds
@@ -3833,7 +3784,7 @@ if __name__ == '__main__':
 			print(' ', key, '-->', opts[key])
 
 		input()
-		opts = handler._parse_ph_options (
+		opts = handler._parse_ph_options_new (
 			options_data = option_str
 			, switch_defaults = switches
 			, kwd_defaults = kwds
@@ -3846,7 +3797,7 @@ if __name__ == '__main__':
 			print(' ', key, '-->', opts[key])
 
 		input()
-		opts = handler._parse_ph_options (
+		opts = handler._parse_ph_options_new (
 			options_data = option_str
 			#, switch_defaults = switches
 			, kwd_defaults = kwds

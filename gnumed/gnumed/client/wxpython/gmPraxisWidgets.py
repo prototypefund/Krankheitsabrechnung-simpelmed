@@ -4,7 +4,7 @@ Praxis:
 
 	Each database belongs to ONE praxis only. A praxis can
 	have several branches. A praxis is at the same level
-	as an organization, except that it is not explicitly
+	as an organization, except that it is not explicitely
 	defined. Rather, that ONE organization of which at least
 	one unit is defined as a praxis branch IS the praxis.
 
@@ -23,10 +23,11 @@ copyright: authors
 """
 #============================================================
 __author__ = "K.Hilbert"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import logging
 import sys
+#import datetime as pydt
 
 
 import wx
@@ -34,9 +35,7 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
-from Gnumed.pycommon import gmCfgDB
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmPG2
@@ -56,7 +55,6 @@ from Gnumed.wxpython import gmPhraseWheel
 
 
 _log = logging.getLogger('gm.praxis')
-_cfg = gmCfgINI.gmCfgData()
 
 #=========================================================================
 def show_audit_trail(parent=None):
@@ -183,6 +181,9 @@ def configure_workplace_plugins(parent=None):
 		return True
 	#-----------------------------------
 	def edit(workplace=None):
+
+		dbcfg = gmCfg.cCfgSQL()
+
 		if workplace is None:
 			dlg = wx.TextEntryDialog (
 				parent,
@@ -198,9 +199,10 @@ def configure_workplace_plugins(parent=None):
 				return False
 			curr_plugins = []
 		else:
-			curr_plugins = gmTools.coalesce(gmCfgDB.get4workplace (
+			curr_plugins = gmTools.coalesce(dbcfg.get2 (
 				option = 'horstspace.notebook.plugin_load_order',
-				workplace = workplace
+				workplace = workplace,
+				bias = 'workplace'
 				), []
 			)
 
@@ -233,7 +235,7 @@ def configure_workplace_plugins(parent=None):
 		if new_plugins is None:
 			return True
 
-		gmCfgDB.set (
+		dbcfg.set (
 			option = 'horstspace.notebook.plugin_load_order',
 			value = new_plugins,
 			workplace = workplace
@@ -244,6 +246,9 @@ def configure_workplace_plugins(parent=None):
 	def edit_old(workplace=None):
 
 		available_plugins = gmPlugin.get_installed_plugins(plugin_dir='gui')
+
+		dbcfg = gmCfg.cCfgSQL()
+
 		if workplace is None:
 			dlg = wx.TextEntryDialog (
 				parent,
@@ -260,9 +265,10 @@ def configure_workplace_plugins(parent=None):
 			curr_plugins = []
 			choices = available_plugins
 		else:
-			curr_plugins = gmTools.coalesce(gmCfgDB.get4workplace (
+			curr_plugins = gmTools.coalesce(dbcfg.get2 (
 				option = 'horstspace.notebook.plugin_load_order',
-				workplace = workplace
+				workplace = workplace,
+				bias = 'workplace'
 				), []
 			)
 			choices = curr_plugins[:]
@@ -294,7 +300,7 @@ def configure_workplace_plugins(parent=None):
 		if new_plugins is None:
 			return True
 
-		gmCfgDB.set (
+		dbcfg.set (
 			option = 'horstspace.notebook.plugin_load_order',
 			value = new_plugins,
 			workplace = workplace
@@ -312,19 +318,28 @@ def configure_workplace_plugins(parent=None):
 			default_value = '%s-2' % workplace,
 			parent = parent
 		).strip()
+
 		if new_name == '':
 			return False
 
+		dbcfg = gmCfg.cCfgSQL()
 		opt = 'horstspace.notebook.plugin_load_order'
-		plugins = gmCfgDB.get4workplace(option = opt, workplace = workplace)
-		gmCfgDB.set (
+
+		plugins = dbcfg.get2 (
+			option = opt,
+			workplace = workplace,
+			bias = 'workplace'
+		)
+
+		dbcfg.set (
 			option = opt,
 			value = plugins,
 			workplace = new_name
 		)
-		# FIXME: clone cfg, too
-		return True
 
+		# FIXME: clone cfg, too
+
+		return True
 	#-----------------------------------
 	def refresh(lctrl):
 		workplaces = gmPraxis.gmCurrentPraxisBranch().workplaces
@@ -376,90 +391,14 @@ class cGreetingEditorDlg(wxgGreetingEditorDlg.wxgGreetingEditorDlg):
 
 #============================================================
 def select_praxis_branch(parent=None):
+
 	branches = gmPraxis.get_praxis_branches()
+
 	if len(branches) == 0:
 		if not set_active_praxis_branch(parent = parent, no_parent = False):
 			return None
 
 	# FIXME: needs implementation
-
-#============================================================
-def __create_praxis_and_branch():
-	pk_cat = gmOrganization.create_org_category(category = 'Praxis')
-	org = gmOrganization.create_org(_('Your praxis'), pk_cat)
-	unit = org.add_unit(_('Your branch'))
-	branch = gmPraxis.create_praxis_branch(pk_org_unit = unit['pk_org_unit'])
-	_log.debug('auto-created praxis and branch because no organizations existed: %s', branch)
-	gmGuiHelpers.gm_show_info (
-		title = _('Praxis configuration ...'),
-		info = _(
-			'GNUmed has auto-created the following\n'
-			'praxis branch for you (which you can\n'
-			'later configure as needed):\n'
-			'\n'
-			'%s'
-		) % branch.format()
-	)
-	return branch
-
-#============================================================
-def __create_branch_for_praxis(pk_org_unit:int):
-	branch = gmPraxis.create_praxis_branch(pk_org_unit = pk_org_unit)
-	_log.debug('auto-created praxis branch because only one organization without any unit existed: %s', branch)
-	gmGuiHelpers.gm_show_info (
-		title = _('Praxis configuration ...'),
-		info = _(
-			'GNUmed has auto-created the following\n'
-			'praxis branch for you (which you can\n'
-			'later configure as needed):\n'
-			'\n'
-			'%s'
-		) % branch.format()
-	)
-	return branch
-
-#============================================================
-def __select_org_unit_as_branch():
-	_log.debug('no praxis branches configured, selecting from organization units')
-	msg = _(
-			'No praxis branches configured currently.\n'
-			'\n'
-			'You MUST select one unit of one organization to be the\n'
-			'branch (site, office) which you are logging in from.'
-	)
-	unit = gmOrganizationWidgets.select_org_unit(msg = msg, no_parent = True)
-	if unit is None:
-		_log.warning('no organization unit selected, aborting')
-		return None
-
-	_log.debug('org unit selected as praxis branch: %s', unit)
-	branch = gmPraxis.create_praxis_branch(pk_org_unit = unit['pk_org_unit'])
-	_log.debug('created praxis branch from org unit: %s', branch)
-	return branch
-
-#============================================================
-def __update_most_recently_selected_branch(branch):
-	prefs_file = _cfg.get(option = 'user_preferences_file')
-	gmCfgINI.set_option_in_INI_file (
-		filename = prefs_file,
-		group = 'preferences',
-		option = 'most recently used praxis branch',
-		value = branch.format(one_line = True)
-	)
-	_cfg.reload_file_source(file = prefs_file)
-
-#============================================================
-def __get_most_recently_selected_branch():
-	return _cfg.get (
-		group = 'preferences',
-		option = 'most recently used praxis branch',
-		source_order = [
-			('explicit', 'return'),
-			('workbase', 'return'),
-			('local', 'return'),
-			('user', 'return')
-		]
-	)
 
 #============================================================
 def set_active_praxis_branch(parent=None, no_parent=False):
@@ -473,32 +412,65 @@ def set_active_praxis_branch(parent=None, no_parent=False):
 	branches = gmPraxis.get_praxis_branches()
 
 	if len(branches) == 1:
-		_log.debug('only one praxis branch configured, activating')
+		_log.debug('only one praxis branch configured')
 		gmPraxis.gmCurrentPraxisBranch(branches[0])
 		return True
 
 	if len(branches) == 0:
 		orgs = gmOrganization.get_orgs()
 		if len(orgs) == 0:
-			new_branch_of_new_praxis = __create_praxis_and_branch()
-			gmPraxis.gmCurrentPraxisBranch(new_branch_of_new_praxis)
+			pk_cat = gmOrganization.create_org_category(category = 'Praxis')
+			org = gmOrganization.create_org(_('Your praxis'), pk_cat)
+			unit = org.add_unit(_('Your branch'))
+			branch = gmPraxis.create_praxis_branch(pk_org_unit = unit['pk_org_unit'])
+			_log.debug('auto-created praxis branch because no organizations existed: %s', branch)
+			gmPraxis.gmCurrentPraxisBranch(branch)
+			gmGuiHelpers.gm_show_info (
+				title = _('Praxis configuration ...'),
+				info = _(
+					'GNUmed has auto-created the following\n'
+					'praxis branch for you (which you can\n'
+					'later configure as needed):\n'
+					'\n'
+					'%s'
+				) % branch.format()
+			)
 			return True
 
 		if len(orgs) == 1:
 			units = orgs[0].units
 			if len(units) == 1:
-				branch = __create_branch_for_praxis(units[0]['pk_org_unit'])
+				branch = gmPraxis.create_praxis_branch(pk_org_unit = units[0]['pk_org_unit'])
+				_log.debug('auto-selected praxis branch because only one organization with only one unit existed: %s', branch)
 				gmPraxis.gmCurrentPraxisBranch(branch)
+				gmGuiHelpers.gm_show_info (
+					title = _('Praxis configuration ...'),
+					info = _(
+						'GNUmed has auto-selected the following\n'
+						'praxis branch for you (which you can\n'
+						'later configure as needed):\n'
+						'\n'
+						'%s'
+					) % branch.format()
+				)
 				return True
 
-		branch = __select_org_unit_as_branch()
-		if branch is None:
+		_log.debug('no praxis branches configured, selecting from organization units')
+		msg = _(
+				'No praxis branches configured currently.\n'
+				'\n'
+				'You MUST select one unit of an organization to be the initial\n'
+				'branch (site, office) which you are logging in from.'
+		)
+		unit = gmOrganizationWidgets.select_org_unit(msg = msg, no_parent = True)
+		if unit is None:
+			_log.warning('no organization unit selected, aborting')
 			return False
-
+		_log.debug('org unit selected as praxis branch: %s', unit)
+		branch = gmPraxis.create_praxis_branch(pk_org_unit = unit['pk_org_unit'])
+		_log.debug('created praxis branch: %s', branch)
 		gmPraxis.gmCurrentPraxisBranch(branch)
 		return True
-
-	most_recent_branch = __get_most_recently_selected_branch()
 
 	#--------------------
 	def refresh(lctrl):
@@ -510,13 +482,7 @@ def set_active_praxis_branch(parent=None, no_parent=False):
 		]
 		lctrl.set_string_items(items = items)
 		lctrl.set_data(data = branches)
-		if most_recent_branch is not None:
-			for idx in range(len(branches)):
-				if branches[idx].format(one_line = True) == most_recent_branch:
-					lctrl.selections = [idx]
-					break
 	#--------------------
-
 	branch = gmListWidgets.get_choices_from_list (
 		parent = parent,
 		msg = _("Select the branch of praxis [%s] which you are logging in from.\n") % branches[0]['praxis'],
@@ -529,8 +495,6 @@ def set_active_praxis_branch(parent=None, no_parent=False):
 	if branch is None:
 		_log.warning('no praxis branch selected, aborting')
 		return False
-
-	__update_most_recently_selected_branch(branch)
 	gmPraxis.gmCurrentPraxisBranch(branch)
 	return True
 
@@ -722,7 +686,7 @@ if __name__ == "__main__":
 #	gmI18N.install_domain()
 
 	def test_configure_wp_plugins():
-		#app = wx.PyWidgetTester(size = (400, 300))
+		app = wx.PyWidgetTester(size = (400, 300))
 		configure_workplace_plugins()
 
 	#--------------------------------------------------------

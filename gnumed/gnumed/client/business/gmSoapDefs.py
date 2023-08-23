@@ -3,26 +3,15 @@
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
 __license__ = 'GPL v2 or later (for details see http://gnu.org)'
 #============================================================
+#============================================================
 if __name__ == '__main__':
-	# we are the main script, setup a fake _() for now,
-	# such that it can be used in module level definitions
 	_ = lambda x:x
-else:
-	# we are being imported from elsewhere
-	try:
-		# do we already have _() ?
-		_
-	except NameError:
-		# no, so setup i18n handling
-		from Gnumed.pycommon import gmI18N
-		gmI18N.activate_locale()
-		gmI18N.install_domain()
 
 
 _U_ELLIPSIS = '\u2026'
 
 KNOWN_SOAP_CATS = list('soapu')
-KNOWN_SOAP_CATS.append(None)		# admin category
+KNOWN_SOAP_CATS.append(None)
 
 
 soap_cat2l10n = {
@@ -31,8 +20,8 @@ soap_cat2l10n = {
 	'a': _('SOAP_char_A=A').replace('SOAP_char_A=', ''),
 	'p': _('SOAP_char_P=P').replace('SOAP_char_P=', ''),
 	'u': _('SOAP_char_U=U').replace('SOAP_char_U=', ''),
-	'': _U_ELLIPSIS,		# admin
-	None: _U_ELLIPSIS		# admin
+	'': _U_ELLIPSIS,
+	None: _U_ELLIPSIS
 }
 
 
@@ -60,60 +49,52 @@ l10n2soap_cat = {
 }
 
 #============================================================
-def soap_cats_str2list(soap_cats:str) -> list[str]:
-	"""Normalize SOAP categories, preserving order.
+def soap_cats2list(soap_cats):
+	"""Normalizes a string or list of SOAP categories, preserving order.
 
-	Args:
-		soap_cats: string or list
-		* None -> gmSoapDefs.KNOWN_SOAP_CATS (all)
-		* [] -> []
-		* '' -> []
-		* ' ' -> [None]	(admin)
+		None -> gmSoapDefs.KNOWN_SOAP_CATS (all)
+		[] -> []
+		u'' -> []
+		u' ' -> [None]	(admin)
 	"""
 	if soap_cats is None:
 		return KNOWN_SOAP_CATS
 
-	normalized_cats:list = []
+	normalized_cats = []
 	for cat in soap_cats:
 		if cat in [' ', None]:
 			if None in normalized_cats:
 				continue
 			normalized_cats.append(None)
 			continue
-		cat = cat.casefold()
+		cat = cat.lower()
 		if cat in KNOWN_SOAP_CATS:
 			if cat in normalized_cats:
 				continue
 			normalized_cats.append(cat)
+
 	return normalized_cats
 
 #============================================================
-def are_valid_soap_cats(soap_cats:str, allow_upper:bool=True) -> bool:
-	"""Check whether _soap_cats_ contains valid category markers only.
-
-	Args:
-		soap_cats: string or list
-		allow_upper: whether uppercase is considered valid
-	"""
+def are_valid_soap_cats(soap_cats, allow_upper=True):
 	for cat2test in soap_cats:
 		if cat2test in KNOWN_SOAP_CATS:
 			continue
 		if not allow_upper:
 			return False
-
-		if cat2test.casefold() in KNOWN_SOAP_CATS:
+		if cat2test.upper() in KNOWN_SOAP_CATS:
 			continue
 		return False
-
 	return True
 
 #============================================================
-def normalize_soap_cat(soap_cat:str) -> str: # | bool:
-	soap_cat = soap_cat.casefold()
+def normalize_soap_cat(soap_cat):
 	if soap_cat in KNOWN_SOAP_CATS:
 		return soap_cat
-
-	return False		# type: ignore [return-value]
+	soap_cat = soap_cat.lower()
+	if soap_cat in KNOWN_SOAP_CATS:
+		return soap_cat
+	return False
 
 #============================================================
 if __name__ == '__main__':
@@ -127,8 +108,8 @@ if __name__ == '__main__':
 		sys.exit()
 
 	sys.path.insert(0, '../../')
-	del _
 	from Gnumed.pycommon import gmI18N
+
 	gmI18N.activate_locale()
 	gmI18N.install_domain()
 
@@ -140,11 +121,11 @@ if __name__ == '__main__':
 	#--------------------------------------------------------
 	def test_are_valid_cats():
 		cats = [
-			list('soapu'),
-			list('soapuSOAPU'),
-			list('soapux'),
-			list('soapuX'),
-			list('soapuSOAPUx'),
+			list('soap'),
+			list('soapSOAP'),
+			list('soapx'),
+			list('soapX'),
+			list('soapSOAPx'),
 			[None],
 			['s', None],
 			['s', None, 'O'],

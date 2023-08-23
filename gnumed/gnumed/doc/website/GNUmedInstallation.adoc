@@ -1,83 +1,39 @@
 link:index.html[Home]
 
-GNUmed is a client-server system. A full(y) local installation
-needs both a database and a client.
+GNUmed is a client-server system. A full installation needs
+both a database and a client.
 
 There is, however, a public database available for testing.
-
-NOTE: Content is being resurrected from the wiki. If you need
-information that is not available send us an inquiry on
-either mailing list:
-
-	* https://lists.gnu.org/mailman/listinfo/gnumed-devel (gnumed-devel@gnu.org)
-	* https://lists.gnu.org/mailman/listinfo/gnumed-bugs (gnumed-bugs@gnu.org)
 
 == Client Installation
 
 === Debian based systems
 
-	* install the latest packaged version:
-
 -------------------------------------
 	$> apt-get install gnumed-client
+	$> gnumed --version
 -------------------------------------
 
-	* run GNUmed:
+=== other systems
 
--------------------------------------
-	$> gnumed
--------------------------------------
-
-=== Windows
-
-Currently no recent release has been pre-packaged for
-Windows. Follow the below procedure:
-
-	* download the latest client from the https://www.gnumed.de/downloads/client/[Download Area]
-	* unpack the tarball
-	* go to folder 'gnumed-client.1.8.0/client/'
-	* execute 'gm-from-vcs.bat'
-
-=== Other systems
-
-	* download the latest client from the https://www.gnumed.de/downloads/client/[Download Area]
-	* unpack and check dependencies (assuming version 1.8.0):
+	* download the latest client from https://www.gnumed.de/downloads/client/ (say, 'gnumed-client.1.8.0.tgz')
 
 -------------------------------------
 	$> tar -xvzf gnumed-client.1.8.0.tgz
 	$> cd gnumed-client.1.8.0/external-tools/
-	$> ./check-prerequisites.sh
+	$> ./check-prerequites.sh
 -------------------------------------
 
-	* run GNUmed:
+	* install missing dependancies
 
 -------------------------------------
 	$> cd gnumed-client.1.8.0/client/
-	$> ./gm-from-vcs.sh
+	$> ./p3w4-gm-from-vcs.sh
 -------------------------------------
-
-This approach can also be used if the latest released version
-has not been packaged yet for your system. Packaged and
-unpackaged minor releases can be run alongside each other
-while different major releases typically require different
-database versions.
-
-=== For developers and power users
-
-	* https://www.gnumed.de/downloads/gnumed-versions.txt[latest version overview]
-	* https://www.gnumed.de/downloads/client/[released tarballs]
-	* https://launchpad.net/~gnumed/+archive/ubuntu/ppa[PPA with newer .debs]
-
-	* https://github.com/ncqgm/gnumed/[git repository]
-	* https://github.com/ncqgm/gnumed/archive/master.zip[zipped tip of git master branch]
-	* https://github.com/ncqgm/gnumed/archive/refs/heads/rel-1-8-maint.zip[zipped tip of git v1.8 branch]
 
 == Database Installation
 
 For testing you can use the public database at publicdb.gnumed.de:5432
-
-For production use you should link:GNUmedDatabaseInstallation.html[setup a local database].
-
 
 
 link:index.html[Home]

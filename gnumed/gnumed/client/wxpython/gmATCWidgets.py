@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-"""GNUmed ATC handling widgets."""
+#from __future__ import print_function
+
+__doc__ = """GNUmed ATC handling widgets."""
 
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
@@ -8,13 +10,16 @@ __license__ = "GPL v2 or later"
 
 import logging
 import sys
+import os.path
 
 
 import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain = 'gnumed')
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmMatchProvider
 from Gnumed.pycommon import gmDispatcher
@@ -64,7 +69,7 @@ def update_atc_reference_data():
 	dlg = wx.FileDialog (
 		parent = None,
 		message = _('Choose an ATC import config file'),
-		defaultDir = gmTools.gmPaths().user_work_dir,
+		defaultDir = os.path.expanduser(os.path.join('~', 'gnumed')),
 		defaultFile = '',
 		wildcard = "%s (*.conf)|*.conf|%s (*)|*" % (_('config files'), _('all files')),
 		style = wx.FD_OPEN | wx.FD_FILE_MUST_EXIST

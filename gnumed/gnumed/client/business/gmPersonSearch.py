@@ -66,15 +66,12 @@ __author__ = "K.Hilbert <Karsten.Hilbert@gmx.net>"
 __license__ = "GPL"
 
 # std lib
-import sys
-import logging
-import re as regex
+import sys, logging, re as regex
 
 
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmPG2, gmI18N, gmTools, gmDateTime
 from Gnumed.business import gmPerson
 if __name__ == '__main__':
@@ -87,7 +84,7 @@ _log = logging.getLogger('gm.person')
 
 #============================================================
 class cPatientSearcher_SQL:
-	"""UI independent i18n aware patient searcher."""
+	"""UI independant i18n aware patient searcher."""
 	def __init__(self):
 		self._generate_queries = self._generate_queries_de
 		# make a cursor
@@ -665,7 +662,7 @@ class cPatientSearcher_SQL:
 		return []
 
 	#--------------------------------------------------------
-	# generic, locale independent queries
+	# generic, locale independant queries
 	#--------------------------------------------------------
 	def _generate_queries_from_dto(self, dto = None):
 		"""Generate generic queries.
@@ -849,11 +846,11 @@ class cPatientSearcher_SQL:
 		# check to see if we get away with a simple query ...
 		queries = self.generate_simple_query(search_term)
 		if len(queries) > 0:
-			_log.debug('[%s]: search term with a simple, unambiguous structure' % search_term)
+			_log.debug('[%s]: search term with a simple, unambigous structure' % search_term)
 			return queries
 
 		# no we don't
-		_log.debug('[%s]: not a search term with a simple, unambiguous structure' % search_term)
+		_log.debug('[%s]: not a search term with a simple, unambigous structure' % search_term)
 
 		search_term = search_term.strip().strip(',').strip(';').strip()
 		normalized = self._normalize_soundalikes(search_term)
@@ -1178,11 +1175,11 @@ if __name__ == '__main__':
 
 		print("testing _generate_queries_from_dto()")
 		print("------------------------------------")
-		dto = gmPerson.cDTO_person()
+		dto = cDTO_person()
 		dto.gender = 'm'
 		dto.lastnames = 'Kirk'
 		dto.firstnames = 'James'
-		dto.dob = datetime.datetime.now(tz=gmDateTime.gmCurrentLocalTimezone)
+		dto.dob = pyDT.datetime.now(tz=gmDateTime.gmCurrentLocalTimezone)
 		q = searcher._generate_queries_from_dto(dto)[0]
 		print("dto:", dto)
 		print(" match on:", q['args'][0])

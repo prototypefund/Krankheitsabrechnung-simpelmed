@@ -4,7 +4,7 @@ copyright: authors
 """
 #============================================================
 __author__ = "K.Hilbert"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import logging
 import sys
@@ -15,7 +15,9 @@ import wx
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmMatchProvider
@@ -26,6 +28,7 @@ from Gnumed.business import gmOrganization
 from Gnumed.wxpython import gmListWidgets
 from Gnumed.wxpython import gmEditArea
 from Gnumed.wxpython import gmPhraseWheel
+from Gnumed.wxpython import gmPersonContactWidgets
 from Gnumed.wxpython import gmAddressWidgets
 from Gnumed.wxpython import gmGuiHelpers
 from Gnumed.wxpython.gmDemographicsWidgets import cExternalIDEditAreaPnl
@@ -920,20 +923,18 @@ if __name__ == "__main__":
 	#--------------------------------------------------------
 	def test_org_prw():
 		app = wx.PyWidgetTester(size = (200, 50))
-		#pw = 
-		cOrganizationPhraseWheel(app.frame, -1)
+		pw = cOrganizationPhraseWheel(app.frame, -1)
 		app.frame.Show(True)
 		app.MainLoop()
 	#--------------------------------------------------------
 	def test_org_unit_prw():
 		app = wx.PyWidgetTester(size = (200, 50))
-		#pw = 
-		cOrgUnitPhraseWheel(app.frame, -1)
+		pw = cOrgUnitPhraseWheel(app.frame, -1)
 		app.frame.Show(True)
 		app.MainLoop()
 	#--------------------------------------------------------
 	def test():
-		gmPG2.get_connection()
+		conn = gmPG2.get_connection()
 		app = wx.PyWidgetTester(size = (600, 600))
 		dlg = cOrganizationManagerDlg(app.frame, -1, size = (600, 600))
 		dlg.SetSize((600, 600))

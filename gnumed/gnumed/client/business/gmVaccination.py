@@ -6,16 +6,19 @@ __license__ = "GPL"
 
 import sys
 import logging
+import io
 
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmPG2
-
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 from Gnumed.business import gmMedication
 
 
@@ -303,7 +306,7 @@ def write_generic_vaccine_sql(version, include_indications_mapping=False, filena
 	if filename is None:
 		filename = gmTools.get_unique_filename(suffix = '.sql')
 	_log.debug('writing SQL for creating generic vaccines to: %s', filename)
-	sql_file = open(filename, mode = 'wt', encoding = 'utf8')
+	sql_file = io.open(filename, mode = 'wt', encoding = 'utf8')
 	sql_file.write(create_generic_vaccine_sql (
 		version,
 		include_indications_mapping = include_indications_mapping
@@ -475,7 +478,7 @@ class cVaccine(gmBusinessDBObject.cBusinessDBObject):
 	def _get_product(self):
 		return gmMedication.cDrugProduct(aPK_obj = self._payload[self._idx['pk_drug_product']])
 
-	product = property(_get_product)
+	product = property(_get_product, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_in_use(self):
@@ -484,7 +487,7 @@ class cVaccine(gmBusinessDBObject.cBusinessDBObject):
 		rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = False)
 		return rows[0][0]
 
-	is_in_use = property(_get_is_in_use)
+	is_in_use = property(_get_is_in_use, lambda x:x)
 
 #------------------------------------------------------------
 def create_vaccine(pk_drug_product=None, product_name=None, indications=None, is_live=None):
@@ -622,7 +625,7 @@ class cVaccination(gmBusinessDBObject.cBusinessDBObject):
 	def _get_vaccine(self):
 		return cVaccine(aPK_obj = self._payload[self._idx['pk_vaccine']])
 
-	vaccine = property(_get_vaccine)
+	vaccine = property(_get_vaccine, lambda x:x)
 
 #------------------------------------------------------------
 def get_vaccinations(pk_identity=None, pk_episodes=None, pk_health_issues=None, pk_encounters=None, order_by=None, return_pks=False):
@@ -635,16 +638,16 @@ def get_vaccinations(pk_identity=None, pk_episodes=None, pk_health_issues=None, 
 		where_parts.append('pk_patient = %(pk_identity)s')
 
 	if (pk_episodes is not None) and (len(pk_episodes) > 0):
-		where_parts.append('pk_episode = ANY(%(pk_epis)s)')
-		args['pk_epis'] = pk_episodes
+		where_parts.append('pk_episode IN %(pk_epis)s')
+		args['pk_epis'] = tuple(pk_episodes)
 
 	if (pk_health_issues is not None) and (len(pk_health_issues) > 0):
-		where_parts.append('pk_episode = ANY(SELECT pk FROM clin.episode WHERE fk_health_issue = ANY(%(pk_issues)s))')
-		args['pk_issues'] = pk_health_issues
+		where_parts.append('pk_episode IN (SELECT pk FROM clin.episode WHERE fk_health_issue IN %(pk_issues)s)')
+		args['pk_issues'] = tuple(pk_health_issues)
 
 	if (pk_encounters is not None) and (len(pk_encounters) > 0):
-		where_parts.append('pk_encounter = ANY(%(pk_encs)s)')
-		args['pk_encs'] = pk_encounters
+		where_parts.append('pk_encounter IN %(pk_encs)s')
+		args['pk_encs'] = tuple(pk_encounters)
 
 	ORDER_BY = gmTools.coalesce (
 		value2test = order_by,
@@ -780,11 +783,6 @@ if __name__ == '__main__':
 	if sys.argv[1] != 'test':
 		sys.exit()
 
-	del _
-	from Gnumed.pycommon import gmI18N
-	gmI18N.activate_locale()
-	gmI18N.install_domain()
-
 #	from Gnumed.pycommon import gmPG
 	#--------------------------------------------------------
 	def test_vacc():
@@ -795,70 +793,70 @@ if __name__ == '__main__':
 			print(field, ':', vacc[field])
 		print("updatable:", vacc.get_updatable_fields())
 
-#	#--------------------------------------------------------
-#	def test_due_vacc():
-#		# Test for a due vaccination
-#		pk_args = {
-#			'pat_id': 12,
-#			'indication': 'meningococcus C',
-#			'seq_no': 1
-#		}
-#		missing_vacc = cMissingVaccination(aPK_obj=pk_args)
-#		fields = missing_vacc.get_fields()
-#		print("\nDue vaccination:")
-#		print(missing_vacc)
-#		for field in fields:
-#			print(field, ':', missing_vacc[field])
-#		# Test for an overdue vaccination
-#		pk_args = {
-#			'pat_id': 12,
-#			'indication': 'haemophilus influenzae b',
-#			'seq_no': 2
-#		}
-#		missing_vacc = cMissingVaccination(aPK_obj=pk_args)
-#		fields = missing_vacc.get_fields()
-#		print("\nOverdue vaccination (?):")
-#		print(missing_vacc)
-#		for field in fields:
-#			print(field, ':', missing_vacc[field])
-
-#	#--------------------------------------------------------
-#	def test_due_booster():
-#		pk_args = {
-#			'pat_id': 12,
-#			'indication': 'tetanus'
-#		}
-#		missing_booster = cMissingBooster(aPK_obj=pk_args)
-#		fields = missing_booster.get_fields()
-#		print("\nDue booster:")
-#		print(missing_booster)
-#		for field in fields:
-#			print(field, ':', missing_booster[field])
+	#--------------------------------------------------------
+	def test_due_vacc():
+		# Test for a due vaccination
+		pk_args = {
+			'pat_id': 12,
+			'indication': 'meningococcus C',
+			'seq_no': 1
+		}
+		missing_vacc = cMissingVaccination(aPK_obj=pk_args)
+		fields = missing_vacc.get_fields()
+		print("\nDue vaccination:")
+		print(missing_vacc)
+		for field in fields:
+			print(field, ':', missing_vacc[field])
+		# Test for an overdue vaccination
+		pk_args = {
+			'pat_id': 12,
+			'indication': 'haemophilus influenzae b',
+			'seq_no': 2
+		}
+		missing_vacc = cMissingVaccination(aPK_obj=pk_args)
+		fields = missing_vacc.get_fields()
+		print("\nOverdue vaccination (?):")
+		print(missing_vacc)
+		for field in fields:
+			print(field, ':', missing_vacc[field])
 
 	#--------------------------------------------------------
-#	def test_scheduled_vacc():
-#		scheduled_vacc = cScheduledVaccination(aPK_obj=20)
-#		print("\nScheduled vaccination:")
-#		print(scheduled_vacc)
-#		fields = scheduled_vacc.get_fields()
-#		for field in fields:
-#			print(field, ':', scheduled_vacc[field])
-#		print("updatable:", scheduled_vacc.get_updatable_fields())
-
-#	#--------------------------------------------------------
-#	def test_vaccination_course():
-#		vaccination_course = cVaccinationCourse(aPK_obj=7)
-#		print("\nVaccination course:")
-#		print(vaccination_course)
-#		fields = vaccination_course.get_fields()
-#		for field in fields:
-#			print(field, ':', vaccination_course[field])
-#		print("updatable:", vaccination_course.get_updatable_fields())
+	def test_due_booster():
+		pk_args = {
+			'pat_id': 12,
+			'indication': 'tetanus'
+		}
+		missing_booster = cMissingBooster(aPK_obj=pk_args)
+		fields = missing_booster.get_fields()
+		print("\nDue booster:")
+		print(missing_booster)
+		for field in fields:
+			print(field, ':', missing_booster[field])
 
 	#--------------------------------------------------------
-#	def test_put_patient_on_schedule():
-#		result, msg = put_patient_on_schedule(patient_id=12, course_id=1)
-#		print('\nPutting patient id 12 on schedule id 1... %s (%s)' % (result, msg))
+	def test_scheduled_vacc():
+		scheduled_vacc = cScheduledVaccination(aPK_obj=20)
+		print("\nScheduled vaccination:")
+		print(scheduled_vacc)
+		fields = scheduled_vacc.get_fields()
+		for field in fields:
+			print(field, ':', scheduled_vacc[field])
+		print("updatable:", scheduled_vacc.get_updatable_fields())
+
+	#--------------------------------------------------------
+	def test_vaccination_course():
+		vaccination_course = cVaccinationCourse(aPK_obj=7)
+		print("\nVaccination course:")		
+		print(vaccination_course)
+		fields = vaccination_course.get_fields()
+		for field in fields:
+			print(field, ':', vaccination_course[field])
+		print("updatable:", vaccination_course.get_updatable_fields())
+
+	#--------------------------------------------------------
+	def test_put_patient_on_schedule():
+		result, msg = put_patient_on_schedule(patient_id=12, course_id=1)
+		print('\nPutting patient id 12 on schedule id 1... %s (%s)' % (result, msg))
 
 	#--------------------------------------------------------
 	def test_get_vaccines():

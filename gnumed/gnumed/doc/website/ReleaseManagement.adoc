@@ -17,7 +17,7 @@ version.
 tracker
 * complete database schema changes
 * update link:GnumedManual[User Manual]
-* update https://www.gnumed.de/bin/view/Gnumed/PublishManual[manual
+* update http://wiki.gnumed.de/bin/view/Gnumed/PublishManual[manual
 publisher topic]
 * initial round of link:ReleaseTesting[testing] for release fitness
 
@@ -52,10 +52,10 @@ version _X.Y.rcN_
 * `wxpython/gnumed.py`: set client version _X.Y.rcN_
 * link:ReleaseTesting[test] basic functionality (startup )
 * tag tree: `git tag rel-X-Y-rcN`
-* https://www.gnumed.de/bin/view/Gnumed/PublishManual[re-publish manual]
+* http://wiki.gnumed.de/bin/view/Gnumed/PublishManual[re-publish manual]
 * create tarball
 * publish Release Candidate in our
-https://www.gnumed.de/downloads/[download area]
+http://www.gnumed.de/downloads/[download area]
 * adjust `gm-versions.txt`
 * upgrade public database
 
@@ -86,8 +86,8 @@ Create `rel-X-Y`:
 * `git checkout master`
 * `git branch -d tmp`
 * `git tag -s rel-X-Y`
-* `git branch rel-X-Y-maint rel-X-Y` (create a branch from that tag)
-* `git checkout rel-X-Y-maint`
+* `git branch rel-X-Y-patches rel-X-Y` (create a branch from that tag)
+* `git checkout rel-X-Y-patches`
 * `git merge rc-X-Y`
 * `git branch -d rc-X-Y`
 * activate "tarball release options" in `gm-from-vcs.sh`
@@ -98,44 +98,34 @@ features]
 
 == Releasing an _X.Y.N_ version
 
-* `git checkout rel-X-Y-maint`
+* `git checkout rel-X-Y-patches`
 
 _(wash/rinse/repeat as needed)_
 
 * update `Inbox` message with release notes
-* run database release tests:
+* `gnumed/client/gnumed.py`: set client version _X.Y.N_
+* run *at least minimal* release tests:
 ** database bootstrap (`bootstrap-latest.sh`)
 ** database upgrade (`upgrade-db.sh`)
 ** database fixup (`fixup-db.sh`)
-
-* `gnumed/client/gnumed.py`: set client version _X.Y.N_
-* run client release tests:
 ** client startup (`gm-from-vcs.sh`)
-*** from the console
-*** without a console (invoke `gm-from-vcs.sh` from, say, dolphin)
 *** patient activation
 *** activate each tab once
 *** http://de.fakenamegenerator.com/gen-female-gr-gr.php[new patient] creation
 *** again, activate each tab once
-
+* `git add gnumed.py`
 * `dists/Linux/make-release_tarball.sh`: set proper client version _X.Y.N_
 * `dists/Linux/make-release_tarball.sh`: include SQL fixup scripts (also in branch `master`)
-* test building tarball
-** run `dists/Linux/make-release_tarball.sh`
-
-* `git add gnumed.py`
 * `git add make-release_tarball.sh`
-* `git commit -v` (suggested message "Prepare X.Y.N release")
-* `git tag -s rel-X-Y-N` (suggested message "Stamp X.Y.N release")
-* https://www.gnumed.de/bin/view/Gnumed/PublishManual[re-publish manual]
-
+* `git commit -v`
+* `git tag -s rel-X-Y-N`
+* http://wiki.gnumed.de/bin/view/Gnumed/PublishManual[re-publish manual]
 * build tarball
 ** run `dists/Linux/make-release_tarball.sh`
-
-* upload to https://www.gnumed.de/downloads/["Savannah"]
-* adjust https://www.gnumed.de/downloads/gnumed-versions.txt[`gnumed-versions.txt` ]
+* upload to http://www.gnumed.de/downloads/["Savannah"]
+* adjust http://www.gnumed.de/downloads/gnumed-versions.txt[
+`gnumed-versions.txt` ]
 * update link:ReleaseStatus[release status] page
-
 * build packages for version X.Y.N
 ** Debian package
 ** Windows installer
@@ -170,8 +160,8 @@ lists.alioth.debian.org
 ==== portal sites
 
 * http://gnumed.blogspot.com
-* https://www.gnumed.org
-* https://www.gnumed.de
+* http://www.gnumed.org
+* http://www.gnumed.de
 * link:WebHome[gnumed Wiki]
 * http://www.linuxmednews.com
 * http://freshmeat.net
@@ -196,7 +186,7 @@ version data on
 == After Release
 
 * take a break
-* fix bugs in _rel-X-Y-Z-maint_
+* fix bugs in _rel-X-Y-Z-patches_
 * take another break
 * think about next Release
 
@@ -221,7 +211,7 @@ The tagging strategy is this (assuming 0.4):
 The code gets ready for a release. Let's assume the release is to be
 `v0.4.0`. The CVS trunk (HEAD) is tagged as _rel-0-4_. This tag will
 become the root of a branch on which the actual 0.4.0 release will
-happen while HEAD can continue to evolve. A branch _rel-0-4-maint_ is
+happen while HEAD can continue to evolve. A branch _rel-0-4-patches_ is
 created and rooted at tag _rel-0-4_. This branch will only ever receive
 bug fixes. In that branch the tag _rel-0-4-rc1_ is set which will then
 be released as `v0.4.rc1`.
@@ -231,9 +221,9 @@ gets released as `v0.4.0`. More bugs get fixed and eventually the branch
 is tagged as _rel-0-4-1_ which then gets released as `v0.4.1`.
 
 Eventually, CVS HEAD is tagged as _rel-0-5_, branched off into
-_rel-0-5-maint_ and the cycle starts over.
+_rel-0-5-patches_ and the cycle starts over.
 
-The database schema is versioned independent of the client. At startup
+The database schema is versioned independant of the client. At startup
 the client checks whether it was released to work with the database it
 connects to. For any necessary database upgrades we provide tested,
 integrity-checking conversion scripts.

@@ -1,4 +1,4 @@
-"""GNUmed database backend listener.
+__doc__ = """GNUmed database backend listener.
 
 This module implements threaded listening for asynchronuous
 notifications from the database backend.
@@ -32,11 +32,11 @@ signals2listen4 = [
 
 #=====================================================================
 class gmBackendListener(gmBorg.cBorg):
-	"""The backend listener singleton class."""
+
 	def __init__(self, conn=None, poll_interval:int=3):
+
 		try:
-			# pylint: disable=access-member-before-definition
-			self.already_inited:bool
+			self.already_inited
 			return
 
 		except AttributeError:
@@ -61,7 +61,6 @@ class gmBackendListener(gmBorg.cBorg):
 
 		#gmLog2.log_step(message = 'got quit-lock')
 		self._conn = conn
-		_log.debug('DB listener connection: %s', self._conn)
 		#gmLog2.log_step(message = 'getting backend PID')
 		self.backend_pid = self._conn.get_backend_pid()
 		_log.debug('notification listener connection has backend PID [%s]', self.backend_pid)
@@ -86,12 +85,9 @@ class gmBackendListener(gmBorg.cBorg):
 	# public API
 	#-------------------------------
 	def shutdown(self):
-		"""Cleanly shut down listening.
-
-		Unregister notifications. Rejoin listener thread.
-		"""
 		_log.debug('received %s notifications', self.__notifications_received)
 		_log.debug('sent %s messages', self.__messages_sent)
+
 		if self._listener_thread is None:
 			self.__shutdown_connection()
 			return
@@ -102,22 +98,24 @@ class gmBackendListener(gmBorg.cBorg):
 			# give the worker thread time to terminate
 			self._listener_thread.join(self._poll_interval+2.0)
 			try:
-				if self._listener_thread.is_alive():
+				if self._listener_thread.isAlive():
 					_log.error('listener thread still alive after join()')
 					_log.debug('active threads: %s' % threading.enumerate())
 			except Exception:
 				pass
 		except Exception:
 			print(sys.exc_info())
+
 		self._listener_thread = None
+
 		try:
 			self.__unregister_unspecific_notifications()
 		except Exception:
 			_log.exception('unable to unregister unspecific notifications')
 
 		self.__shutdown_connection()
-		return
 
+		return
 	#-------------------------------
 	# event handlers
 	#-------------------------------
@@ -185,86 +183,6 @@ class gmBackendListener(gmBorg.cBorg):
 		#gmLog2.log_step(message = 'started thread')
 
 	#-------------------------------
-	def __parse_notification(self, notification) -> dict:
-		if self.debug:
-			print(notification)
-		_log.debug('#%s: %s (first param: PID of sending backend; this backend: %s)', self.__notifications_received, notification, self.backend_pid)
-		payload = notification.payload.split('::')
-		data = {
-			'channel': notification.channel,
-			'notification_pid': notification.pid,
-			'operation': None,
-			'table': None,
-			'pk_column_name': None,
-			'pk_of_row': None,
-			'pk_identity': None
-		}
-		for item in payload:
-			if item.startswith('operation='):
-				data['operation'] = item.split('=')[1]
-			if item.startswith('table='):
-				data['table'] = item.split('=')[1]
-			if item.startswith('PK name='):
-				data['pk_column_name'] = item.split('=')[1]
-			if item.startswith('row PK='):
-				data['pk_of_row'] = int(item.split('=')[1])
-			if item.startswith('person PK='):
-				try:
-					data['pk_identity'] = int(item.split('=')[1])
-				except ValueError:
-					_log.error(payload)
-					_log.exception('error in change notification trigger')
-					data['pk_identity'] = -1
-		return data
-
-	#-------------------------------
-	def __send_old_style_table_signal(self, data:dict):
-		if data['table'] is None:
-			return
-
-		self.__messages_sent += 1
-		signal = '%s_mod_db' % data['table']
-		_log.debug('emulating old-style table specific signal [%s]', signal)
-		try:
-			gmDispatcher.send (
-				signal = signal,
-				originated_in_database = True,
-				listener_pid = self.backend_pid,
-				sending_backend_pid = data['notification_pid'],
-				pk_identity = data['pk_identity'],
-				operation = data['operation'],
-				table = data['table'],
-				pk_column_name = data['pk_column_name'],
-				pk_of_row = data['pk_of_row'],
-				message_index = self.__messages_sent,
-				notification_index = self.__notifications_received
-			)
-		except Exception:
-			print("problem routing notification [%s] from backend [%s] to intra-client dispatcher" % (signal, data['notification_pid']))
-			print(sys.exc_info())
-
-	#-------------------------------
-	def __send_generic_signal(self, data:dict):
-		self.__messages_sent += 1
-		try:
-			gmDispatcher.send (
-				signal = data['channel'],
-				originated_in_database = True,
-				listener_pid = self.backend_pid,
-				sending_backend_pid = data['notification_pid'],
-				pk_identity = data['pk_identity'],
-				operation = data['operation'],
-				table = data['table'],
-				pk_column_name = data['pk_column_name'],
-				pk_of_row = data['pk_of_row'],
-				message_index = self.__messages_sent,
-				notification_index = self.__notifications_received
-			)
-		except Exception:
-			print("problem routing notification [%s] from backend [%s] to intra-client dispatcher" % (data['channel'], data['notification_pid']))
-			print(sys.exc_info())
-
-	#-------------------------------
 	# the actual thread code
 	#-------------------------------
 	def _process_notifications(self):
@@ -309,13 +227,78 @@ class gmBackendListener(gmBorg.cBorg):
 				finally:
 					self._conn_lock.release()
 				self.__notifications_received += 1
-				data = self.__parse_notification(notification)
+				if self.debug:
+					print(notification)
+				_log.debug('#%s: %s (first param: PID of sending backend; this backend: %s)', self.__notifications_received, notification, self.backend_pid)
+				# decode payload
+				payload = notification.payload.split('::')
+				operation = None
+				table = None
+				pk_column_name = None
+				pk_of_row = None
+				pk_identity = None
+				for item in payload:
+					if item.startswith('operation='):
+						operation = item.split('=')[1]
+					if item.startswith('table='):
+						table = item.split('=')[1]
+					if item.startswith('PK name='):
+						pk_column_name = item.split('=')[1]
+					if item.startswith('row PK='):
+						pk_of_row = int(item.split('=')[1])
+					if item.startswith('person PK='):
+						try:
+							pk_identity = int(item.split('=')[1])
+						except ValueError:
+							_log.error(payload)
+							_log.exception('error in change notification trigger')
+							pk_identity = -1
 				# try sending intra-client signals:
-				self.__send_generic_signal(data)
-				self.__send_old_style_table_signal(data)
+				# 1) generic signal
+				self.__messages_sent += 1
+				try:
+					results = gmDispatcher.send (
+						signal = notification.channel,
+						originated_in_database = True,
+						listener_pid = self.backend_pid,
+						sending_backend_pid = notification.pid,
+						pk_identity = pk_identity,
+						operation = operation,
+						table = table,
+						pk_column_name = pk_column_name,
+						pk_of_row = pk_of_row,
+						message_index = self.__messages_sent,
+						notification_index = self.__notifications_received
+					)
+				except Exception:
+					print("problem routing notification [%s] from backend [%s] to intra-client dispatcher" % (notification.channel, notification.pid))
+					print(sys.exc_info())
+				# 2) dynamically emulated old style table specific signals
+				if table is not None:
+					self.__messages_sent += 1
+					signal = '%s_mod_db' % table
+					_log.debug('emulating old-style table specific signal [%s]', signal)
+					try:
+						results = gmDispatcher.send (
+							signal = signal,
+							originated_in_database = True,
+							listener_pid = self.backend_pid,
+							sending_backend_pid = notification.pid,
+							pk_identity = pk_identity,
+							operation = operation,
+							table = table,
+							pk_column_name = pk_column_name,
+							pk_of_row = pk_of_row,
+							message_index = self.__messages_sent,
+							notification_index = self.__notifications_received
+						)
+					except Exception:
+						print("problem routing notification [%s] from backend [%s] to intra-client dispatcher" % (signal, notification.pid))
+						print(sys.exc_info())
+
+				# there *may* be more pending notifications but
+				# we don't care when quitting
 				if self._quit_lock.acquire(0):
-					# there may be more notifications pendings
-					# but we don't care when quitting
 					_have_quit_lock = 1
 					break
 
@@ -335,13 +318,11 @@ if __name__ == "__main__":
 
 	notifies = 0
 
-	from Gnumed.pycommon import gmI18N
-	gmI18N.activate_locale()
-	gmI18N.install_domain(domain='gnumed')
-	from Gnumed.pycommon import gmPG2
-
+	from Gnumed.pycommon import gmPG2, gmI18N
 	from Gnumed.business import gmPerson, gmPersonSearch
 
+	gmI18N.activate_locale()
+	gmI18N.install_domain(domain='gnumed')
 	#-------------------------------
 	def run_test():
 
@@ -366,7 +347,7 @@ if __name__ == "__main__":
 		i = 0
 		t1 = time.time()
 		while i < n:
-			dummy(i)
+			r = dummy(i)
 			i += 1
 		t2 = time.time()
 		t_nothreads = t2-t1
@@ -376,7 +357,7 @@ if __name__ == "__main__":
 
 		# now try with listener to measure impact
 		print("Now in a new shell connect psql to the")
-		print("database <gnumed_vXX> on localhost, return")
+		print("database <gnumed_v9> on localhost, return")
 		print("here and hit <enter> to continue.")
 		input('hit <enter> when done starting psql')
 		print("You now have about 30 seconds to go")
@@ -386,7 +367,7 @@ if __name__ == "__main__":
 		print("This should trigger our backend listening callback.")
 		print("You can also try to stop the demo with Ctrl-C !")
 
-		#listener.register_callback('patient_changed', OnPatientModified)
+		listener.register_callback('patient_changed', OnPatientModified)
 
 		try:
 			counter = 0
@@ -399,7 +380,7 @@ if __name__ == "__main__":
 			i = 0
 			t1 = time.time()
 			while i < n:
-				dummy(i)
+				r = dummy(i)
 				i += 1
 			t2 = time.time()
 			t_threaded = t2-t1
@@ -409,7 +390,7 @@ if __name__ == "__main__":
 			print("cancelled by user")
 
 		listener.shutdown()
-
+		listener.unregister_callback('patient_changed', OnPatientModified)
 	#-------------------------------
 	def run_monitor():
 
@@ -448,7 +429,6 @@ if __name__ == "__main__":
 		print("shutting down backend notifications monitor")
 
 	#-------------------------------
-	gmPG2.request_login_params(setup_pool = True, force_tui = True)
 	if sys.argv[1] == 'monitor':
 		run_monitor()
 	else:

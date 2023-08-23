@@ -1,16 +1,19 @@
 """GNUmed generic clinical item business object workflows."""
 #================================================================
 __author__ = "Karsten Hilbert <Karsten.Hilbert@gmx.net>"
-__license__ = "GPL v2 or later (details at https://www.gnu.org)"
+__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 import sys
 import logging
 
 
+import wx
+
+
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmDispatcher
 
 from Gnumed.business.gmEMRStructItems import cHealthIssue
@@ -76,4 +79,5 @@ def edit_item_in_dlg(parent=None, item=None):
 
 #================================================================
 if __name__ == '__main__':
-	pass
+	gmI18N.activate_locale()
+	gmI18N.install_domain()

@@ -53,7 +53,7 @@ class DBObject:
 		self._qInsert = query
 	#----------------------------
 	def SetUpdateQuery(self, query):
-		"""Definition of the query necessary to update the associated row.
+		"""Definition of the query neccessary to update the associated row.
 		The string must have a '%(primarykey)s' parameter which is representing the 
 		primary key attribute of the row to update. All other parameters must
 		be set in 'dictionary parameter style', that is as '%(dictionary key)s'
@@ -61,13 +61,13 @@ class DBObject:
 		self._qUpdate = query
 	#----------------------------
 	def SetDeleteQuery(self, query):
-		"""Definition of the query necessary to delete the associated row.
+		"""Definition of the query neccessary to delete the associated row.
 		The string must have a '%(primarykey)s' parameter which is representing the 
 		primary key attribute of the row to delete"""
 		self._qDelete = query
 	#----------------------------
 	def __log_error(self, msg, aMap = None):
-		"""Please replace with gnumed logging functions s.a.p."""
+		"""Please replace with gnumed logging functins s.a.p."""
 		_log.Log(gmLog.lErr, msg)
 		if aMap != None:
 			_log.Log(gmLog.lData, "--------------------------------")
@@ -122,7 +122,7 @@ class DBObject:
 	#----------------------------
 	def Insert(self, map):
 		"""insert a row with attributes as listed in the dictionary 'map'.
-		Returns the OID if successful, otherwise returns 'None'"""
+		Returns the OID if succesful, otherwise returns 'None'"""
 		oid = None
 		if self._qInsert is None:
 			self.__log_error("Error: insert query not set yet!")
@@ -147,7 +147,7 @@ class DBObject:
 	def Update(self, map = None):
 		"""update a row with attributes as listed in the dictionary "map".
 		'map' dictionary  MUST contain the key 'primarykey' with the
-		value set to the primary key of the row to be updated
+		value set to the primay key of the row to be updated
 		Returns 'None' if failed, the primary key if success """
 		if self._qUpdate is None:
 			self.__log_error("update query not set yet!")
@@ -175,7 +175,7 @@ class DBObject:
 	def Delete(self, map):
 		"""deletes a row as determined by the delete query string.
 		'map' dictionary  MUST contain the key 'primarykey' with the
-		value set to the primary key of the row to be deleted
+		value set to the primay key of the row to be deleted
 		Returns 'None' if failed, the primary key if success """
 		if self._qDelete is None:
 			self.__log_error("delete query not set yet!")
@@ -226,7 +226,7 @@ if __name__ == "__main__":
 #
 # Revision 1.9  2003/11/17 10:56:36  sjtan
 #
-# synced and committing.
+# synced and commiting.
 #
 # Revision 1.1  2003/10/23 06:02:39  sjtan
 #

@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
-
-"""GNUmed immunisation/vaccination patient plugin
-
-this plugin holds the immunisation details
-"""
+#======================================================================
+# GNUmed immunisation/vaccination patient plugin
+# ----------------------------------------------
+#
+# this plugin holds the immunisation details
+#
+# @copyright: author
 #======================================================================
 __author__ = "R.Terry, S.J.Tan, K.Hilbert"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
+import wx
+
+# panel class holding editing prompts and text boxes
 from Gnumed.wxpython import gmPlugin, gmVaccWidgets
 
-if __name__ == '__main__':
-	_ = lambda x:x
+_log = gmLog.gmDefLog
 
 #======================================================================
 class gmVaccinationsPlugin(gmPlugin.cNotebookPlugin):
@@ -42,14 +46,12 @@ Mc4\x85\x9f%\xfc\xae\x93!\xd5K_\xd4\x86\xf8\xa1?\x88\x12\xf9\x00 =F\x87'
 		if not self._verify_patient_avail():
 			return None
 		return 1
-
 #======================================================================
 # main
 #----------------------------------------------------------------------
 if __name__ == "__main__":
-	import wx
-
-	app = wx.PyWidgetTester(size = (600, 600))
+	_log.SetAllLogLevels(gmLog.lData)
+	app = wxPyWidgetTester(size = (600, 600))
 	app.SetWidget(gmVaccWidgets.cImmunisationsPanel, -1)
 	app.MainLoop()
 #======================================================================

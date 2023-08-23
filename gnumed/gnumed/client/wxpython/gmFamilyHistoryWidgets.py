@@ -1,7 +1,7 @@
 """GNUmed family history related widgets."""
 #================================================================
 __author__ = 'karsten.hilbert@gmx.net'
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 # stdlib
 import logging, sys
@@ -14,11 +14,9 @@ import wx
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDateTime
 from Gnumed.pycommon import gmMatchProvider
-from Gnumed.pycommon import gmDispatcher
 
 from Gnumed.business import gmPerson
 from Gnumed.business import gmFamilyHistory

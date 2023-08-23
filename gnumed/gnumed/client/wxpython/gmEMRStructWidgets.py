@@ -24,11 +24,17 @@ import wx
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 
+from Gnumed.pycommon import gmI18N
 from Gnumed.pycommon import gmDateTime
+
+if __name__ == '__main__':
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
+	gmDateTime.init()
+
 from Gnumed.pycommon import gmExceptions
-from Gnumed.pycommon import gmCfgDB
+from Gnumed.pycommon import gmCfg
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmDispatcher
 from Gnumed.pycommon import gmMatchProvider
@@ -240,11 +246,13 @@ def move_episode_to_issue(episode=None, target_issue=None, save_to_backend=False
 		return True
 
 	# try closing possibly expired episode on target issue if any
-	epi_ttl = gmCfgDB.get4user (
+	db_cfg = gmCfg.cCfgSQL()
+	epi_ttl = int(db_cfg.get2 (
 		option = 'episode.ttl',
 		workplace = gmPraxis.gmCurrentPraxisBranch().active_workplace,
+		bias = 'user',
 		default = 60				# 2 months
-	)
+	))
 	if target_issue.close_expired_episode(ttl=epi_ttl) is True:
 		gmDispatcher.send(signal='statustext', msg=_('Closed episodes older than %s days on health issue [%s]') % (epi_ttl, target_issue['description']))
 	existing_epi = target_issue.get_open_episode()
@@ -1306,7 +1314,7 @@ if __name__ == '__main__':
 						)
 				filemenu = wx.Menu()
 				filemenu.AppendSeparator()
-				item = filemenu.Append(wx.ID_EXIT, "E&xit"," Terminate test application")
+				item = filemenu.Append(ID_EXIT, "E&xit"," Terminate test application")
 				self.Bind(wx.EVT_MENU, self.OnCloseWindow, item)
 
 				# Creating the menubar.
@@ -1315,7 +1323,7 @@ if __name__ == '__main__':
 
 				frame.SetMenuBar(menuBar)
 
-				wx.StaticText( frame, -1, _("Select desired test option from the 'File' menu"),
+				txt = wx.StaticText( frame, -1, _("Select desired test option from the 'File' menu"),
 				wx.DefaultPosition, wx.DefaultSize, 0 )
 
 				# patient EMR
@@ -1326,16 +1334,16 @@ if __name__ == '__main__':
 			#--------------------------------------------------------
 			def OnCloseWindow (self, e):
 				"""
-				Close test application
+				Close test aplication
 				"""
 				self.ExitMainLoop ()
 
 	#----------------------------------------------------------------
 	def test_epsiode_edit_area_pnl():
 		app = wx.PyWidgetTester(size = (200, 300))
-		#emr = pat.emr
-		#epi = emr.get_episodes()[0]
-		#pnl = cEpisodeEditAreaPnl(app.frame, -1, episode=epi)
+		emr = pat.emr
+		epi = emr.get_episodes()[0]
+		pnl = cEpisodeEditAreaPnl(app.frame, -1, episode=epi)
 		app.frame.Show(True)
 		app.MainLoop()
 	#----------------------------------------------------------------
@@ -1349,7 +1357,7 @@ if __name__ == '__main__':
 	def test_episode_selection_prw():
 		frame = wx.Frame()
 		wx.GetApp().SetTopWindow(frame)
-		#prw = cEpisodeSelectionPhraseWheel(frame)
+		prw = cEpisodeSelectionPhraseWheel(frame)
 		#app.SetWidget()
 #		app.SetWidget(cEpisodeSelectionPhraseWheel, id=-1, size=(350,20), pos=(10,20), patient_id=pat.ID)
 		frame.Show(True)

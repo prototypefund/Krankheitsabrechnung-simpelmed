@@ -18,7 +18,7 @@ __author__ = "H.Herb <hherb@gnumed.net>"
 #
 # Revision 1.4  2003/11/17 10:56:36  sjtan
 #
-# synced and committing.
+# synced and commiting.
 #
 # Revision 1.1  2003/10/23 06:02:39  sjtan
 #
@@ -67,5 +67,5 @@ class DataPanelMixin :
 		
 	def OnUndo(self):
 		"""restores the data as loaded from the backend if 'self._loaded is true,
-		else restores the default"""
+		else retores the default"""
 		pass

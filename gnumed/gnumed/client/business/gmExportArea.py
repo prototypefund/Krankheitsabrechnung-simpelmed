@@ -14,28 +14,29 @@ import sys
 import logging
 import shutil
 import os
+import io
 import platform
-import hashlib
 
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
+	from Gnumed.pycommon import gmI18N
+	gmI18N.activate_locale()
+	gmI18N.install_domain()
 from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmMimeLib
 from Gnumed.pycommon import gmDateTime
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmCrypto
 
 from Gnumed.business import gmDocuments
 from Gnumed.business import gmKeywordExpansion
-from Gnumed.business import gmStaff
 
 
 _log = logging.getLogger('gm.exp_area')
-_cfg = gmCfgINI.gmCfgData()
+_cfg = gmCfg2.gmCfgData()
 
 PRINT_JOB_DESIGNATION = 'print'
 DOCUMENTS_SUBDIR = 'documents'
@@ -71,7 +72,6 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 					AND
 				xmin = %(xmin_export_item)s
 		""",
-		"SELECT clin.export_item_set_list_position(%(pk_export_item)s, %(list_position)s)",
 		_SQL_get_export_items % 'pk_export_item = %(pk_export_item)s'
 	]
 	_updatable_fields = [
@@ -80,8 +80,7 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 		'designation',
 		'description',
 		'pk_doc_obj',
-		'filename',
-		'list_position'
+		'filename'
 	]
 	#--------------------------------------------------------
 	def __init__(self, aPK_obj=None, row=None, link_obj=None):
@@ -111,9 +110,6 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 	def update_data(self, data=None):
 		assert (data is not None), '<data> must not be <None>'
 
-		if self.is_DIRENTRY or self.is_document_part:
-			return False
-
 		SQL = """
 			UPDATE clin.export_item SET
 				data = %(data)s::bytea,
@@ -126,15 +122,7 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 		return True
 
 	#--------------------------------------------------------
-	def update_data_from_file(self, filename=None, convert_document_part=False):
-
-		if self.is_DIRENTRY:
-			return False
-
-		if self.is_document_part:
-			if not convert_document_part:
-				return False
-
+	def update_data_from_file(self, filename=None):
 		# sanity check
 		if not (os.access(filename, os.R_OK) and os.path.isfile(filename)):
 			_log.error('[%s] is not a readable file' % filename)
@@ -165,7 +153,7 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 			convert2pdf: Convert file(s) to PDF on the way out. Before encryption, that is.
 
 		Returns:
-			Directory for DIRENTRIES, or filename, or None on failure.
+			Directory for DIRENTRIES, or filename.
 		"""
 		if self.is_DIRENTRY and convert2pdf:
 			# cannot convert dir entries to PDF
@@ -255,12 +243,12 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 		suffix = '.dat'
 		if self._payload[self._idx['filename']] is not None:
 			tmp, suffix = os.path.splitext (
-				gmTools.fname_sanitize(self._payload[self._idx['filename']]).casefold()
+				gmTools.fname_sanitize(self._payload[self._idx['filename']]).lower()
 			)
 			if suffix == '':
 				suffix = '.dat'
 		fname = gmTools.get_unique_filename (
-			prefix = '%s-gm-export_item%s-' % (self._payload[self._idx['list_position']], patient_part),
+			prefix = 'gm-export_item%s-' % patient_part,
 			suffix = suffix,
 			tmp_dir = directory
 		)
@@ -270,50 +258,41 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 	# helpers
 	#--------------------------------------------------------
 	def __save_normal_item(self, filename:str=None, directory:str=None, passphrase:str=None, convert2pdf:bool=False) -> str:
-		_SQL = 'SELECT substring(data FROM %(start)s FOR %(size)s) FROM clin.export_item WHERE pk = %(pk)s'
-		tmp_fname = gmTools.get_unique_filename()
+		if filename is None:
+			filename = self.get_useful_filename(directory = directory)
 		success = gmPG2.bytea2file (
-			data_query = {'cmd': _SQL, 'args': {'pk': self.pk_obj}},
-			filename = tmp_fname,
+			data_query = {
+				'cmd': 'SELECT substring(data from %(start)s for %(size)s) FROM clin.export_item WHERE pk = %(pk)s',
+				'args': {'pk': self.pk_obj}
+			},
+			filename = filename,
 			data_size = self._payload[self._idx['size']]
 		)
 		if not success:
 			return None
 
-		tmp_fname = gmMimeLib.adjust_extension_by_mimetype(tmp_fname)
-		if convert2pdf:
-			tmp_fname = gmMimeLib.convert_file(filename = tmp_fname, target_mime = 'application/pdf', target_extension = '.pdf')
-		if filename is None:
-			target_fname = self.get_useful_filename(directory = directory)
-		else:
-			target_fname = filename
+		filename = gmMimeLib.adjust_extension_by_mimetype(filename)
 		if passphrase is None:
-			if not gmTools.rename_file(tmp_fname, target_fname, overwrite = True, allow_symlink = True):
-				return None
+			return filename
 
-			if filename is None:
-				return gmMimeLib.adjust_extension_by_mimetype(target_fname)
-
-			return target_fname
-
-		enc_fname = gmCrypto.encrypt_file (
-			filename = tmp_fname,
+		enc_filename = gmCrypto.encrypt_file (
+			filename = filename,
 			passphrase = passphrase,
 			verbose = _cfg.get(option = 'debug'),
 			remove_unencrypted = True,
-			convert2pdf = False	# already done, if desired
+			convert2pdf = convert2pdf
 		)
-		removed = gmTools.remove_file(tmp_fname)
-		if enc_fname is None:
+		removed = gmTools.remove_file(filename)
+		if enc_filename is None:
 			_log.error('cannot encrypt or, possibly, convert')
 			return None
 
-		if not removed:
-			_log.error('cannot remove unencrypted file')
-			gmTools.remove_file(enc_fname)
-			return None
+		if removed:
+			return enc_filename
 
-		return enc_fname
+		_log.error('cannot remove unencrypted file')
+		gmTools.remove(enc_filename)
+		return None
 
 	#--------------------------------------------------------
 	def __save_doc_obj(self, filename=None, directory=None, passphrase=None, convert2pdf:bool=False):
@@ -335,8 +314,6 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 				date_before_type = True,
 				name_first = False
 			)
-		path, name = os.path.split(filename)
-		filename = os.path.join(path, '%s-%s' % (self._payload[self._idx['list_position']], name))
 		if convert2pdf:
 			target_mime = 'application/pdf'
 			target_ext = '.pdf'
@@ -371,7 +348,7 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 			return enc_filename
 
 		_log.error('cannot remove unencrypted file')
-		gmTools.remove_file(enc_filename)
+		gmTools.remove(enc_filename)
 		return False
 
 	#--------------------------------------------------------
@@ -429,18 +406,12 @@ class cExportItem(gmBusinessDBObject.cBusinessDBObject):
 	#--------------------------------------------------------
 	# properties
 	#--------------------------------------------------------
-	def _get_is_doc_part(self):
-		return self._payload[self._idx['pk_doc_obj']] is not None
-
-	is_document_part = property(_get_is_doc_part)
-
-	#--------------------------------------------------------
 	def _get_doc_part(self):
 		if self._payload[self._idx['pk_doc_obj']] is None:
 			return None
 		return gmDocuments.cDocumentPart(aPK_obj = self._payload[self._idx['pk_doc_obj']])
 
-	document_part = property(_get_doc_part)
+	document_part = property(_get_doc_part, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_is_print_job(self):
@@ -545,14 +516,16 @@ def get_export_items(order_by=None, pk_identity=None, designation=None, return_p
 		where_parts.append("designation IS DISTINCT FROM %(desig)s")
 	else:
 		where_parts.append('designation = %(desig)s')
+
 	if order_by is None:
-		order_by = 'pk_identity, list_position'
-	order_by = ' ORDER BY %s' % order_by
+		order_by = ''
+	else:
+		order_by = ' ORDER BY %s' % order_by
+
 	cmd = (_SQL_get_export_items % ' AND '.join(where_parts)) + order_by
 	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': cmd, 'args': args}], get_col_idx = True)
 	if return_pks:
 		return [ r['pk_export_item'] for r in rows ]
-
 	return [ cExportItem(row = {'data': r, 'idx': idx, 'pk_field': 'pk_export_item'}) for r in rows ]
 
 #------------------------------------------------------------
@@ -591,6 +564,7 @@ def create_export_item(description=None, pk_identity=None, pk_doc_obj=None, file
 		RETURNING pk
 	"""
 	rows, idx = gmPG2.run_rw_queries(queries = [{'cmd': cmd, 'args': args}], return_data = True, get_col_idx = False)
+
 	return cExportItem(aPK_obj = rows[0]['pk'])
 
 #------------------------------------------------------------
@@ -601,9 +575,8 @@ def delete_export_item(pk_export_item=None):
 	return True
 
 #============================================================
-#============================================================
 _FRONTPAGE_HTML_CONTENT = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-       "https://www.w3.org/TR/html4/loose.dtd">
+       "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
@@ -647,14 +620,14 @@ _FRONTPAGE_HTML_CONTENT = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transi
 %(adr)s
 </p>
 
-<p>(<a href="https://www.gnumed.de">GNUmed</a> version %(gm_ver)s)</p>
+<p>(<a href="http://www.gnumed.de">GNUmed</a> version %(gm_ver)s)</p>
 
 </body>
 </html>
 """
 
 _INDEX_HTML_CONTENT = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-       "https://www.w3.org/TR/html4/loose.dtd">
+       "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
@@ -707,7 +680,7 @@ For files ending in
 %(adr)s
 </p>
 
-<p>(<a href="https://www.gnumed.de">GNUmed</a> version %(gm_ver)s)</p>
+<p>(<a href="http://www.gnumed.de">GNUmed</a> version %(gm_ver)s)</p>
 
 </body>
 </html>
@@ -922,94 +895,46 @@ class cExportArea(object):
 		return delete_export_item(pk_export_item = item['pk_export_item'])
 
 	#--------------------------------------------------------
-	def dump_items_to_disk(self, base_dir:str=None, items:list=None, passphrase:str=None, convert2pdf:bool=False) -> str:
-		"""Dump export area items to disk.
-
-		Args:
-			base_dir: directory into which to dump the items, defaults to a new sandbox directory
-			items: which items to dump, defaults to all items
-			passphrase: used to symmetrically encrypt dumped files, if set
-			convert2pdf: attempt to convert items into PDF before dumping them
-
-		Returns:
-			The base_dir into which items were dumped, or None.
-		"""
+	def dump_items_to_disk(self, base_dir=None, items=None, passphrase=None, convert2pdf=False):
 		if items is None:
 			items = self.items
 		if len(items) == 0:
 			return None
 
 		if base_dir is None:
-			base_dir = gmTools.mk_sandbox_dir()
-		else:
-			gmTools.mkdir(base_dir)
+			from Gnumed.business.gmPerson import cPatient
+			pat = cPatient(aPK_obj = self.__pk_identity)
+			base_dir = os.path.join(gmTools.mk_sandbox_dir(), pat.subdir_name)
+		gmTools.mkdir(base_dir)
 		_log.debug('dumping export items to: %s', base_dir)
 		for item in items:
-			saved_fname = item.save_to_file(directory = base_dir, passphrase = passphrase, convert2pdf = convert2pdf)
-			if saved_fname is None:
+			if item.save_to_file(directory = base_dir, passphrase = passphrase, convert2pdf = convert2pdf) is None:
 				return None
-
-			if passphrase:
-				store_passphrase_of_file(filename = saved_fname, passphrase = passphrase, hash_type = 'sha256')
 
 		return base_dir
 
 	#--------------------------------------------------------
-	def dump_items_to_disk_as_zip(self, base_dir:str=None, items:list=None, passphrase:str=None) -> str:
-		"""Dump items to disk into a zip archive.
-
-			Calls dump_items_to_disk().
-
-		Args:
-			base_dir: directory into which to dump the items, defaults to a new sandbox directory
-			items: which items to dump, defaults to all items
-			passphrase: used to symmetrically encrypt dumped files, if set
-
-		Returns:
-			Zip archive name, or None.
-		"""
+	def dump_items_to_disk_as_zip(self, base_dir=None, items=None, passphrase=None):
 		_log.debug('target dir: %s', base_dir)
 		dump_dir = self.dump_items_to_disk(base_dir = base_dir, items = items)
 		if dump_dir is None:
 			_log.error('cannot dump export area items')
 			return None
-
-		if passphrase:
-			zip_file = gmCrypto.create_encrypted_zip_archive_from_dir (
-				source_dir = dump_dir,
-				comment = _('GNUmed Patient Media'),
-				overwrite = True,
-				passphrase = passphrase,
-				verbose = _cfg.get(option = 'debug')
-			)
-			if zip_file:
-				store_passphrase_of_file(filename = zip_file, passphrase = passphrase, hash_type = 'sha256')
-			else:
-				_log.error('cannot zip+encrypt export area items dump')
-			return zip_file
-
-		zip_file = gmCrypto.create_zip_archive_from_dir (
+		zip_file = gmTools.create_zip_archive_from_dir (
 			dump_dir,
 			comment = _('GNUmed Patient Media'),
 			overwrite = True,
+			passphrase = passphrase,
 			verbose = _cfg.get(option = 'debug')
 		)
-		if not zip_file:
+		if zip_file is None:
 			_log.error('cannot zip export area items dump')
+			return None
 		return zip_file
 
 	#--------------------------------------------------------
 	def export(self, base_dir=None, items=None, passphrase=None):
-		"""Export items as structured patient media.
 
-		Args:
-			base_dir: directory into which to store the export, defaults to a new sandbox directory based on patient name
-			items: which items to dump, defaults to all items
-			passphrase: used to symmetrically encrypt dumped files, if set
-
-		Returns:
-			Base_dir name, else None or False on failure.
-		"""
 		if items is None:
 			items = self.items
 		if len(items) == 0:
@@ -1066,7 +991,7 @@ class cExportArea(object):
 				_log.debug('exporting DIRENTRY')
 				# if there are files in the root dir: put it into a
 				# subdir of ./documents/ where subdir is the leaf
-				# of the item .filename
+				# of the the item .filename
 				if item.has_files_in_root:
 					tag, node, local_fs_path = item['filename'].split('::', 2)
 					subdir = local_fs_path.rstrip('/').split('/')[-1]
@@ -1127,8 +1052,7 @@ class cExportArea(object):
 				passphrase = passphrase,
 				comment = None,
 				verbose = _cfg.get(option = 'debug'),
-				remove_unencrypted = True,
-				store_passphrase_cb = store_passphrase_of_file_callback
+				remove_unencrypted = True
 			)
 			if not encrypted:
 				_log.errror('cannot encrypt data in sandbox dir')
@@ -1137,12 +1061,12 @@ class cExportArea(object):
 		# 3) add never-to-be-encrypted data
 		# - AUTORUN.INF
 		# - README
-		if passphrase:
-			self._create_autorun_inf(None, sandbox_dir)
-			self._create_readme(None, sandbox_dir)
-		else:
+		if passphrase is None:
 			self._create_autorun_inf(pat, sandbox_dir)
 			self._create_readme(pat, sandbox_dir)
+		else:
+			self._create_autorun_inf(None, sandbox_dir)
+			self._create_readme(None, sandbox_dir)
 		# - praxis VCF/MCF
 		shutil.move(prax.vcf, os.path.join(sandbox_dir, 'praxis.vcf'))
 		prax.export_as_mecard(filename = os.path.join(sandbox_dir, u'praxis.mcf'))
@@ -1150,7 +1074,7 @@ class cExportArea(object):
 		if has_dicomdir:
 			self._clone_dwv(target_dir = sandbox_dir)
 		# - index.html as boilerplate for decryption
-		if passphrase:
+		if passphrase is not None:
 			index_fname = self._create_index_html(prax, sandbox_dir, html_data)
 
 		# 4) move sandbox to target dir
@@ -1168,8 +1092,14 @@ class cExportArea(object):
 		if export_dir is None:
 			_log.debug('cannot export items')
 			return None
-
-		if passphrase:
+		if passphrase is None:
+			zip_file = gmCrypto.create_zip_archive_from_dir (
+				export_dir,
+				comment = _('GNUmed Patient Media'),
+				overwrite = True,
+				verbose = _cfg.get(option = 'debug')
+			)
+		else:
 			zip_file = gmCrypto.create_encrypted_zip_archive_from_dir (
 				export_dir,
 				comment = _('GNUmed Patient Media'),
@@ -1177,20 +1107,9 @@ class cExportArea(object):
 				passphrase = passphrase,
 				verbose = _cfg.get(option = 'debug')
 			)
-			if zip_file:
-				store_passphrase_of_file(filename = zip_file, passphrase = passphrase, hash_type = 'sha256')
-			else:
-				_log.debug('cannot create zip archive')
-			return zip_file
-
-		zip_file = gmCrypto.create_zip_archive_from_dir (
-			export_dir,
-			comment = _('GNUmed Patient Media'),
-			overwrite = True,
-			verbose = _cfg.get(option = 'debug')
-		)
-		if not zip_file:
+		if zip_file is None:
 			_log.debug('cannot create zip archive')
+			return None
 		return zip_file
 
 	#--------------------------------------------------------
@@ -1232,7 +1151,7 @@ class cExportArea(object):
 		_HTML_data['adr'] = adr
 		# create file
 		index_fname = os.path.join(directory, 'index.html')
-		index_file = open(index_fname, mode = 'wt', encoding = 'utf8')
+		index_file = io.open(index_fname, mode = 'wt', encoding = 'utf8')
 		index_file.write(_INDEX_HTML_CONTENT % _HTML_data)
 		index_file.close()
 		return index_fname
@@ -1301,7 +1220,7 @@ class cExportArea(object):
 		_HTML_data['adr'] = adr
 		# create file
 		frontpage_fname = os.path.join(directory, 'frontpage.html')
-		frontpage_file = open(frontpage_fname, mode = 'wt', encoding = 'utf8')
+		frontpage_file = io.open(frontpage_fname, mode = 'wt', encoding = 'utf8')
 		frontpage_file.write(_FRONTPAGE_HTML_CONTENT % _HTML_data)
 		frontpage_file.close()
 		return frontpage_fname
@@ -1358,7 +1277,7 @@ class cExportArea(object):
 			'the creator or the owner of this patient media excerpt.\n'
 		)
 		readme_fname = os.path.join(directory, 'README')
-		readme_file = open(readme_fname, mode = 'wt', encoding = 'utf8')
+		readme_file = io.open(readme_fname, mode = 'wt', encoding = 'utf8')
 		if patient is None:
 			pat_str = _('<protected>')
 		else:
@@ -1386,7 +1305,7 @@ class cExportArea(object):
 			'# gender format: %s\r\n'
 		)
 		fname = os.path.join(directory, 'CD.INF')
-		cd_inf = open(fname, mode = 'wt', encoding = 'utf8')
+		cd_inf = io.open(fname, mode = 'wt', encoding = 'utf8')
 		cd_inf.write(_CD_INF_CONTENT % (
 			patient['lastnames'],
 			patient['firstnames'],
@@ -1454,7 +1373,7 @@ class cExportArea(object):
 			except Exception:
 				_log.exception('cannot move %s to %s', icon_tmp_fname, media_icon_fname)
 		autorun_fname = os.path.join(directory, 'AUTORUN.INF')
-		autorun_file = open(autorun_fname, mode = 'wt', encoding = 'cp1252', errors = 'replace')
+		autorun_file = io.open(autorun_fname, mode = 'wt', encoding = 'cp1252', errors = 'replace')
 		autorun_file.write(_AUTORUN_INF_CONTENT % autorun_dict)
 		autorun_file.close()
 		return autorun_fname
@@ -1499,158 +1418,17 @@ class cExportArea(object):
 	#--------------------------------------------------------
 	# properties
 	#--------------------------------------------------------
-	def get_items(self, designation=None, order_by='pk_identity, list_position, designation, description'):
+	def get_items(self, designation=None, order_by='designation, description'):
 		return get_export_items(order_by = order_by, pk_identity = self.__pk_identity, designation = designation)
 
-	items = property(get_items)
+	items = property(get_items, lambda x:x)
 
 	#--------------------------------------------------------
-	def get_printouts(self, order_by='list_position, designation, description'):
+	def get_printouts(self, order_by='designation, description'):
 		return get_print_jobs(order_by = order_by, pk_identity = self.__pk_identity)
 
-	printouts = property(get_printouts)
+	printouts = property(get_printouts, lambda x:x)
 
-#===========================================================================
-# passphrase escrow
-#---------------------------------------------------------------------------
-def store_passphrase_of_file_callback(filename:str=None, passphrase:str=None, comment:dict=None):
-	return store_passphrase_of_file (
-		filename = filename,
-		passphrase = passphrase,
-		hash_type = 'sha256',
-		comment = comment
-	)
-
-#---------------------------------------------------------------------------
-def store_passphrase_of_file(filename:str=None, passphrase:str=None, hash_type:str='md5', comment:dict=None) -> bool:
-	"""Call store_object_passphrase on a given file."""
-	try:
-		f = open(filename, 'rb')
-	except Exception:
-		_log.exception('cannot open [%s]', filename)
-		return False
-
-	if comment is None:
-		comment = {}
-	comment['__filename__'] = filename
-	return store_object_passphrase (
-		obj = f,
-		passphrase = passphrase,
-		hash_type = hash_type,
-		comment = comment
-	)
-
-#---------------------------------------------------------------------------
-def store_object_passphrase(obj=None, passphrase:str=None, hash_type:str='md5', owner=None, comment:dict=None) -> bool:
-	"""Store in the database the (encrypted) passphrase for an object.
-
-	The passphrase is stored encrypted with the public key of
-	the owner as well as with any public key configured as a
-	passphrase trustee.
-
-	Args:
-		obj: an instance supporting the (binary) read protocol
-		passphrase: the passphrase to store
-		hash_type: the hash to use, defaults to 'md5'
-		owner: staff member to encrypt passphrase to (by public key), defaults to current provider
-		comment: a structured comment on the object
-
-	Returns:
-		True/False based on success
-	"""
-	assert obj, '<obj> must not be None'
-	assert passphrase, '<passphrase> must not be None'
-
-	if hash_type not in hashlib.algorithms_available:
-		_log.error('hash type [%s] not available amongst %s', hash_type, hashlib.algorithms_available)
-		return False
-
-	pubkey_files = []
-	if owner is None:
-		owner = gmStaff.gmCurrentProvider()
-	owner_key_file = owner.public_key_file
-	if owner_key_file:
-		pubkey_files.append(owner_key_file)
-	else:
-		_log.warning('no public key for owner [%s]', owner)
-	trustee_key_files = gmStaff.get_public_keys_of_passphrase_trustees(as_files = True)
-	if trustee_key_files:
-		pubkey_files.extend(trustee_key_files)
-	else:
-		_log.warning('there are no trustee public keys configured for passphrase escrow')
-	if not pubkey_files:
-		_log.error('cannot escrow passphrase, neither owner nor trustee public keys available')
-		return False
-
-	hashor = hashlib.new(hash_type, usedforsecurity = False)
-	chunk_size = 5 * 1024 * 1024
-	data = obj.read(chunk_size)
-	while data:
-		hashor.update(data)
-		data = obj.read(chunk_size)
-	hash_val = hashor.hexdigest()
-	encrypted_phrase = gmCrypto.encrypt_data_with_gpg (
-		data = passphrase,
-		recipient_key_files = pubkey_files,
-		comment = '[%s]::%s' % (hash_type, hash_val),
-		verbose = _cfg.get(option = 'debug')
-	)
-	SQL = """INSERT INTO gm.obj_export_passphrase (
-		hash_type, hash, phrase, description
-	) VALUES (
-		%(hash_type)s,
-		%(hash)s,
-		%(phrase)s,
-		%(desc)s
-	)"""
-	args = {
-		'hash_type': hash_type,
-		'hash': hash_val,
-		'phrase': encrypted_phrase,
-		'desc': comment
-	}
-	gmPG2.run_rw_queries(queries = [{'cmd': SQL, 'args': args}])
-	return True
-
-#---------------------------------------------------------------------------
-def save_file_passphrases_into_files() -> list[str]: # | None:
-	try:
-		hash_val = input('Please enter the file hash: ')
-	except KeyboardInterrupt:
-		return None
-
-	return save_object_passphrase_to_file(hash_val)
-
-#---------------------------------------------------------------------------
-def save_object_passphrase_to_file(hash:str=None) -> list[str]:
-	"""Save encrypted passphrases known for a hash into files.
-
-	Args:
-		hash: the hash to look up passphrases for
-
-	Returns
-		List of files containing encrypted passphrases, or None.
-	"""
-	SQL = 'SELECT * FROM gm.obj_export_passphrase WHERE hash = %(hash)s'
-	args = {'hash': hash}
-	rows, idx = gmPG2.run_ro_queries(queries = [{'cmd': SQL, 'args': args}])
-	if not rows:
-		return None
-
-	phrase_files = []
-	for row in rows:
-		phrasefile_name = '%s-%s-passphrase.txt.asc' % (row['hash'], row['hash_type'])
-		with open(phrasefile_name, mode = 'wt', encoding = 'utf8') as phrasefile:
-			phrasefile.write('%s: %s\n' % (row['hash_type'], row['hash']))
-			if row['description']:
-				phrasefile.write('%s' % row['description'])
-				phrasefile.write('\n')
-			phrasefile.write('\n')
-			phrasefile.write(row['phrase'])
-		phrase_files.append(phrasefile_name)
-	return phrase_files
-
-#============================================================
 #============================================================
 if __name__ == '__main__':
 
@@ -1659,11 +1437,6 @@ if __name__ == '__main__':
 
 	if sys.argv[1] != 'test':
 		sys.exit()
-
-	del _
-	from Gnumed.pycommon import gmI18N
-	gmI18N.activate_locale()
-	gmI18N.install_domain()
 
 	from Gnumed.business import gmPraxis
 
@@ -1687,22 +1460,14 @@ if __name__ == '__main__':
 		#print exp.export_with_meta_data()
 		#print exp.items
 		#exp.add_file(sys.argv[2])
-		#prax = 
-		gmPraxis.gmCurrentPraxisBranch(branch = gmPraxis.cPraxisBranch(1))
-		#print(prax)
+		prax = gmPraxis.gmCurrentPraxisBranch(branch = gmPraxis.cPraxisBranch(1))
+		print(prax)
 		#print(prax.branch)
-		#try:
-		#	pwd = sys.argv[2]
-		#except IndexError:
-		#	pwd = None
-		#print(exp.export(passphrase = pwd))
-		#for item in exp.items:
-		#	print(item)
-		#	item['list_position'] = 4
-		#	item.save()
-		#	print(item)
-		#	input()
-		print(exp.dump_items_to_disk())
+		try:
+			pwd = sys.argv[2]
+		except IndexError:
+			pwd = None
+		print(exp.export(passphrase = pwd))
 
 	#---------------------------------------
 	def test_label():
@@ -1719,7 +1484,7 @@ if __name__ == '__main__':
 		except Exception:
 			pass
 		cPatient(aPK_obj = pat_min)
-		f = open('x-auto_inf_labels.txt', mode = 'w', encoding = 'utf8')
+		f = io.open('x-auto_inf_labels.txt', mode = 'w', encoding = 'utf8')
 		f.write('--------------------------------\n')
 		f.write('12345678901234567890123456789012\n')
 		f.write('--------------------------------\n')
@@ -1734,24 +1499,13 @@ if __name__ == '__main__':
 		return
 
 	#---------------------------------------
-	def test_store_passphrase_of_file():
-		gmStaff.set_current_provider_to_logged_on_user()
-		print('file:', sys.argv[2])
-		for h_t in [None, 'md5', 'sha256', 'ripemd160', 'invalid_hash_type']:
-			print(h_t, '-', store_passphrase_of_file(filename = sys.argv[2], passphrase='12345', hash_type = h_t))
-
-	#---------------------------------------
-	def test_save_object_passphrase_to_file():
-		print(save_object_passphrase_to_file(hash = sys.argv[2]))
-
-	#---------------------------------------
 	#test_export_items()
+	#test_export_area()
 
 	gmPG2.request_login_params(setup_pool = True)
-	#test_export_area()
-	#test_label()
-	test_store_passphrase_of_file()
-	#test_save_object_passphrase_to_file()
+	test_label()
+
+	sys.exit(0)
 
 #============================================================
 # CDROM "run.bat":

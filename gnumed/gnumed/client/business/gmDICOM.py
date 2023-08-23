@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-
-"""GNUmed DICOM handling middleware"""
 #============================================================
+__doc__ = """GNUmed DICOM handling middleware"""
+
 __license__ = "GPL v2 or later"
 __author__ = "K.Hilbert <Karsten.Hilbert@gmx.net>"
 
 
 # stdlib
+import io
 import os
 import sys
 import re as regex
@@ -32,6 +33,8 @@ from Gnumed.pycommon import gmTools
 from Gnumed.pycommon import gmShellAPI
 from Gnumed.pycommon import gmMimeLib
 from Gnumed.pycommon import gmDateTime
+#from Gnumed.pycommon import gmHooks
+#from Gnumed.pycommon import gmDispatcher
 
 _log = logging.getLogger('gm.dicom')
 
@@ -45,8 +48,6 @@ _map_gender_gm2dcm = {
 
 #============================================================
 class cOrthancServer:
-	"""Interface for the REST API of an Orthanc DICOM server.
-	"""
 	# REST API access to Orthanc DICOM servers
 
 #	def __init__(self):
@@ -76,7 +77,6 @@ class cOrthancServer:
 		_log.info('connecting as [%s] to Orthanc server at [%s]', self.__user, self.__server_url)
 		cache_dir = os.path.join(gmTools.gmPaths().user_tmp_dir, '.orthanc2gm-cache')
 		gmTools.mkdir(cache_dir, 0o700)
-		gmTools.create_directory_description_file(directory = cache_dir, readme = 'this directory caches Orthanc REST data, mainly DICOM files')
 		_log.debug('using cache directory: %s', cache_dir)
 		self.__conn = httplib2.Http(cache = cache_dir)
 		self.__conn.add_credentials(self.__user, self.__password)
@@ -109,19 +109,19 @@ class cOrthancServer:
 	#--------------------------------------------------------
 	def _get_server_identification(self):
 		try:
-			return self.__server_identification		# pylint: disable=access-member-before-definition
-
+			return self.__server_identification
 		except AttributeError:
 			pass
 		system_data = self.__run_GET(url = '%s/system' % self.__server_url)
 		if system_data is False:
 			_log.error('unable to get server identification')
 			return False
-
 		_log.debug('server: %s', system_data)
 		self.__server_identification = system_data
+
 		self.__initial_orthanc_encoding = self.__run_GET(url = '%s/tools/default-encoding' % self.__server_url)
 		_log.debug('initial Orthanc encoding: %s', self.__initial_orthanc_encoding)
+
 		# check time skew
 		tolerance = 60 # seconds
 		client_now_as_utc = pydt.datetime.utcnow()
@@ -144,16 +144,17 @@ class cOrthancServer:
 			_log.info('GNUmed/Orthanc time skew: %s', real_skew)
 			if real_skew > pydt.timedelta(seconds = tolerance):
 				_log.error('GNUmed/Orthanc time skew > tolerance (may be due to timezone differences on Orthanc < v1.3.2)')
+
 		return self.__server_identification
 
-	server_identification = property(_get_server_identification)
+	server_identification = property(_get_server_identification, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_as_external_id_issuer(self):
 		# fixed type :: user level instance name :: DICOM AET
 		return 'Orthanc::%(Name)s::%(DicomAet)s' % self.__server_identification
 
-	as_external_id_issuer = property(_get_as_external_id_issuer)
+	as_external_id_issuer = property(_get_as_external_id_issuer, lambda x:x)
 
 	#--------------------------------------------------------
 	def _get_url_browse_patients(self):
@@ -161,7 +162,7 @@ class cOrthancServer:
 			return self.__server_url
 		return self.__server_url.replace('http://', 'http://%s@' % self.__user)
 
-	url_browse_patients = property(_get_url_browse_patients)
+	url_browse_patients = property(_get_url_browse_patients, lambda x:x)
 
 	#--------------------------------------------------------
 	def get_url_browse_patient(self, patient_id):
@@ -176,90 +177,93 @@ class cOrthancServer:
 	#--------------------------------------------------------
 	# download API
 	#--------------------------------------------------------
-	def get_matching_patients(self, person) -> list:
-		"""Fetch matching patients from an Orthanc DICOM server.
-
-		Matches are searched for via stored "external ID" and
-		via generically generated ID. The external IDs are
-		fetched from the patient store, must be of type
-		"PACS" and must be marked as issued by the
-		instantiated PACS <self.>
-
-		Args:
-			person: a gmPerson.cPerson instance
-
-		Returns:
-			A list of Orthanc patient UIDs.
-		"""
+	def get_matching_patients(self, person):
 		_log.info('searching for Orthanc patients matching %s', person)
+
+		# look for patient by external ID first
 		pacs_ids = person.get_external_ids(id_type = 'PACS', issuer = self.as_external_id_issuer)
 		if len(pacs_ids) > 1:
 			_log.error('GNUmed patient has more than one ID for this PACS: %s', pacs_ids)
-			_log.error('the stored-in-GNUmed PACS ID is expected to be unique _per PACS_')
+			_log.error('the PACS ID is expected to be unique per PACS')
 			return []
 
-		pacs_ids2search_by = []
-		pacs_ids2search_by.extend([ pacs_id['value'] for pacs_id in pacs_ids ])
-		pacs_ids2search_by.extend(person.suggest_external_ids(target = 'PACS'))
-		matching_pats = []
-		for pacs_id in pacs_ids2search_by:
+		pacs_ids2use = []
+
+		if len(pacs_ids) == 1:
+			pacs_ids2use.append(pacs_ids[0]['value'])
+		pacs_ids2use.extend(person.suggest_external_ids(target = 'PACS'))
+
+		for pacs_id in pacs_ids2use:
 			_log.debug('using PACS ID [%s]', pacs_id)
-			pats = self.get_patients_by_external_id(external_id = pacs_id, fuzzy = False)
+			pats = self.get_patients_by_external_id(external_id = pacs_id)
 			if len(pats) > 1:
 				_log.warning('more than one Orthanc patient matches PACS ID: %s', pacs_id)
-			matching_pats.extend(pats)
-		if not matching_pats:
-			_log.debug('no matching patient found in PACS')
-		return matching_pats
+			if len(pats) > 0:
+				return pats
+
+		_log.debug('no matching patient found in PACS')
+		# return find type ? especially useful for non-matches on ID
+
+		# search by name
+
+#		# then look for name parts
+#		name = person.get_active_name()
+		return []
 
 	#--------------------------------------------------------
-	def get_patients_by_external_id(self, external_id=None, fuzzy=False):
-		"""Search for instances by patient ID."""
-		_log.info('external ID >>>%s<<< fuzzy [%s]', external_id, fuzzy)
-		search_term = external_id.strip().strip('*').strip()
-		if fuzzy:
-			search_term = '*%s*' % search_term
+	def get_patients_by_external_id(self, external_id=None):
+		matching_patients = []
+		_log.info('searching for patients with external ID >>>%s<<<', external_id)
+
+		# elegant server-side approach:
 		search_data = {
 			'Level': 'Patient',
 			'CaseSensitive': False,
 			'Expand': True,
-			'Query': {'PatientID': search_term}
+			'Query': {'PatientID': external_id.strip('*')}
 		}
+		_log.info('server-side C-FIND SCU over REST search, mogrified search data: %s', search_data)
 		matches = self.__run_POST(url = '%s/tools/find' % self.__server_url, data = search_data)
+
 		# paranoia
 		for match in matches:
 			self.protect_patient(orthanc_id = match['ID'])
 		return matches
 
-	#--------------------------------------------------------
-	def get_patients_by_name(self, name_parts=None, gender=None, dob=None, fuzzy:bool=False) -> list:
-		"""Search for patients by name.
+#		# recursive brute force approach:
+#		for pat_id in self.__run_GET(url = '%s/patients' % self.__server_url):
+#			orthanc_pat = self.__run_GET(url = '%s/patients/%s' % (self.__server_url, pat_id))
+#			orthanc_external_id = orthanc_pat['MainDicomTags']['PatientID']
+#			if orthanc_external_id != external_id:
+#				continue
+#			_log.debug(u'match: %s (name=[%s], orthanc_id=[%s])', orthanc_external_id, orthanc_pat['MainDicomTags']['PatientName'], orthanc_pat['ID'])
+#			matching_patients.append(orthanc_pat)
+#		if len(matching_patients) == 0:
+#			_log.debug(u'no matches')
+#		return matching_patients
 
-		Returns:
-			List of patients matching the search term(s).
-		"""
-		_log.info('name parts %s, gender [%s], dob [%s], fuzzy: [%s]', name_parts, gender, dob, fuzzy)
+	#--------------------------------------------------------
+	def get_patients_by_name(self, name_parts=None, gender=None, dob=None, fuzzy=False):
+		_log.info('name parts %s, gender [%s], dob [%s], fuzzy: %s', name_parts, gender, dob, fuzzy)
 		if len(name_parts) > 1:
 			return self.get_patients_by_name_parts(name_parts = name_parts, gender = gender, dob = dob, fuzzy = fuzzy)
-
-		search_term = name_parts[0].strip().strip('*').strip()
-		if search_term == '':
-			_log.debug('search term empty')
-			return []
-
-		if fuzzy:
-			search_term = '*%s*' % search_term
-		search_data:dict = {
+		if not fuzzy:
+			search_term = name_parts[0].strip('*')
+		else:
+			search_term = name_parts[0]
+			if not search_term.endswith('*'):
+				search_term += '*'
+		search_data = {
 			'Level': 'Patient',
 			'CaseSensitive': False,
-			'Expand': True
+			'Expand': True,
+			'Query': {'PatientName': search_term}
 		}
-		search_data['Query'] = {'PatientName': search_term}
-		if gender:
-			gender = _map_gender_gm2dcm[gender.casefold()]
-			if gender:
+		if gender is not None:
+			gender = _map_gender_gm2dcm[gender.lower()]
+			if gender is not None:
 				search_data['Query']['PatientSex'] = gender
-		if dob:
+		if dob is not None:
 			search_data['Query']['PatientBirthDate'] = dob.strftime('%Y%m%d')
 		_log.info('server-side C-FIND SCU over REST search, mogrified search data: %s', search_data)
 		matches = self.__run_POST(url = '%s/tools/find' % self.__server_url, data = search_data)
@@ -273,19 +277,18 @@ class cOrthancServer:
 		for part in name_parts:
 			if part.strip() == '':
 				continue
-			clean_parts.append(part.casefold().strip())
+			clean_parts.append(part.lower().strip())
 		_log.info('client-side patient search, scrubbed search terms: %s', clean_parts)
 		pat_ids = self.__run_GET(url = '%s/patients' % self.__server_url)
 		if pat_ids is False:
 			_log.error('cannot retrieve patients')
 			return []
-
 		for pat_id in pat_ids:
 			orthanc_pat = self.__run_GET(url = '%s/patients/%s' % (self.__server_url, pat_id))
 			if orthanc_pat is False:
 				_log.error('cannot retrieve patient')
 				continue
-			orthanc_name = orthanc_pat['MainDicomTags']['PatientName'].casefold().strip()
+			orthanc_name = orthanc_pat['MainDicomTags']['PatientName'].lower().strip()
 			if not fuzzy:
 				orthanc_name = orthanc_name.replace(' ', ',').replace('^', ',').split(',')
 			parts_in_orthanc_name = 0
@@ -295,9 +298,9 @@ class cOrthancServer:
 			if parts_in_orthanc_name == len(clean_parts):
 				_log.debug('name match: "%s" contains all of %s', orthanc_name, clean_parts)
 				if gender is not None:
-					gender = _map_gender_gm2dcm[gender.casefold()]
+					gender = _map_gender_gm2dcm[gender.lower()]
 					if gender is not None:
-						if orthanc_pat['MainDicomTags']['PatientSex'].casefold() != gender:
+						if orthanc_pat['MainDicomTags']['PatientSex'].lower() != gender:
 							_log.debug('gender mismatch: dicom=[%s] gnumed=[%s], skipping', orthanc_pat['MainDicomTags']['PatientSex'], gender)
 							continue
 				if dob is not None:
@@ -308,65 +311,6 @@ class cOrthancServer:
 			else:
 				_log.debug('name mismatch: "%s" does not contain all of %s', orthanc_name, clean_parts)
 		return matching_patients
-
-	#--------------------------------------------------------
-	def search_studies_by_patient_name(self, name:str) -> list:
-		"""Search for studies with the given patient name snippet.
-
-		A study (even at the Orthanc DB metadata level) will
-		contain the original patient name (unless manually
-		modified) in contrast to the (artificial Orthanc DB
-		metadata level) patient record. The latter contains
-		the first patient name that had been associated with
-		the given patient ID.
-
-		Args:
-			name: name snippet to search for
-
-		Returns:
-			The list of matching *studies* (not *patient*).
-		"""
-		_log.debug('search term [%s]', name)
-		search_term = name.strip().strip('*').strip()
-		if search_term == '':
-			_log.warning('search term empty')
-			return []
-
-		search_term = '*%s*' % search_term
-		search_data = {
-			'Level': 'Study',
-			'CaseSensitive': False,
-			'Expand': True,
-			'Query': {'PatientName': search_term}
-		}
-		matches = self.__run_POST(url = '%s/tools/find' % self.__server_url, data = search_data)
-		return matches
-
-	#--------------------------------------------------------
-	def search_studies_by_patient_id(self, patient_id:str) -> list:
-		"""Search for studies with the given patient ID snippet.
-
-		This relates to the external world patient ID as
-		stored in DICOM instances, not the Orthanc DB
-		metadata level patient UID.
-
-		Args:
-			patient_id: patient ID snippet to search for
-
-		Returns:
-			The list of matching *studies* (not *patient*).
-		"""
-		_log.debug('search term >>>%s<<<', patient_id)
-		search_term = patient_id.strip().strip('*').strip()
-		search_term = '*%s*' % search_term
-		search_data = {
-			'Level': 'Study',
-			'CaseSensitive': False,
-			'Expand': True,
-			'Query': {'PatientID': search_term}
-		}
-		matches = self.__run_POST(url = '%s/tools/find' % self.__server_url, data = search_data)
-		return matches
 
 	#--------------------------------------------------------
 	def get_studies_list_by_patient_name(self, name_parts=None, gender=None, dob=None, fuzzy=False):
@@ -385,7 +329,7 @@ class cOrthancServer:
 		if filename is None:
 			filename = gmTools.get_unique_filename(prefix = r'DCM-', suffix = r'.zip')
 		_log.info('exporting study [%s] into [%s]', study_id, filename)
-		f = open(filename, 'wb')
+		f = io.open(filename, 'wb')
 		f.write(self.__run_GET(url = '%s/studies/%s/archive' % (self.__server_url, str(study_id)), allow_cached = True))
 		f.close()
 		return filename
@@ -395,7 +339,7 @@ class cOrthancServer:
 		if filename is None:
 			filename = gmTools.get_unique_filename(prefix = r'DCM-', suffix = r'.zip')
 		_log.info('exporting study [%s] into [%s]', study_id, filename)
-		f = open(filename, 'wb')
+		f = io.open(filename, 'wb')
 		f.write(self.__run_GET(url = '%s/studies/%s/media' % (self.__server_url, str(study_id)), allow_cached = True))
 		f.close()
 		return filename
@@ -406,7 +350,7 @@ class cOrthancServer:
 			filename = gmTools.get_unique_filename(prefix = r'DCM-', suffix = r'.zip')
 		if study_ids is None:
 			_log.info('exporting all studies of patient [%s] into [%s]', patient_id, filename)
-			f = open(filename, 'wb')
+			f = io.open(filename, 'wb')
 			f.write(self.__run_GET(url = '%s/patients/%s/archive' % (self.__server_url, str(patient_id)), allow_cached = True))
 			f.close()
 			return filename
@@ -420,7 +364,7 @@ class cOrthancServer:
 		# all studies
 		if study_ids is None:
 			_log.info('exporting all studies of patient [%s] into [%s]', patient_id, filename)
-			f = open(filename, 'wb')
+			f = io.open(filename, 'wb')
 			url = '%s/patients/%s/media' % (self.__server_url, str(patient_id))
 			_log.debug(url)
 			f.write(self.__run_GET(url = url, allow_cached = True))
@@ -480,7 +424,7 @@ class cOrthancServer:
 			return False
 		# paranoia
 		try:
-			open(target_dicomdir_name)
+			io.open(target_dicomdir_name)
 		except Exception:
 			_log.error('[%s] not generated, aborting', target_dicomdir_name)
 			return False
@@ -513,7 +457,7 @@ class cOrthancServer:
 			if patient_id is None:
 				raise ValueError('<patient_id> must be defined if <study_ids> is None')
 			_log.info('exporting all studies of patient [%s] into [%s]', patient_id, filename)
-			f = open(filename, 'wb')
+			f = io.open(filename, 'wb')
 			url = '%s/patients/%s/media' % (self.__server_url, str(patient_id))
 			_log.debug(url)
 			f.write(self.__run_GET(url = url, allow_cached = True))
@@ -529,7 +473,7 @@ class cOrthancServer:
 		# selection of studies
 		_log.info('exporting %s studies into [%s]', len(study_ids), filename)
 		_log.debug('studies: %s', study_ids)
-		f = open(filename, 'wb')
+		f = io.open(filename, 'wb')
 		#  You have to make a POST request against URI "/tools/create-media", with a
 		#  JSON body that contains the array of the resources of interest (as Orthanc
 		#  identifiers). Here is a sample command-line:
@@ -582,7 +526,7 @@ class cOrthancServer:
 			filename = gmTools.get_unique_filename(suffix = '.png')
 		_log.debug('exporting preview for instance [%s] into [%s]', instance_id, filename)
 		download_url = '%s/instances/%s/preview' % (self.__server_url, instance_id)
-		f = open(filename, 'wb')
+		f = io.open(filename, 'wb')
 		try:
 			f.write(self.__run_GET(url = download_url, allow_cached = True))
 		except Exception:
@@ -599,7 +543,7 @@ class cOrthancServer:
 
 		_log.debug('exporting instance [%s] into [%s]', instance_id, filename)
 		download_url = '%s/instances/%s/attachments/dicom/data' % (self.__server_url, instance_id)
-		f = open(filename, 'wb')
+		f = io.open(filename, 'wb')
 		f.write(self.__run_GET(url = download_url, allow_cached = allow_cached))
 		f.close()
 		return filename
@@ -674,13 +618,7 @@ class cOrthancServer:
 
 	#--------------------------------------------------------
 	def modify_patient_id(self, old_patient_id, new_patient_id):
-		"""Modify the patient ID stored in Orthanc.
 
-		This changes all DICOM files of the patient,
-		identified via (DICOM level) old_patient_id, to
-		contain the new_patient_id. It will update the
-		associated Orthanc metadata DB entries accordingly.
-		"""
 		if old_patient_id == new_patient_id:
 			return True
 
@@ -756,7 +694,7 @@ class cOrthancServer:
 				return False
 
 		try:
-			f = open(filename, 'rb')
+			f = io.open(filename, 'rb')
 		except Exception:
 			_log.exception('failed to open file')
 			return False
@@ -821,9 +759,9 @@ class cOrthancServer:
 				download_url = '%s/instances/%s/attachments/%s/data' % (self.__server_url, instance_id, attachment)
 				attachment_data = self.__run_GET(url = download_url, allow_cached = False)
 				if isinstance(attachment_data, bytes):
-					attachment_file = open(attachment_filename, 'wb')
+					attachment_file = io.open(attachment_filename, 'wb')
 				else:
-					attachment_file = open(attachment_filename, 'wt')
+					attachment_file = io.open(attachment_filename, 'wt')
 					attachment_data = '%s' % attachment_data
 				attachment_file.write(attachment_data)
 				del attachment_data
@@ -937,6 +875,8 @@ class cOrthancServer:
 		series_keys2hide = ['ModifiedFrom', 'Type', 'ID', 'ParentStudy',   'Instances']
 
 		studies_by_patient = []
+		series_keys = {}
+		series_keys_m = {}
 
 		# loop over patients
 		for pat in orthanc_patients:
@@ -1400,37 +1340,15 @@ class cOrthancServer:
 	server_url = property(_get_server_url)
 
 #------------------------------------------------------------
-def cleanup_dicom_string(dicom_str:str) -> str:
+def cleanup_dicom_string(dicom_str):
 	if not isinstance(dicom_str, str):
 		return dicom_str
-
 	dicom_str = regex.sub('\^+', ' ', dicom_str.strip('^'))
 	#dicom_str = dicom_str.replace('\r\n', ' [CR] ')
 	return dicom_str
 
 #---------------------------------------------------------------------------
-def dicomize_file(filename:str=None, title:str=None, person=None, dcm_name:str=None, verbose:bool=False, dcm_template_file:str=None, dcm_transfer_series:bool=True, content_date=None) -> str:
-	"""Encapsulate a file inside a DCM file.
-
-	Dates and times of the instance are set to 'now'.
-
-	Works for PDF documents and images which are/can be converted to JPG.
-
-	Args:
-		filename: the file to encapsulate
-		title: document title, defaults to filename
-		person: a GNUmed person instance from which to derive demographics, None -> derive from *dcm_template_file*
-		dcm_name: filename for the resulting DICOM file, None -> auto-create name
-		verbose: passed to external converter
-		dcm_template_file: DICOM file from which to derive patient demographics and study ID, None -> *person* must be defined
-		dcm_transfer_series: only applies if *dcm_template_file* given
-			True = derive series from *dcm_template_file*,
-			False = only derive study from *dcm_template_file* and create a new series
-		content_date: date/time to use for study/series/instance, as needed; None -> use now()
-
-	Returns:
-		DICOM file name or None on failure.
-	"""
+def dicomize_file(filename, title=None, person=None, dcm_name=None, verbose=False, dcm_template_file=None, dcm_transfer_series=True):
 	assert (filename is not None), '<filename> must not be None'
 	assert (not ((person is None) and (dcm_template_file is None))), '<person> or <dcm_template_file> must not be None'
 
@@ -1439,7 +1357,6 @@ def dicomize_file(filename:str=None, title:str=None, person=None, dcm_name:str=N
 		_log.error('already a DICOM file: %s', filename)
 		if dcm_name is None:
 			return filename
-
 		return shutil.copy2(filename, dcm_name)
 
 	dcm_fname = dicomize_pdf (
@@ -1449,8 +1366,7 @@ def dicomize_file(filename:str=None, title:str=None, person=None, dcm_name:str=N
 		dcm_name = dcm_name,
 		verbose = verbose,
 		dcm_template_file = dcm_template_file,
-		dcm_transfer_series = dcm_transfer_series,
-		content_date = content_date
+		dcm_transfer_series = dcm_transfer_series
 	)
 	if dcm_fname is not None:
 		return dcm_fname
@@ -1468,30 +1384,12 @@ def dicomize_file(filename:str=None, title:str=None, person=None, dcm_name:str=N
 		dcm_name = dcm_name,
 		verbose = verbose,
 		dcm_template_file = dcm_template_file,
-		dcm_transfer_series = dcm_transfer_series,
-		content_date = content_date
+		dcm_transfer_series = dcm_transfer_series
 	)
 	return dcm_name
 
 #---------------------------------------------------------------------------
-def dicomize_pdf(pdf_name:str=None, title:str=None, person=None, dcm_name:str=None, verbose:bool=False, dcm_template_file:str=None, dcm_transfer_series:bool=True, content_date=None) -> str:
-	"""Encapsulate a PDF file inside a DCM file.
-
-	Dates and times of the instance are set to 'now'.
-
-	Args:
-		pdf_name: the PDF file to encapsulate
-		title: document title, None -> *pdf_name*, also used as study/series description
-		person: see *dicomize_file()*
-		dcm_name: see *dicomize_file()*
-		verbose: see *dicomize_file()*
-		dcm_template_file: see *dicomize_file()*
-		dcm_transfer_series: see *dicomize_file()*
-		content_date: see *dicomize_file()*
-
-	Returns:
-		DICOM file name or None on failure.
-	"""
+def dicomize_pdf(pdf_name=None, title=None, person=None, dcm_name=None, verbose=False, dcm_template_file=None, dcm_transfer_series=True):
 	assert (pdf_name is not None), '<pdf_name> must not be None'
 	assert (not ((person is None) and (dcm_template_file is None))), '<person> or <dcm_template_file> must not be None'
 
@@ -1499,46 +1397,37 @@ def dicomize_pdf(pdf_name:str=None, title:str=None, person=None, dcm_name:str=No
 		dcm_name = gmTools.get_unique_filename(suffix = '.dcm')
 	_log.debug('%s -> %s', pdf_name, dcm_name)
 	if title is None:
-		title = gmTools.fname_stem(pdf_name)
-	if content_date is None:
-		content_date = gmDateTime.pydt_now_here()
+		title = pdf_name
+	now = gmDateTime.pydt_now_here()
 	cmd_line = [
 		'pdf2dcm',
 		'--title', title,
-		'--key', '0008,1030=%s' % title,							# StudyDescription
-		'--key', '0008,103E=%s' % title,							# SeriesDescription
-		'--key', '0008,0021=%s' % content_date.strftime('%Y%m%d'),	# SeriesDate
-		'--key', '0008,0023=%s' % content_date.strftime('%Y%m%d'),	# ContentDate
-		'--key', '0008,0031=%s' % content_date.strftime('%H%M%s.0'),# SeriesTime
-		'--key', '0008,0033=%s' % content_date.strftime('%H%M%s.0')	# ContentTime
+		'--key', '0008,0020=%s' % now.strftime('%Y%m%d'),			# StudyDate
+		'--key', '0008,0021=%s' % now.strftime('%Y%m%d'),			# SeriesDate
+		'--key', '0008,0023=%s' % now.strftime('%Y%m%d'),			# ContentDate
+		'--key', '0008,0030=%s' % now.strftime('%H%M%s.0'),			# StudyTime
+		'--key', '0008,0031=%s' % now.strftime('%H%M%s.0'),			# SeriesTime
+		'--key', '0008,0033=%s' % now.strftime('%H%M%s.0')			# ContentTime
 	]
 	if dcm_template_file is None:
-		# StudyDate
-		cmd_line.append('--key')
-		cmd_line.append('0008,0020=%s' % content_date.strftime('%Y%m%d'))
-		# StudyTime
-		cmd_line.append('--key')
-		cmd_line.append('0008,0030=%s' % content_date.strftime('%H%M%s.0'))
-		# PatientName
 		name = person.active_name
 		cmd_line.append('--patient-id')
 		cmd_line.append(person.suggest_external_id(target = 'PACS'))
 		cmd_line.append('--patient-name')
 		cmd_line.append(('%s^%s' % (name['lastnames'], name['firstnames'])).replace(' ', '^'))
-		if person['dob']:
+		if person['dob'] is not None:
 			cmd_line.append('--patient-birthdate')
 			cmd_line.append(person.get_formatted_dob(format = '%Y%m%d', honor_estimation = False))
-		if person['gender']:
+		if person['gender'] is not None:
 			cmd_line.append('--patient-sex')
 			cmd_line.append(_map_gender_gm2dcm[person['gender']])
 	else:
 		_log.debug('DCM template file: %s', dcm_template_file)
 		if dcm_transfer_series:
 			cmd_line.append('--series-from')
-			cmd_line.append(dcm_template_file)
 		else:
 			cmd_line.append('--study-from')
-			cmd_line.append(dcm_template_file)
+		cmd_line.append(dcm_template_file)
 	if verbose:
 		cmd_line.append('--log-level')
 		cmd_line.append('trace')
@@ -1551,52 +1440,39 @@ def dicomize_pdf(pdf_name:str=None, title:str=None, person=None, dcm_name:str=No
 	return None
 
 #---------------------------------------------------------------------------
-def dicomize_jpg(jpg_name:str=None, title:str=None, person=None, dcm_name:str=None, verbose:bool=False, dcm_template_file:str=None, dcm_transfer_series:bool=True, content_date=None) -> str:
-	"""Encapsulate a JPG file inside a DCM file.
-
-	Dates and times of the instance are set to 'now'.
-
-	Args:
-		jpg_name: the JPG file to encapsulate
-		title: document title, None -> *jpg_name*, used as study/series description
-		person: see *dicomize_file()*
-		dcm_name: see *dicomize_file()*
-		verbose: see *dicomize_file()*
-		dcm_template_file: see *dicomize_file()*
-		dcm_transfer_series: see *dicomize_file()*
-		content_date: see *dicomize_file()*
-
-	Returns:
-		DICOM file name or None on failure.
-	"""
+def dicomize_jpg(jpg_name=None, title=None, person=None, dcm_name=None, verbose=False, dcm_template_file=None, dcm_transfer_series=True):
 	assert (jpg_name is not None), '<jpg_name> must not be None'
 	assert (not ((person is None) and (dcm_template_file is None))), 'both <person> and <dcm_template_file> are None, but one is needed'
 
 	if dcm_name is None:
 		dcm_name = gmTools.get_unique_filename(suffix = '.dcm')
 	_log.debug('%s -> %s', jpg_name, dcm_name)
-	if title is None:
-		title = gmTools.fname_stem(jpg_name)
-	if content_date is None:
-		content_date = gmDateTime.pydt_now_here()
+	now = gmDateTime.pydt_now_here()
 	cmd_line = [
 		'img2dcm',
-		'--keep-appn',													# carry over EXIF data
-		'--insist-on-jfif',												# process valid JFIF only
-		'--key', '0008,1030=%s' % title,								# StudyDescription
-		'--key', '0008,103E=%s' % title,								# SeriesDescription
-		'--key', '0008,0021=%s' % content_date.strftime('%Y%m%d'),		# SeriesDate
-		'--key', '0008,0031=%s' % content_date.strftime('%H%M%s.0'),	# SeriesTime
-		'--key', '0008,0023=%s' % content_date.strftime('%Y%m%d'),		# ContentDate
-		'--key', '0008,0033=%s' % content_date.strftime('%H%M%s.0')		# ContentTime
+		'--keep-appn',											# carry over EXIF data
+		'--insist-on-jfif',										# process valid JFIF only
+		'--key', '0008,0021=%s' % now.strftime('%Y%m%d'),		# SeriesDate
+		'--key', '0008,0031=%s' % now.strftime('%H%M%s.0'),		# SeriesTime
+		'--key', '0008,0023=%s' % now.strftime('%Y%m%d'),		# ContentDate
+		'--key', '0008,0033=%s' % now.strftime('%H%M%s.0')		# ContentTime
 	]
+	if title is not None:
+		# SeriesDescription
+		if title is not None:
+			cmd_line.append('--key')
+			cmd_line.append('0008,103E=%s' % title)
 	if dcm_template_file is None:
+		# StudyDescription
+		if title is not None:
+			cmd_line.append('--key')
+			cmd_line.append('0008,1030=%s' % title)
 		# StudyDate
 		cmd_line.append('--key')
-		cmd_line.append('0008,0020=%s' % content_date.strftime('%Y%m%d'))
+		cmd_line.append('0008,0020=%s' % now.strftime('%Y%m%d'))
 		# StudyTime
 		cmd_line.append('--key')
-		cmd_line.append('0008,0030=%s' % content_date.strftime('%H%M%s.0'))
+		cmd_line.append('0008,0030=%s' % now.strftime('%H%M%s.0'))
 		# PatientName
 		name = person.active_name
 		cmd_line.append('--key')
@@ -1611,17 +1487,16 @@ def dicomize_jpg(jpg_name:str=None, title:str=None, person=None, dcm_name:str=No
 		cmd_line.append('--key')
 		cmd_line.append('0010,0030=%s' % person.get_formatted_dob(format = '%Y%m%d', honor_estimation = False))
 		# gender
-		if person['gender']:
+		if person['gender'] is not None:
 			cmd_line.append('--key')
 			cmd_line.append('0010,0040=%s' % _map_gender_gm2dcm[person['gender']])
 	else:
 		_log.debug('DCM template file: %s', dcm_template_file)
 		if dcm_transfer_series:
 			cmd_line.append('--series-from')
-			cmd_line.append(dcm_template_file)
 		else:
 			cmd_line.append('--study-from')
-			cmd_line.append(dcm_template_file)
+		cmd_line.append(dcm_template_file)
 	if verbose:
 		cmd_line.append('--log-level')
 		cmd_line.append('trace')
@@ -1633,62 +1508,6 @@ def dicomize_jpg(jpg_name:str=None, title:str=None, person=None, dcm_name:str=No
 
 	return None
 
-#---------------------------------------------------------------------------
-def run_file2dicom_tool(fname:str=None, dcm_template:str=None) -> str:
-	"""Convert a file into DICOM format.
-
-	This offers a primitive text user interface.
-
-	Args:
-		fname: the file to convert, must be image or PDF
-		dcm_template: a DCM file to use as template for study/series data, optional
-
-	Returns:
-		name of the new DICOM file, or None
-	"""
-	if dcm_template is None:
-		from Gnumed.pycommon import gmPG2
-		gmPG2.request_login_params(setup_pool = True)
-		from Gnumed.business import gmPersonSearch
-		pat = gmPersonSearch.ask_for_patient()
-		if pat is None:
-			return None
-
-	else:
-		pat = None
-
-	dt = None
-	while dt is None:
-		iso = input('enter date (ISO - YYYY-MM-DD): ')
-		try:
-			dt = pydt.datetime.fromisoformat(iso)
-		except ValueError:
-			if iso.strip() == '':
-				return None
-			dt = None
-
-	desc = input('enter description (ASCII): ')
-	if desc.strip() == '':
-		desc = None
-
-	print('patient:', pat)
-	print('DCM template:', dcm_template)
-	print()
-	print('file to convert:', fname)
-	print('series date:', dt)
-	print('description:', desc)
-	input('hit <ENTER> to convert')
-	dcm = dicomize_file (
-		filename = fname,
-		person = pat,
-		dcm_name = fname + '.dcm',
-		verbose = True,
-		content_date = dt,
-		title = desc,
-		dcm_template_file = dcm_template
-	)
-	print('DCM file:', dcm)
-
 #============================================================
 # main
 #------------------------------------------------------------
@@ -1698,11 +1517,11 @@ if __name__ == "__main__":
 		sys.exit()
 
 	if sys.argv[1] != 'test':
-		fname = sys.argv[1]
-		try: dcm_template = sys.argv[2]
-		except IndexError: dcm_template = None
-		run_file2dicom_tool(fname, dcm_template)
 		sys.exit()
+
+#	if __name__ == '__main__':
+#		sys.path.insert(0, '../../')
+	from Gnumed.pycommon import gmLog2
 
 	#--------------------------------------------------------
 	def orthanc_console(host, port):
@@ -1802,14 +1621,8 @@ if __name__ == "__main__":
 	#--------------------------------------------------------
 	def test_pdf2dcm():
 		#print(pdf2dcm(filename = filename, patient_id = 'ID::abcABC', dob = '19900101'))
-		#from Gnumed.business import gmPerson
-		#pers = gmPerson.cPerson(12)
-		from Gnumed.business import gmPersonSearch
-		pers = gmPersonSearch.ask_for_patient()
-		if pers is None:
-			return
-
-		print(pers)
+		from Gnumed.business import gmPerson
+		pers = gmPerson.cPerson(12)
 		try:
 			print(dicomize_pdf(pdf_name = sys.argv[2], person = pers, dcm_name = None, verbose = True, dcm_template_file = sys.argv[3]))#, title = 'test'))
 		except IndexError:
@@ -1817,39 +1630,13 @@ if __name__ == "__main__":
 
 	#--------------------------------------------------------
 	def test_img2dcm():
-		from Gnumed.pycommon import gmPG2
-		gmPG2.request_login_params(setup_pool = True)
 		#print(pdf2dcm(filename = filename, patient_id = 'ID::abcABC', dob = '19900101'))
-		#from Gnumed.business import gmPerson
-		#pers = gmPerson.cPerson(12)
-		from Gnumed.business import gmPersonSearch
-		pers = gmPersonSearch.ask_for_patient()
-		if pers is None:
-			return
-
-		dt = None
-		while dt is None:
-			iso = input('enter date: ')
-			try:
-				dt = pydt.datetime.fromisoformat(iso)
-			except ValueError:
-				if iso.strip() == '':
-					return
-
-		print(pers)
-		print(iso)
-		input('enter to continue')
-
+		from Gnumed.business import gmPerson
+		pers = gmPerson.cPerson(12)
 		try:
 			print(dicomize_jpg(jpg_name = sys.argv[2], person = pers, dcm_name = sys.argv[2]+'.dcm', verbose = True, dcm_template_file = sys.argv[3]))#, title = 'test'))
 		except IndexError:
-			print(dicomize_jpg (
-				jpg_name = sys.argv[2],
-				person = pers,
-				dcm_name = sys.argv[2]+'.dcm',
-				verbose = True,
-				content_date = dt
-			))#, title = 'test'))
+			print(dicomize_jpg(jpg_name = sys.argv[2], person = pers, dcm_name = sys.argv[2]+'.dcm', verbose = True))#, title = 'test'))
 
 	#--------------------------------------------------------
 	def test_file2dcm():
@@ -1878,14 +1665,14 @@ if __name__ == "__main__":
 		orthanc_id = '89729867-a08815a6-37c59f5a-f1f6ea57-6c1e17cb'
 		instances_url = 'patients/%s/instances' % orthanc_id
 		print(instances_url)
-		#new_patient_id = 'xxx'
+		new_patient_id = 'xxx'
 		instances = orthanc.run_GET(instances_url)
 		for instance in instances:
 			instance_id = instance['ID']
 			tags = orthanc.get_instance_dicom_tags(instance_id, simplified = False)
 			if tags['0010,0030']['Value'] != '19810416':
 				continue
-			#orthanc.modify_patient_id_of_instance(instance_id, new_patient_id)
+			orthanc.modify_patient_id_of_instance(instance_id, new_patient_id)
 			#print(tags['0010,0030']['PatientID'])
 			#print(tags['0010,0030']['PatientName'])
 			#continue
@@ -1950,7 +1737,7 @@ if __name__ == "__main__":
 	#test_file2dcm()
 	#sys.exit
 
-	#_connect()
+	_connect()
 	#run_console()
 	#test_verify_instance()
 	#test_modify_patient_id()

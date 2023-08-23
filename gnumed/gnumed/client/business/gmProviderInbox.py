@@ -14,7 +14,6 @@ import logging
 
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmPG2
 from Gnumed.pycommon import gmBusinessDBObject
 from Gnumed.pycommon import gmTools
@@ -348,7 +347,6 @@ class cProviderInbox:
 	#--------------------------------------------------------
 	def delete_message(self, pk=None):
 		return delete_inbox_message(inbox_message = pk)
-
 	#--------------------------------------------------------
 	def add_message(self, message_type=None, subject=None, patient=None):
 		return create_inbox_message (
@@ -357,7 +355,6 @@ class cProviderInbox:
 			patient = patient,
 			staff = self.__provider_id
 		)
-
 	#--------------------------------------------------------
 	# properties
 	#--------------------------------------------------------
@@ -374,7 +371,7 @@ class cProviderInbox:
 			order_by = order_by
 		)
 
-	messages = property(get_messages)
+	messages = property(get_messages, lambda x:x)
 
 	#--------------------------------------------------------
 	def get_relevant_messages(self, pk_patient=None, include_without_provider=True):

@@ -5,19 +5,18 @@
 # @copyright: author
 #======================================================================
 __author__ = "Karsten Hilbert"
-__license__ = 'GPL v2 or later (details at https://www.gnu.org)'
+__license__ = 'GPL v2 or later (details at http://www.gnu.org)'
 
 import logging
 
 
 from Gnumed.wxpython import gmPlugin
 from Gnumed.wxpython import gmMeasurementWidgets
+from Gnumed.pycommon import gmI18N
 from Gnumed.wxpython import gmAccessPermissionWidgets
 
 
 _log = logging.getLogger('gm.ui')
-if __name__ == '__main__':
-	_ = lambda x:x
 
 #======================================================================
 class gmMeasurementsPlugin(gmPlugin.cNotebookPlugin):

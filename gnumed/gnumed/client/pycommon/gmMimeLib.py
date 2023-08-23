@@ -11,135 +11,95 @@ __license__ = "GPL"
 # stdlib
 import sys
 import os
+import mailcap
 import mimetypes
 import subprocess
 import shutil
 import logging
-from typing import List
-try:
-	import mailcap as _mailcap
-except ImportError:		# Python 3.11 deprecated mailcap, in 3.13 it will be gone ...
-	import _mailcap__copy as _mailcap			# type: ignore
+import io
 
 
 # GNUmed
 if __name__ == '__main__':
 	sys.path.insert(0, '../../')
-	_ = lambda x:x
 from Gnumed.pycommon import gmShellAPI
 from Gnumed.pycommon import gmTools
-from Gnumed.pycommon import gmCfgINI
+from Gnumed.pycommon import gmCfg2
 from Gnumed.pycommon import gmWorkerThread
 
 
 _log = logging.getLogger('gm.mime')
 
-WORST_CASE_MIMETYPE = 'application/octet-stream'
-
 #=======================================================================================
-def __guess_mimetype__pylibextractor(filename:str=None) -> str:
-	# Python libextractor
+def guess_mimetype(filename=None):
+	"""Guess mime type of arbitrary file.
+
+	filenames are supposed to be in Unicode
+	"""
+	worst_case = "application/octet-stream"
+	_log.debug('guessing mime type of [%s]', filename)
+	# 1) use Python libextractor
 	try:
 		import extractor
+		xtract = extractor.Extractor()
+		props = xtract.extract(filename = filename)
+		for prop, val in props:
+			if (prop == 'mimetype') and (val != worst_case):
+				return val
 	except ImportError:
 		_log.debug('module <extractor> (python wrapper for libextractor) not installed')
-		return None
-
 	except OSError as exc:
 		# winerror 126, errno 22
 		if exc.errno != 22:
 			raise
 		_log.exception('module <extractor> (python wrapper for libextractor) not installed')
-		return None
 
-	xtractor = extractor.Extractor()
-	props = xtractor.extract(filename = filename)
-	for prop, val in props:
-		if prop != 'mimetype':
-			continue
-		_log.debug('[import extractor]: <%s>' % val)
-		if val != WORST_CASE_MIMETYPE:
-			return val
-
-	return None
-
-#---------------------------------------------------------------------------------------
-def __guess_mimetype__file(filename:str=None) -> str:
+	ret_code = -1
+	# 2) use "file" system command
+	#    -i get mime type
+	#    -b don't display a header
+	mime_guesser_cmd = 'file -i -b "%s"' % filename
 	# this only works on POSIX with 'file' installed (which is standard, however)
 	# it might work on Cygwin installations
-	mime_guesser_cmd = 'file --mime-type --brief "%s"' % filename
-	pipe = os.popen(mime_guesser_cmd, 'r')
-	if pipe is None:
+	aPipe = os.popen(mime_guesser_cmd, 'r')
+	if aPipe is None:
 		_log.debug("cannot open pipe to [%s]" % mime_guesser_cmd)
-		return None
-
-	pipe_output = pipe.readline().replace('\n', '').strip()
-	ret_code = pipe.close()
-	if ret_code is not None:
-		_log.error('[%s] on %s (%s): failed with exit(%s)' % (mime_guesser_cmd, os.name, sys.platform, ret_code))
-		return None
-
-	_log.debug('[%s]: <%s>' % (mime_guesser_cmd, pipe_output))
-	if pipe_output in ['', WORST_CASE_MIMETYPE]:
-		return None
-
-	return pipe_output
-
-#---------------------------------------------------------------------------------------
-def __guess_mimetype__extract(filename:str=None) -> str:
-	mime_guesser_cmd = 'extract -p mimetype "%s"' % filename
-	pipe = os.popen(mime_guesser_cmd, 'r')
-	if pipe is None:
-		_log.debug("cannot open pipe to [%s]" % mime_guesser_cmd)
-		return None
-
-	pipe_output = pipe.readline()[11:].replace('\n', '').strip()
-	ret_code = pipe.close()
-	if ret_code is not None:
-		_log.error('[%s] on %s (%s): failed with exit(%s)' % (mime_guesser_cmd, os.name, sys.platform, ret_code))
-		return None
-
-	_log.debug('[%s]: <%s>' % (mime_guesser_cmd, pipe_output))
-	if pipe_output in ['', WORST_CASE_MIMETYPE]:
-		return None
-
-	return pipe_output
-
-#---------------------------------------------------------------------------------------
-def guess_mimetype(filename:str=None) -> str:
-	"""Guess mime type of arbitrary file.
-
-	Returns:
-		Detected mimetype or 'application/octet-stream'.
-	"""
-	_log.debug('guessing mime type of [%s]', filename)
-	mimetype, encoding = mimetypes.guess_type(filename)
-	if mimetype not in [WORST_CASE_MIMETYPE, None]:
-		_log.debug('"%s" -> <%s> (%s)', filename, mimetype, encoding)
-		return mimetype
-
-	mimetype = __guess_mimetype__pylibextractor(filename = filename)
-	if mimetype:
-		return mimetype
-
-	mimetype = __guess_mimetype__file(filename = filename)
-	if mimetype:
-		return mimetype
+	else:
+		pipe_output = aPipe.readline().replace('\n', '').strip()
+		ret_code = aPipe.close()
+		if ret_code is None:
+			_log.debug('[%s]: <%s>' % (mime_guesser_cmd, pipe_output))
+			if pipe_output not in ['', worst_case]:
+				return pipe_output.split(';')[0].strip()
+		else:
+			_log.error('[%s] on %s (%s): failed with exit(%s)' % (mime_guesser_cmd, os.name, sys.platform, ret_code))
 
 	# 3) use "extract" shell level libextractor wrapper
-	mimetype = __guess_mimetype__extract(filename = filename)
-	if mimetype:
-		return mimetype
+	mime_guesser_cmd = 'extract -p mimetype "%s"' % filename
+	aPipe = os.popen(mime_guesser_cmd, 'r')
+	if aPipe is None:
+		_log.debug("cannot open pipe to [%s]" % mime_guesser_cmd)
+	else:
+		pipe_output = aPipe.readline()[11:].replace('\n', '').strip()
+		ret_code = aPipe.close()
+		if ret_code is None:
+			_log.debug('[%s]: <%s>' % (mime_guesser_cmd, pipe_output))
+			if pipe_output not in ['', worst_case]:
+				return pipe_output
+		else:
+			_log.error('[%s] on %s (%s): failed with exit(%s)' % (mime_guesser_cmd, os.name, sys.platform, ret_code))
 
 	# If we and up here we either have an insufficient systemwide
 	# magic number file or we suffer from a deficient operating system
 	# alltogether. It can't get much worse if we try ourselves.
+
 	_log.info("OS level mime detection failed, falling back to built-in magic")
-	from Gnumed.pycommon import gmMimeMagic
-	mimetype = gmTools.coalesce(gmMimeMagic.filedesc(filename), WORST_CASE_MIMETYPE)
+
+	import gmMimeMagic
+	mime_type = gmTools.coalesce(gmMimeMagic.filedesc(filename), worst_case)
 	del gmMimeMagic
-	_log.debug('"%s" -> <%s>' % (filename, mimetype))
-	return mimetype
+	_log.debug('"%s" -> <%s>' % (filename, mime_type))
+	return mime_type
 
 #-----------------------------------------------------------------------------------
 def get_viewer_cmd(aMimeType = None, aFileName = None, aToken = None):
@@ -151,8 +111,8 @@ def get_viewer_cmd(aMimeType = None, aFileName = None, aToken = None):
 		# and hope for the best - we certainly don't want the module default "/dev/null"
 		aFileName = """%s"""
 
-	mailcaps = _mailcap.getcaps()
-	(viewer, junk) = _mailcap.findmatch(mailcaps, aMimeType, key = 'view', filename = '%s' % aFileName)
+	mailcaps = mailcap.getcaps()
+	(viewer, junk) = mailcap.findmatch(mailcaps, aMimeType, key = 'view', filename = '%s' % aFileName)
 	# FIXME: we should check for "x-token" flags
 
 	_log.debug("<%s> viewer: [%s]" % (aMimeType, viewer))
@@ -168,8 +128,8 @@ def get_editor_cmd(mimetype=None, filename=None):
 		# and hope for the best - we certainly don't want the module default "/dev/null"
 		filename = """%s"""
 
-	mailcaps = _mailcap.getcaps()
-	(editor, junk) = _mailcap.findmatch(mailcaps, mimetype, key = 'edit', filename = '%s' % filename)
+	mailcaps = mailcap.getcaps()
+	(editor, junk) = mailcap.findmatch(mailcaps, mimetype, key = 'edit', filename = '%s' % filename)
 
 	# FIXME: we should check for "x-token" flags
 
@@ -184,82 +144,67 @@ def guess_ext_by_mimetype(mimetype=''):
 	# ask system first
 	ext = mimetypes.guess_extension(mimetype)
 	if ext is not None:
-		_log.debug('<%s>: %s', mimetype, ext)
+		_log.debug('<%s>: %s' % (mimetype, ext))
 		return ext
 
 	_log.error("<%s>: no suitable file extension known to the OS" % mimetype)
+
 	# try to help the OS a bit
-	cfg = gmCfgINI.gmCfgData()
+	cfg = gmCfg2.gmCfgData()
 	ext = cfg.get (
 		group = 'extensions',
 		option = mimetype,
 		source_order = [('user-mime', 'return'), ('system-mime', 'return')]
 	)
+
 	if ext is not None:
-		_log.debug('<%s>: %s', mimetype, ext)
+		_log.debug('<%s>: %s' % (mimetype, ext))
 		return ext
 
-	_log.error("<%s>: no suitable file extension found in config files", mimetype)
+	_log.error("<%s>: no suitable file extension found in config files" % mimetype)
+
 	return ext
 
 #-----------------------------------------------------------------------------------
-def guess_ext_for_file(aFile:str=None) -> str:
-	"""Guesses an approprate file name extension based on mimetype.
-
-	Args:
-		aFile: the name of an existing file
-	"""
+def guess_ext_for_file(aFile=None):
 	if aFile is None:
 		return None
 
 	(path_name, f_ext) = os.path.splitext(aFile)
-	if f_ext:
+	if f_ext != '':
 		return f_ext
 
+	# try to guess one
 	mime_type = guess_mimetype(aFile)
 	f_ext = guess_ext_by_mimetype(mime_type)
 	if f_ext is None:
-		_log.error('unable to guess file name extension for mime type [%s]' % mime_type)
+		_log.error('unable to guess file extension for mime type [%s]' % mime_type)
 		return None
 
 	return f_ext
 
 #-----------------------------------------------------------------------------------
-def adjust_extension_by_mimetype(filename:str) -> str:
-	"""Rename file to have proper extension as per its mimetype.
-
-	Returns:
-		Original filename if no suffix found or empty suffix found or existing suffix already correct (case insensitive).
-
-		New filename if renamed. New filename will have any old suffix removed and the new suffix appende.
-	"""
+def adjust_extension_by_mimetype(filename):
 	mimetype = guess_mimetype(filename)
 	mime_suffix = guess_ext_by_mimetype(mimetype)
-	_log.debug('%s -> %s', mimetype, mime_suffix)
 	if mime_suffix is None:
 		return filename
 
-	if mime_suffix.strip() == '':
+	old_name, old_ext = os.path.splitext(filename)
+	if old_ext == '':
+		new_filename = filename + mime_suffix
+	elif old_ext.lower() == mime_suffix.lower():
 		return filename
 
-	mime_suffix = mime_suffix.lstrip('.')
-	base_name_with_path, old_ext = os.path.splitext(filename)
-	old_ext = old_ext.lstrip('.')
-	if old_ext.casefold() == mime_suffix.casefold():
-		return filename
-
-	new_filename = '%s.%s' % (base_name_with_path, mime_suffix)
+	new_filename = old_name + mime_suffix
 	_log.debug('[%s] -> [%s]', filename, new_filename)
-	renamed = gmTools.rename_file (
-		filename = filename,
-		new_filename = new_filename,
-		overwrite = True,
-		allow_symlink = True
-	)
-	if renamed:
+	try:
+		os.rename(filename, new_filename)
 		return new_filename
 
-	return None
+	except OSError:
+		_log.exception('cannot rename, returning original filename')
+	return filename
 
 #-----------------------------------------------------------------------------------
 _system_startfile_cmd = None
@@ -276,7 +221,7 @@ open_cmds = {
 	#'explorer'
 }
 
-def _get_system_startfile_cmd(filename:str):
+def _get_system_startfile_cmd(filename):
 
 	global _system_startfile_cmd
 
@@ -300,148 +245,6 @@ def _get_system_startfile_cmd(filename:str):
 	return False, None
 
 #-----------------------------------------------------------------------------------
-def join_files_as_pdf(files:List[str]=None, pdf_name:str=None) -> str:
-	"""Convert files to PDF and joins them into one final PDF.
-
-	Returns:
-		Name of final PDF or None
-	"""
-	assert (files is not None), '<files> must not be None'
-
-	if len(files) == 0:
-		return None
-
-	sandbox = gmTools.mk_sandbox_dir()
-	pdf_pages = []
-	page_idx = 1
-	for fname in files:
-		pdf = convert_file (
-			filename = fname,
-			target_mime = 'application/pdf',
-			target_filename = gmTools.get_unique_filename(prefix = '%s-' % page_idx, suffix = '.pdf', tmp_dir = sandbox),
-			target_extension = '.pdf',
-			verbose = True
-		)
-		if pdf is None:
-			return None
-
-		pdf_pages.append(pdf)
-		page_idx += 1
-
-	if pdf_name is None:
-		pdf_name = gmTools.get_unique_filename(suffix = '.pdf')
-	cmd_line = ['pdfunite']
-	cmd_line.extend(pdf_pages)
-	cmd_line.append(pdf_name)
-	success, returncode, stdout = gmShellAPI.run_process(cmd_line = cmd_line, verbose = True)
-	if not success:
-		_log.debug('cannot join files into one PDF')
-		return None
-
-	return pdf_name
-
-#-----------------------------------------------------------------------------------
-#-----------------------------------------------------------------------------------
-# mimetype conversion helpers
-#-----------------------------------------------------------------------------------
-__LaTeX_version_checked = False
-__pdflatex_executable = None
-
-def convert_latex_to_pdf(filename:str=None, verbose:bool=False, is_sandboxed:bool=False) -> str:
-	"""Compile LaTeX code to PDF using pdflatex.
-
-	Args:
-		is_sandboxed: whether or not to create a sandbox for compiling
-
-	Returns:
-		Name of resulting PDF, or None on failure.
-	"""
-	global __LaTeX_version_checked
-	global __pdflatex_executable
-	if not __LaTeX_version_checked:
-		__LaTeX_version_checked = True
-		found, __pdflatex_executable = gmShellAPI.detect_external_binary(binary = 'pdflatex')
-		if not found:
-			_log.error('pdflatex not found')
-			return None
-
-		cmd_line = [__pdflatex_executable, '-version']
-		success, ret_code, stdout = gmShellAPI.run_process(cmd_line = cmd_line, encoding = 'utf8', verbose = True)
-		if not success:
-			_log.error('[%s] failed, LaTeX not usable', cmd_line)
-			return None
-
-	if is_sandboxed:
-		sandbox_dir = os.path.split(filename)[0]
-	else:
-		sandbox_dir = gmTools.mk_sandbox_dir(prefix = gmTools.fname_stem(filename) + '_')
-		shutil.copy(filename, sandbox_dir)
-		filename = os.path.join(sandbox_dir, os.path.split(filename)[1])
-	_log.debug('LaTeX sandbox directory: [%s]', sandbox_dir)
-	cmd_final = [
-		__pdflatex_executable,
-		'-recorder',
-		'-interaction=nonstopmode',
-		"-output-directory=%s" % sandbox_dir
-	]
-	cmd_draft = cmd_final + ['-draftmode']
-	# LaTeX can need up to three runs to get cross references et al right
-	for cmd2run in [cmd_draft, cmd_draft, cmd_final]:
-		success, ret_code, stdout = gmShellAPI.run_process (
-			cmd_line = cmd2run + [filename],
-			acceptable_return_codes = [0],
-			encoding = 'utf8',
-			verbose = True	#_cfg.get(option = 'debug')
-		)
-		if not success:
-			_log.error('problem running pdflatex, cannot generate form output, trying diagnostics')
-			found, binary = gmShellAPI.find_first_binary(binaries = ['lacheck', 'miktex-lacheck.exe'])
-			if not found:
-				_log.debug('lacheck not found')
-			else:
-				cmd_line = [binary, filename]
-				success, ret_code, stdout = gmShellAPI.run_process(cmd_line = cmd_line, encoding = 'utf8', verbose = True)
-			found, binary = gmShellAPI.find_first_binary(binaries = ['chktex', 'ChkTeX.exe'])
-			if not found:
-				_log.debug('chcktex not found')
-			else:
-				cmd_line = [binary, '--verbosity=2', '--headererr', filename]
-				success, ret_code, stdout = gmShellAPI.run_process(cmd_line = cmd_line, encoding = 'utf8', verbose = True)
-			return None
-
-	return '%s.pdf' % os.path.splitext(filename)[0]
-
-#-----------------------------------------------------------------------------------
-def __convert_odt_to_pdf(filename:str=None, verbose:bool=False):
-	cmd_line = [
-		'lowriter',
-		'--convert-to', 'pdf',
-		'--outdir', os.path.split(filename)[0],
-		filename
-	]
-	success, returncode, stdout = gmShellAPI.run_process(cmd_line = cmd_line, verbose = True)
-	if not success:
-		return None
-
-	return gmTools.fname_stem_with_path(filename) + '.pdf'
-
-#-----------------------------------------------------------------------------------
-#-----------------------------------------------------------------------------------
-__CONVERSION_DELEGATES = {
-	'application/vnd.oasis.opendocument.text': {
-		'application/pdf': __convert_odt_to_pdf
-	},
-	'text/latex': {
-		'application/pdf': convert_latex_to_pdf
-	}
-}
-
-__CONVERSION_DELEGATES['text/tex'] = __CONVERSION_DELEGATES['text/latex']
-__CONVERSION_DELEGATES['text/x-tex'] = __CONVERSION_DELEGATES['text/latex']
-__CONVERSION_DELEGATES['application/x-latex'] = __CONVERSION_DELEGATES['text/latex']
-__CONVERSION_DELEGATES['application/x-tex'] = __CONVERSION_DELEGATES['text/latex']
-
-#-----------------------------------------------------------------------------------
 def convert_file(filename=None, target_mime=None, target_filename=None, target_extension=None, verbose=False):
 	"""Convert file from one format into another.
 
@@ -452,7 +255,7 @@ def convert_file(filename=None, target_mime=None, target_filename=None, target_e
 	assert (filename != target_filename), '<target_filename> must be different from <filename>'
 
 	source_mime = guess_mimetype(filename = filename)
-	if source_mime.casefold() == target_mime.casefold():
+	if source_mime.lower() == target_mime.lower():
 		_log.debug('source file [%s] already target mime type [%s]', filename, target_mime)
 		if target_filename is None:
 			return filename
@@ -469,53 +272,15 @@ def convert_file(filename=None, target_mime=None, target_filename=None, target_e
 	converted_ext = gmTools.coalesce(converted_ext, '').strip().lstrip('.')
 	converted_fname = gmTools.get_unique_filename(suffix = converted_ext)
 	_log.debug('attempting conversion: [%s] -> [<%s>:%s]', filename, target_mime, gmTools.coalesce(target_filename, converted_fname))
-
-	# try user-local conversion script
 	script_name = 'gm-convert_file'
-	binary = os.path.join(gmTools.gmPaths().home_dir, 'bin', script_name)
-	_log.debug('trying user-local script: %s', binary)
-	_log.debug('<%s> API: SOURCEFILE TARGET_MIMETYPE TARGET_EXTENSION TARGET_FILENAME', script_name)
-	found, binary = gmShellAPI.detect_external_binary(binary = binary)
-	if found:
-		cmd_line = [
-			binary,
-			filename,
-			target_mime,
-			converted_ext,
-			converted_fname
-		]
-		success, returncode, stdout = gmShellAPI.run_process(cmd_line = cmd_line, verbose = True)
-		if success:
-			if target_filename is None:
-				return converted_fname
-
-			shutil.copyfile(converted_fname, target_filename)
-			return target_filename
-
-	# try built-in conversions
-	_log.debug('trying built-in conversion function')
-	try:
-		conversion_func = __CONVERSION_DELEGATES[source_mime][target_mime]
-	except KeyError:
-		conversion_func = None
-	if conversion_func is not None:
-		converted_fname = conversion_func(filename = filename, verbose = verbose)
-		if converted_fname is not None:
-			if target_filename is None:
-				return converted_fname
-
-			shutil.copyfile(converted_fname, target_filename)
-			return target_filename
-
-	# try system-wide conversion script
 	paths = gmTools.gmPaths()
 	local_script = os.path.join(paths.local_base_dir, '..', 'external-tools', script_name)
 	candidates = [ script_name, local_script ]		#, script_name + u'.bat'
-	_log.debug('trying system-wide scripts: %s', candidates)
 	found, binary = gmShellAPI.find_first_binary(binaries = candidates)
-	if not found:	# try anyway
-		_log.debug('trying anyway as last-ditch resort')
+	if not found:
+		# try anyway
 		binary = script_name# + r'.bat'
+	_log.debug('<%s> API: SOURCEFILE TARGET_MIMETYPE TARGET_EXTENSION TARGET_FILENAME' % binary)
 	cmd_line = [
 		binary,
 		filename,
@@ -524,31 +289,22 @@ def convert_file(filename=None, target_mime=None, target_filename=None, target_e
 		converted_fname
 	]
 	success, returncode, stdout = gmShellAPI.run_process(cmd_line = cmd_line, verbose = True)
-	if success:
-		if target_filename is None:
-			return converted_fname
+	if not success:
+		_log.error('conversion returned error exit code')
+		if not os.path.exists(converted_fname):
+			return None
+		_log.info('conversion target file found')
+		stats = os.stat(converted_fname)
+		if stats.st_size == 0:
+			return None
+		_log.info('conversion target file size > 0')
+		achieved_mime = guess_mimetype(filename = converted_fname)
+		if achieved_mime != target_mime:
+			_log.error('target: [%s], achieved: [%s]', target_mime, achieved_mime)
+			return None
+		_log.info('conversion target file mime type [%s], as expected, might be usable', achieved_mime)
+		# we may actually have something despite a non-0 exit code
 
-		shutil.copyfile(converted_fname, target_filename)
-		return target_filename
-
-	# seems to have failed but check for target file anyway
-	_log.error('conversion script returned error exit code, checking target file anyway')
-	if not os.path.exists(converted_fname):
-		return None
-
-	_log.info('conversion target file found')
-	stats = os.stat(converted_fname)
-	if stats.st_size == 0:
-		return None
-
-	_log.info('conversion target file size > 0')
-	achieved_mime = guess_mimetype(filename = converted_fname)
-	if achieved_mime != target_mime:
-		_log.error('target: [%s], achieved: [%s]', target_mime, achieved_mime)
-		return None
-
-	# we may actually have something despite a non-0 exit code
-	_log.info('conversion target file mime type [%s], as expected, might be usable', achieved_mime)
 	if target_filename is None:
 		return converted_fname
 
@@ -625,6 +381,7 @@ def call_viewer_on_file(aFile = None, block=None):
 
 	mime_type = guess_mimetype(aFile)
 	viewer_cmd = get_viewer_cmd(mime_type, aFile)
+
 	if viewer_cmd is not None:
 		if gmShellAPI.run_command_in_shell(command = viewer_cmd, blocking = block):
 			return True, ''
@@ -752,6 +509,8 @@ if __name__ == "__main__":
 	if sys.argv[1] != 'test':
 		sys.exit()
 
+	from Gnumed.pycommon import gmI18N
+
 	# for testing:
 	logging.basicConfig(level = logging.DEBUG)
 
@@ -798,17 +557,13 @@ if __name__ == "__main__":
 	#--------------------------------------------------------
 	def test_convert_file():
 		print(convert_file (
-			filename = sys.argv[2],
+			filename = filename,
 			target_mime = sys.argv[3]
 		))
 
 	#--------------------------------------------------------
-	def test_join_files_as_pdf():
-		print(join_files_as_pdf(files = gmTools.dir_list_files(sys.argv[2])))
-
-	#--------------------------------------------------------
 #	print(_system_startfile_cmd)
-	print(guess_mimetype(filename))
+#	print(guess_mimetype(filename))
 #	print(get_viewer_cmd(guess_mimetype(filename), filename))
 #	print(get_editor_cmd(guess_mimetype(filename), filename))
 #	print(get_editor_cmd('application/x-latex', filename))
@@ -816,11 +571,9 @@ if __name__ == "__main__":
 #	print(get_editor_cmd('text/latex', filename))
 #	print(get_editor_cmd('text/tex', filename))
 #	print(get_editor_cmd('text/plain', filename))
-	#print(get_editor_cmd('text/x-tex', filename))
 	#print(guess_ext_by_mimetype(mimetype=filename))
-	#call_viewer_on_file(aFile = filename, block = True)
+#	call_viewer_on_file(aFile = filename, block = True)
 	#call_editor_on_file(filename)
 	#test_describer()
 	#print(test_edit())
-	#test_convert_file()
-	#test_join_files_as_pdf()
+	test_convert_file()
