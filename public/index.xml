@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>simpelmed</title>
+    <link>https://bgehrke.gitlab.io/simpelmed/</link>
+    <description>Recent content on simpelmed</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>de</language>
+    <managingEditor>kontakt@simpelmed.de (Berthold Gehrke)</managingEditor>
+    <webMaster>kontakt@simpelmed.de (Berthold Gehrke)</webMaster><atom:link href="https://bgehrke.gitlab.io/simpelmed/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>faq</title>
+      <link>https://bgehrke.gitlab.io/simpelmed/faq/</link>
+      <pubDate>Sun, 20 Aug 2023 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://bgehrke.gitlab.io/simpelmed/faq/</guid>
+      <description>Hier einige Infos zu SimpelMed auf einen Blick. Klicken Sie auf die Überschrift, um die Antworten zu sehen. Mit einem zweiten Klick werden sie wieder eingeklappt …
+Was ist SimpelMed? Eine auf die deutsche Situation abgestimmte Ergänzung zum Projekt GNUmed.
+Welche Personen stecken hinter SimpelMed? Siehe das Impressum.</description>
+    </item>
+    
+    <item>
+      <title>impressum</title>
+      <link>https://bgehrke.gitlab.io/simpelmed/impressum/</link>
+      <pubDate>Sun, 20 Aug 2023 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://bgehrke.gitlab.io/simpelmed/impressum/</guid>
+      <description>Angaben gemäß § 5 TMG: Berthold Gehrke &amp;amp; Alexandra Rupp GbR Klenzestr. 59 80469 München
+Vertreten durch: Dr. Berthold Gehrke
+Kontakt Telefon: +498930791919 E-Mail: kontakt@simpelmed.de
+Hinweis Verantwortlich für redaktionelle Inhalte: Dr. Berthold Gehrke</description>
+    </item>
+    
+    <item>
+      <title>datenschutz</title>
+      <link>https://bgehrke.gitlab.io/simpelmed/datenschutz/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://bgehrke.gitlab.io/simpelmed/datenschutz/</guid>
+      <description>Datenschutzerklärung 1. Datenschutz auf einen Blick Allgemeine Hinweise Die folgenden Hinweise geben einen einfachen Überblick darüber, was mit Ihren personenbezogenen Daten passiert, wenn Sie diese Website besuchen. Personenbezogene Daten sind alle Daten, mit denen Sie persönlich identifiziert werden können. Ausführliche Informationen zum Thema Datenschutz entnehmen Sie unserer unter diesem Text aufgeführten Datenschutzerklärung.
+Datenerfassung auf dieser Website Wer ist verantwortlich für die Datenerfassung auf dieser Website? Die Datenverarbeitung auf dieser Website erfolgt durch den Websitebetreiber.</description>
+    </item>
+    
+  </channel>
+</rss>
