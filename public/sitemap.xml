@@ -2,18 +2,18 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://bgehrke.gitlab.io/simpelmed/faq/</loc>
+    <loc>https://simpelmed.de/faq/</loc>
     <lastmod>2023-08-20T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://bgehrke.gitlab.io/simpelmed/impressum/</loc>
+    <loc>https://simpelmed.de/impressum/</loc>
     <lastmod>2023-08-20T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://bgehrke.gitlab.io/simpelmed/</loc>
+    <loc>https://simpelmed.de/</loc>
   </url><url>
-    <loc>https://bgehrke.gitlab.io/simpelmed/categories/</loc>
+    <loc>https://simpelmed.de/categories/</loc>
   </url><url>
-    <loc>https://bgehrke.gitlab.io/simpelmed/datenschutz/</loc>
+    <loc>https://simpelmed.de/datenschutz/</loc>
   </url><url>
-    <loc>https://bgehrke.gitlab.io/simpelmed/tags/</loc>
+    <loc>https://simpelmed.de/tags/</loc>
   </url>
 </urlset>
