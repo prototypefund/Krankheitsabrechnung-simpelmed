@@ -1,20 +1,21 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>simpelmed</title>
+    <title>index on simpelmed</title>
     <link>https://simpelmed.de/</link>
-    <description>Recent content on simpelmed</description>
+    <description>Recent content in index on simpelmed</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>de</language>
     <managingEditor>kontakt@simpelmed.de (Berthold Gehrke)</managingEditor>
-    <webMaster>kontakt@simpelmed.de (Berthold Gehrke)</webMaster><atom:link href="https://simpelmed.de/index.xml" rel="self" type="application/rss+xml" />
+    <webMaster>kontakt@simpelmed.de (Berthold Gehrke)</webMaster>
+    <lastBuildDate>Wed, 20 Sep 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://simpelmed.de/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>faq</title>
       <link>https://simpelmed.de/faq/</link>
       <pubDate>Sun, 20 Aug 2023 00:00:00 +0000</pubDate>
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/faq/</guid>
-      <description>Hier einige Infos zu SimpelMed auf einen Blick. Klicken Sie auf die Überschrift, um die Antworten zu sehen. Mit einem zweiten Klick werden sie wieder eingeklappt …
+      <description>Hier einige Infos zu SimpelMed auf einen Blick. Klicken Sie auf die Überschrift, um die Antworten zu sehen. Mit einem zweiten Klick werden sie wieder eingeklappt ...
 Diese Seite wird fortlaufend ergänzt. Falls Sie weitere Fragen stellen möchten, bitte per Mail an kontakt ädd simpelmed.de
 Was ist SimpelMed? Eine auf die deutsche Situation abgestimmte Ergänzung zum Projekt GNUmed.
 Welche Personen stecken hinter SimpelMed? Siehe das Impressum.</description>
@@ -29,7 +30,28 @@ Welche Personen stecken hinter SimpelMed? Siehe das Impressum.</description>
       <description>Angaben gemäß § 5 TMG: Berthold Gehrke &amp;amp; Alexandra Rupp GbR Klenzestr. 59 80469 München
 Vertreten durch: Dr. Berthold Gehrke
 Kontakt Telefon: +498930791919 E-Mail: kontakt ädd simpelmed.de
-Hinweis Verantwortlich für redaktionelle Inhalte: Dr. Berthold Gehrke</description>
+Hinweis Verantwortlich für redaktionelle Inhalte: Dr. Berthold Gehrke
+Steuernummer / Kontoverbindung Finanzamt München: 143/522/006?? USt-Id: DE3627193?? Konto: IBAN DE73 3006 0601 0028 9880 ?? BIC DAAEDEDDXXX
+(die jeweils beiden letzten Ziffern ?? gern auf Nachfrage)</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/infos/arbeitsumgebung/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/infos/arbeitsumgebung/</guid>
+      <description>Arbeitsumgebung in Arbeit / folgt</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/infos/repo/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/infos/repo/</guid>
+      <description>Repo bei Gitlab Schauen Sie hier:
+https://gitlab.com/bgehrke/simpelmed</description>
     </item>
     
     <item>
