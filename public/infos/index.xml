@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Infos on simpelmed</title>
+    <link>https://simpelmed.de/infos/</link>
+    <description>Recent content in Infos on simpelmed</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>de</language>
+    <managingEditor>kontakt@simpelmed.de (Berthold Gehrke)</managingEditor>
+    <webMaster>kontakt@simpelmed.de (Berthold Gehrke)</webMaster><atom:link href="https://simpelmed.de/infos/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/infos/arbeitsumgebung/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/infos/arbeitsumgebung/</guid>
+      <description>Arbeitsumgebung in Arbeit / folgt</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/infos/repo/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/infos/repo/</guid>
+      <description>Repo bei Gitlab Schauen Sie hier:
+https://gitlab.com/bgehrke/simpelmed</description>
+    </item>
+    
+  </channel>
+</rss>
