@@ -14,7 +14,17 @@
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/arbeitsumgebung/</guid>
-      <description>Arbeitsumgebung in Arbeit / folgt</description>
+      <description>Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
+ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD), eine PostgreSQL-Datenbank (»Server«), sinnvollerweise in virtueller Maschine, (optional, aber sehr empfehlenswert) eine weiterere virtuelle Maschine mit der PostgreSQL-Admin-Oberfläche »pgadmin4«. Diese »drei« Rechner werden über ein lokales Netz verbunden und sind damit gegenseitig ansprechbar/erreichbar über TCP/IP. Vorerst wird ausschließlich eine GNU/Linux-Umgebung verwendet, später kommt - um den Einsatz in einem realen Szenario darzustellen - ein Windows-Client hinzu.</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/infos/gnumed-server/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/infos/gnumed-server/</guid>
+      <description> GnuMed Server Installation folgt zeitnah … </description>
     </item>
     
     <item>
