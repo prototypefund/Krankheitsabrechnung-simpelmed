@@ -8,7 +8,7 @@
     <language>de</language>
     <managingEditor>kontakt@simpelmed.de (Berthold Gehrke)</managingEditor>
     <webMaster>kontakt@simpelmed.de (Berthold Gehrke)</webMaster>
-    <lastBuildDate>Wed, 20 Sep 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://simpelmed.de/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 10 May 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://simpelmed.de/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>faq</title>
       <link>https://simpelmed.de/faq/</link>
@@ -31,8 +31,8 @@ Welche Personen stecken hinter SimpelMed? Siehe das Impressum.</description>
 Vertreten durch: Dr. Berthold Gehrke
 Kontakt Telefon: +498930791919 E-Mail: kontakt ädd simpelmed.de
 Hinweis Verantwortlich für redaktionelle Inhalte: Dr. Berthold Gehrke
-Steuernummer / Kontoverbindung Finanzamt München: 143/522/006?? USt-Id: DE3627193?? Konto: IBAN DE73 3006 0601 0028 9880 ?? BIC DAAEDEDDXXX
-(die jeweils beiden letzten Ziffern ?? gern auf Nachfrage)</description>
+Steuernummer / Kontoverbindung Finanzamt München: 143/522/006°° USt-Id: DE3627193°° Konto: IBAN DE73 3006 0601 0028 9880 °° BIC DAAEDEDDXXX
+(die jeweils zwei letzten Ziffern °° auf Nachfrage)</description>
     </item>
     
     <item>
@@ -43,6 +43,17 @@ Steuernummer / Kontoverbindung Finanzamt München: 143/522/006?? USt-Id: DE36271
       <guid>https://simpelmed.de/infos/arbeitsumgebung/</guid>
       <description>Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
 ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD), eine PostgreSQL-Datenbank (»Server«), sinnvollerweise in virtueller Maschine, (optional, aber sehr empfehlenswert) eine weiterere virtuelle Maschine mit der PostgreSQL-Admin-Oberfläche »pgadmin4«. Diese »drei« Rechner werden über ein lokales Netz verbunden und sind damit gegenseitig ansprechbar/erreichbar über TCP/IP. Vorerst wird ausschließlich eine GNU/Linux-Umgebung verwendet, später kommt - um den Einsatz in einem realen Szenario darzustellen - ein Windows-Client hinzu.</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/infos/foerderung/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/infos/foerderung/</guid>
+      <description>Förderung Das Projekt wird gefördert durch Mittel des BMBF. Was bedeutet das? Um nicht alles abtippen zu müssen, verweisen wir Sie am besten auf die Beschreibung des Projektträgers. Dort findet sich alles zu diesem Vorhaben; darüber hinaus erhalten Sie umfassende Informationen zu anderen Projekten.
+https://prototypefund.de/project/krankheitsabrechnung-zurueck-in-aerztinnenhand/
+Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt Detailinfos zu seiner Arbeit, seinen Auftraggebern und Finanzierungsmodellen.</description>
     </item>
     
     <item>
