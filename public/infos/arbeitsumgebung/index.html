@@ -13,7 +13,7 @@
       <title>simpelmed - </title>
 
   <meta name="description" content="Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
-ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD), eine PostgreSQL-Datenbank (»Server«), sinnvollerweise in virtueller Maschine, (optional, aber sehr empfehlenswert) eine weiterere virtuelle Maschine mit der PostgreSQL-Admin-Oberfläche »pgadmin4«. Diese »drei« Rechner werden über ein lokales Netz verbunden und sind damit gegenseitig ansprechbar/erreichbar über TCP/IP. Vorerst wird ausschließlich eine GNU/Linux-Umgebung verwendet, später kommt - um den Einsatz in einem realen Szenario darzustellen - ein Windows-Client hinzu.">
+ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.">
   <meta name="author" content="Berthold Gehrke"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -62,9 +62,9 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
     "name" : "Berthold Gehrke"
   },
   "headline": "",
-  "description" : "Arbeitsumgebung Python \/ PostgreSQL \/ SimpelMed Benötigt werden:\nein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD), eine PostgreSQL-Datenbank (»Server«), sinnvollerweise in virtueller Maschine, (optional, aber sehr empfehlenswert) eine weiterere virtuelle Maschine mit der PostgreSQL-Admin-Oberfläche »pgadmin4«. Diese »drei« Rechner werden über ein lokales Netz verbunden und sind damit gegenseitig ansprechbar\/erreichbar über TCP\/IP. Vorerst wird ausschließlich eine GNU\/Linux-Umgebung verwendet, später kommt - um den Einsatz in einem realen Szenario darzustellen - ein Windows-Client hinzu.",
+  "description" : "Arbeitsumgebung Python \/ PostgreSQL \/ SimpelMed Benötigt werden:\nein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar\/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.",
   "inLanguage" : "de",
-  "wordCount":  318 ,
+  "wordCount":  1378 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -85,7 +85,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
 
 <meta property="og:title" content="simpelmed" />
 <meta property="og:description" content="Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
-ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD), eine PostgreSQL-Datenbank (»Server«), sinnvollerweise in virtueller Maschine, (optional, aber sehr empfehlenswert) eine weiterere virtuelle Maschine mit der PostgreSQL-Admin-Oberfläche »pgadmin4«. Diese »drei« Rechner werden über ein lokales Netz verbunden und sind damit gegenseitig ansprechbar/erreichbar über TCP/IP. Vorerst wird ausschließlich eine GNU/Linux-Umgebung verwendet, später kommt - um den Einsatz in einem realen Szenario darzustellen - ein Windows-Client hinzu.">
+ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.">
 <meta property="og:image" content="https://simpelmed.de/img/simpelmed.jpg" />
 <meta property="og:url" content="https://simpelmed.de/infos/arbeitsumgebung/" />
 <meta property="og:type" content="website" />
@@ -93,7 +93,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
 
   <meta name="twitter:title" content="simpelmed" />
   <meta name="twitter:description" content="Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
-ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD), eine …">
+ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine …">
   <meta name="twitter:image" content="https://simpelmed.de/img/simpelmed.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
   <link href='https://simpelmed.de/img/simpelmed.ico' rel='icon' type='image/x-icon'/>
@@ -133,6 +133,8 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
               <div class="navlinks-children">
                 
                   <a href="/infos/arbeitsumgebung">Arbeitsumgebung</a>
+                
+                  <a href="/infos/postgresql-pgadmin">PostgreSQL-pgAdmin</a>
                 
                   <a href="/infos/gnumed-server">GnuMed-Server</a>
                 
@@ -262,38 +264,38 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
 <div class="ulist"><ul>
 <li>
 <p>
-ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD),<br/>
+ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD)
 </p>
 </li>
 <li>
 <p>
-eine PostgreSQL-Datenbank (»Server«), sinnvollerweise in virtueller Maschine,<br/>
+eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine
 </p>
 </li>
 <li>
 <p>
-(optional, aber sehr empfehlenswert) eine weiterere virtuelle Maschine mit der PostgreSQL-Admin-Oberfläche »pgadmin4«.<br/>
-Diese »drei« Rechner werden über ein lokales Netz verbunden und sind damit gegenseitig ansprechbar/erreichbar über TCP/IP.
+(optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4
+</p>
+</li>
+<li>
+<p>
+diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar/erreichbar.
 </p>
 </li>
 </ul></div>
-<div class="paragraph"><p>Vorerst wird ausschließlich eine GNU/Linux-Umgebung verwendet, später kommt - um den Einsatz in einem realen Szenario darzustellen - ein Windows-Client hinzu.</p></div>
-<div class="paragraph"><p>Dieses Netzwerk kann realisiert werden über<br/>
-- »Virtualbox« (GNU/Linux oder Windows) oder<br/>
-- »KVM/Quemu/Virt-Manager (nur GNU/Linux).</p></div>
+<div class="paragraph"><p>Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein. Namen sind wie fast immer nur <em>Schall und Rauch</em>.</p></div>
 <div class="sect2">
 <h3 id="_virtualbox_oder_kvm_virt_manager">VirtualBox oder KVM (virt-manager)</h3>
 <div class="paragraph"><p>Pro Virtualbox:<br/>
-Netzwerk-Bridging einfach einzustellen ohne eigene Konfiguration.</p></div>
+Netzwerk-Bridging einfach einzustellen ohne eigene Konfiguration</p></div>
 <div class="paragraph"><p>Contra:<br/>
-Erheblicher Overhead mit spürbarer Herabsetzung der Ausführungsgeschwindigkeit,<br/>
-(uu) langsam sowie sehr hohe Zahl an Zugriffen bei Installation des Image auf eine herkömmliche SATA-Platte bzw. bei jeder Aktualisierung<br/>
-→ wenn Virtualbox, dann sollte dies zwingend auf einer SSD installiert sein!</p></div>
+erheblicher Overhead mit spürbarer Herabsetzung der Ausführungsgeschwindigkeit<br/>
+sehr langsam sowie sehr hohe Zahl an Zugriffen bei Installation des Image auf eine herkömmliche SATA-Platte → dringend auf eine SSD ausweichen!</p></div>
 <div class="paragraph"><p>Pro KVM:<br/>
-Schneller, performanter, kein Overhead.</p></div>
+Schneller, performanter, kein Overhead</p></div>
 <div class="paragraph"><p>Contra:<br/>
-Umkonfigurierung der Netzwerkeinstellungen notwendig (Bridging),<br/>
-dies kan aber durch ein »einfaches (Python-)Script« durchgeführt werden.</p></div>
+Umkonfigurierung der Netzwerkeinstellungen notwendig (Bridging)<br/>
+dies kan aber durch ein »einfaches (Python-)Script« durchgeführt werden</p></div>
 <div class="paragraph"><p>Beide Lösungen ermöglichen auch den Datenaustausch zwischen den (virtuellen) Rechnern;<br/>
 beide Lösungen simulieren den Einsatz der Software in einem Client-Server-Umfeld.</p></div>
 <div class="paragraph"><p>Im Folgenden werden beide Lösungen beschrieben; beide Lösungen wurden getestet.</p></div>
@@ -301,22 +303,189 @@ beide Lösungen simulieren den Einsatz der Software in einem Client-Server-Umfel
 <div class="sect2">
 <h3 id="_virtualbox">Virtualbox</h3>
 <div class="paragraph"><p>Wichtig: Beim Starten/Installieren wird als »Netzwerk« gewählt:<br/>
-Adapter … Netzwerkbrücke<br/>
-nicht die Versäumniseinstellung »NAT«</p></div>
-<div class="paragraph"><p>Als OS für die virtuellen Rechner wurden gewählt:<br/>
-a) Mint (Xfce Edition <a href="https://linuxmint.com/download.php">https://linuxmint.com/download.php</a> oder Debian LMDE <a href="https://linuxmint.com/download_lmde.php">https://linuxmint.com/download_lmde.php</a>)<br/>
-b) q4os (Aquarius Trinity <a href="https://q4os.org/downloads1.html">https://q4os.org/downloads1.html</a>)</p></div>
-<div class="paragraph"><p>Diese beiden Distributionen sind nach unserer Erfahrung schnell, genügend klein und stabil. Beide sind Debian Derivate und greifen auf die entsprechenden Repos zurück.</p></div>
+Adapter … Netzwerkbrücke, nicht die Versäumniseinstellung »NAT«.</p></div>
+<div class="paragraph"><p>Als Distribution für die PostgreSQL-Datenbank kommen in die Auswahl:<br/>
+1a) Ubuntu-Server oder<br/>
+1b) Mint (Xfce).<br/>
+Obwohl 1b) eine grafische Oberfläche bedienen muss, gibt es hier keinen nenennswerten, messbaren Performance-Abfall. Im Folgenden wird nur noch Mint (Xfce) betrachtet.
+Als Distri für pgAdmin4 wird<br/>
+1c) <a href="https://q4os.org/">https://q4os.org/</a> q4OS gewählt.</p></div>
 <div class="admonitionblock">
 <table><tbody><tr>
 <td class="icon">
 <div class="title">Anmerkung</div>
 </td>
-<td class="content">Grundsätzlich steht die Wahl der Linux-Distribution in Zusammenhang mit GnuMed im Ermessen des Anwenders - zu bedenken ist allerdings, dass viele Anleitungen, Manuale und auch die bisherigen Software-Pakete eine Debian-kompatible Ausstattung bevorzugen oder sogar voraussetzen.<br/>
-Auch SimpelMed geht (vorerst) von Debian-Systemen (zumindest als GnuMed-Server aus), tatsächlich kann natürlich auch Windows10/11 eingesetzt werden.</td>
+<td class="content">Grundsätzlich steht die Wahl der Linux-Distribution im Ermessen des Anwenders - auch Windows10/11 ist möglich (aber nicht empfehlenswert). Alle Installationsvorgaben gehen vom Einsatz einer von Debian abgeleiteten Distri aus - Damit sind wir mit Ubuntu/Mint/q4os auf dem richtigen Weg. Die Clients z.B. im Praxisbetrieb können auch unter Windows laufen …</td>
 </tr></tbody></table>
 </div>
-<div class="paragraph"><p>(… Fortsetzung folgt zeitnah …)</p></div>
+<div class="paragraph"><p>Es werden unter Virtualbox zwei Maschinen eingerichtet, der einfacheren Bedienung wegen jeweils mit Gasterweiterungen und gemeinsamen Ordner: je einmal Mint (Download der Xfce-Edition <a href="https://linuxmint.com/edition.php?id=304">https://linuxmint.com/edition.php?id=304</a>) für den PostgreSQL-Server und einmal q4os (Download der empfehlenswerten Trinity-Version <a href="https://sourceforge.net/projects/q4os/files/stable/q4os-4.12-x64-instcd.r1.iso/download">https://sourceforge.net/projects/q4os/files/stable/q4os-4.12-x64-instcd.r1.iso/download</a>) für pgAdmin4.</p></div>
+<div class="admonitionblock">
+<table><tbody><tr>
+<td class="icon">
+<div class="title">Anmerkung</div>
+</td>
+<td class="content">Das eigentliche Einrichten/Installieren von VirtualBox und seinen virtuellen Maschinen wird hier nicht beschrieben. Es lässt sich falls gewünscht durch ein Script automatisieren: <a href="https://blogs.oracle.com/virtualization/post/guide-for-virtualbox-vm-unattended-installation">https://blogs.oracle.com/virtualization/post/guide-for-virtualbox-vm-unattended-installation</a> oder <a href="https://www.youtube.com/watch?v=ypkItN4d4Y0">https://www.youtube.com/watch?v=ypkItN4d4Y0</a></td>
+</tr></tbody></table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_kvm_qemu">KVM/Qemu</h3>
+<div class="paragraph"><p>Statt eines »Virtualbox-Netzwerkes« kann das benötigte Schema mit den drei virtuellen Rechnern auch über KVM/Qemu aufgebaut werden. Diese Lösung scheint nach unserer Erfahrung etwas bessere bzw. stabilere Ergebnisse zu zeigen. Alle weiteren Arbeistschritte finden deswegen auf dieser Plattform statt.</p></div>
+<div class="paragraph"><p>Als Voreinstellung nutzt KVM/Qemu zur Netzanbindung NAT; das ist allerdings hier nicht geeignet, da sich damit die virtuellen Maschinen nicht »sehen« können. Durch das folgende (Python-)Skript kann aber problemlos eine virtuelle Brücke »Bridge« eingerichtet werde. Diese stört den sonstigen Internet in keinster Weise.</p></div>
+<div class="sect3">
+<h4 id="_bridge_für_kvm">Bridge für KVM</h4>
+<div class="paragraph"><p>Im ersten Schritt führen Sie das folgende Kommando aus, um die Daten für Ihren (Host-)Rechner zu erhalten:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>bge ~ &gt; ip -a address
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute
+       valid_lft forever preferred_lft forever
+2: eno1: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast master brbr0 state UP group default qlen 1000
+    link/ether 24:be:05:17:7c:e2 brd ff:ff:ff:ff:ff:ff
+    altname enp0s25
+    inet 192.168.178.20/24 brd 192.168.178.255 scope global dynamic noprefixroute eno1
+       valid_lft 858650sec preferred_lft 858650sec
+&lt;...&gt;
+bge ~ &gt;</code></pre>
+</div></div>
+<div class="paragraph"><p>Daraus ist zu entnehmen: der Ethernet-Adapter hat die Bezeichnung <em>eno1</em>, diesem ist die IP-Adresse <em>192.168.178.20/24</em> zugeteilt.<br/>
+Mit diesen Angaben kann das folgende Skript seine Aufgabe erfüllen:<br/>
+Die im Programm gekennzeichneten IP-Adressen des Host-Rechners und des Gateways müssen Sie natürlich an Ihre Daten anpassen!</p></div>
+<div class="listingblock">
+<div class="title">Python3 Einrichten einer virtuellen Bridge (bridge.py)</div>
+<div class="content">
+<pre><code>#!/usr/bin/env python3
+&#34;&#34;&#34;Richtet eiine virtuelle Bridge auf der vorhandenen Netzwerkkarte ein,
+   damit Gäste untereinander und den Host-Rechner über TCP/IP »sehen« können.
+
+Angelehnt an: »QEMU - Bridged Networking«
+https://www.youtube.com/watch?v=VCAqkyVd7dM
+
+Muss als root/sudo gestartet werden!&#34;&#34;&#34;
+
+import os
+#import socket
+#import subprocess
+import time
+
+print(&#34;Start ...&#34;)
+try:
+    os.system(&#34;modprobe tun tap&#34;)
+    print(&#34;modprobe tun tap ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;ip link add brbr0 type bridge&#34;) # &#39;brbr0&#39; ist ein beliebiger Platzhalter
+    print(&#34;ip link add brbr0 type bridge ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;ip tuntap add dev taptap0 mode tap&#34;) # &#39;taptap0&#39; ist ein beliebiger Platzhalter
+    print(&#34;tuntap add dev taptap0 mode tap ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;ip link set dev eno1 master brbr0&#34;)  # &#39;eno1&#39; ist die Bezeichnung der Netzwerkkarte Ihres Rechners
+    print(&#34;ip link set dev eno1 master brbr0 ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;ip link set dev taptap0 master brbr0&#34;)
+    print(&#34;ip link set dev taptap0 master brbr0 ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;ip link set dev brbr0 up&#34;)
+    print(&#34;ip link set dev brbr0 up ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;ip address delete 192.168.178.20/24 dev eno1&#34;) # IP-Adresse entsprechend einsetzen
+    print(&#34;ip address delete 192.168.178.20/24 dev eno1 ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;ip address add 192.168.178.20/24 dev brbr0&#34;)
+    print(&#34;ip address add 192.168.178.20/24 dev brbr0 ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;ip route add default via 192.168.178.1 dev brbr0&#34;) # Diese IP-Adresse benennt den Gateway
+    print(&#34;ip route add default via 192.168.178.1 dev brbr0 ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;resolvectl dns brbr0 192.168.178.1&#34;)
+    print(&#34;resolvectl dns brbr0 192.168.178.1 ... ok&#34;)
+    time.sleep(1)
+    os.system(&#34;systemctl restart systemd-resolved.service&#34;)
+    print(&#34;systemctl restart systemd-resolved.service ... ok&#34;)
+    time.sleep(1)
+    print(&#34;... fertig!&#34;)
+except OSError:
+    print(&#34;ERROR!&#34;)</code></pre>
+</div></div>
+</div>
+<div class="sect3">
+<h4 id="_installation_der_virtuellen_maschinen">Installation der Virtuellen Maschinen</h4>
+<div class="paragraph"><p>Ganz analog zum Vorgehen bei VirtualBox werden nun zwei Maschinen installiert.<br/>
+Wie bereits erwähnt, kommen hier sinnvollerweise alle Debian-Derivate in Frage. Gewählt wurde in unserer Umgebung <em>LMDE</em> (Linux Mint Debian Edition) - möglich wäre auch Mint Xfce, das ist Geschmacksache. Als zweites System kommt wie oben <em>q4os</em> zum Zuge (q4os.org).</p></div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_netzwerk_einrichten_und_prüfen">Netzwerk einrichten und prüfen</h3>
+<div class="paragraph"><p>Egal ob die Virtualbox- oder wie hier im Folgenden die KVM/Qemu-Lösung (über den virtuellen Netzwerkmanager <em>apt-get install virt-manager</em>) gewählt wird:<br/>
+Für die weitere Administration des »Netzwerkes« aus Host und den beiden Guests benötigen wir noch jeweils die internen IP-Adressen. Diese werden mit folgendem Schritt mit dem Kommando <em>ip a</em> ermittelt.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>&lt;home&gt;:~$ ip a
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp0s3: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:db:24:da brd ff:ff:ff:ff:ff:ff
+    inet 192.168.178.63/24 brd 192.168.178.255 scope global dynamic noprefixroute enp0s3
+       valid_lft 863740sec preferred_lft 863740sec
+    inet6 fd00::f17e:19b1:ac43:e604/64 scope global temporary dynamic
+       valid_lft 6943sec preferred_lft 3343sec
+    inet6 fd00::f4c:fcb9:430b:bf80/64 scope global dynamic mngtmpaddr noprefixroute
+       valid_lft 6943sec preferred_lft 3343sec
+    inet6 2001:a61:ad3:4c01:2146:46a7:6de2:4847/64 scope global temporary dynamic
+       valid_lft 5852sec preferred_lft 2252sec
+    inet6 2001:a61:ad3:4c01:d799:6115:804c:b43f/64 scope global dynamic mngtmpaddr noprefixroute
+       valid_lft 5852sec preferred_lft 2252sec
+    inet6 fe80::d228:2500:56e8:ada7/64 scope link noprefixroute
+       valid_lft forever preferred_lft forever</code></pre>
+</div></div>
+<div class="paragraph"><p>Die Loopback-Adresse lautet erwartungsgemäß 127.0.0.1/8; diese wird nicht weiter benötigt. Unsere virtuelle Bridge liefert <em>192.168.178.63/24</em>.<br/>
+Analog gehen wir mit allen virtuellen Maschinen und unserem Gastrechner vor. Als Ergebnis haben wird schließlich drei IP-Adressen, die unser virtuelles Netzwerk bilden, z.B.:<br/>
+<em>192.168.178.63/24</em> für virtuelle Maschine Eins,<br/>
+<em>192.168.178.82/24</em> für virtuelle Maschine Zwei und schließlich<br/>
+<em>192.168.178.20/24</em> für den Wirtrechner.</p></div>
+<div class="paragraph"><p>Jede der Maschinen kann jeweils die beiden anderen über TCP/IP erreichen, das kann z.B. mit einem <em>Ping</em> bestätigt werden.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>bge ~ &gt; ping 192.168.178.63
+PING 192.168.178.63 (192.168.178.63) 56(84) bytes of data.
+64 bytes from 192.168.178.63: icmp_seq=1 ttl=64 time=0.263 ms
+64 bytes from 192.168.178.63: icmp_seq=2 ttl=64 time=0.299 ms
+64 bytes from 192.168.178.63: icmp_seq=3 ttl=64 time=0.307 ms
+64 bytes from 192.168.178.63: icmp_seq=4 ttl=64 time=0.337 ms
+^C
+--- 192.168.178.36 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3075ms
+rtt min/avg/max/mdev = 0.263/0.301/0.337/0.026 ms
+bge ~ &gt;</code></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_dhcp_konfigurieren">DHCP konfigurieren</h3>
+<div class="paragraph"><p>Der Arbeitsplatz bekommt vom DHCP-Server (z.B. einer Fritz-Box, einem Speedport oder ähnliches) die Adresse zugeteilt, hier <em>192.168.178.20/24</em>. Wegen unserer Bridge erhalten auch die Virtuellen Maschinen eigene IP-Adressen. Es ist für die spätere Arbeit sehr hilfreich, wenn diese Adressen auch nach einem Neustart identisch sind. Andernfalls müsste z.B. pgAdmin4 und der GNUmed-Client jedes Mal neu auf die richtige Adresse eingerichtet werden.</p></div>
+<div class="paragraph"><p>In der Fritz-Box wird dies erreicht mittels</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>Startseite -&gt; Heimnetz -&gt; Netzwerk öffnen</code></pre>
+</div></div>
+<div class="paragraph"><p>Im Reiter <em>Netzwerkverbindungen</em> erscheinen unsere drei Netzrechner mit den eben ermittelten IP-Adressen.<br/>
+Jetzt das Zeichen <em>Bearbeiten</em> (in der Fritz-Box ein Bleistift) anklicken, im nächsten Schritt die Zeile <em>Adressen im Heimnetz (IP-Adressen)</em> anklicken und einen Haken bei »Diesem Netzwerkgerät immer die gleiche IPv4-Adresse zuweisen.« Dann noch »Übernehmen«. Diese Schritte wie gesagt für alle beteiligten drei (virtuellen) Rechner durchführen. Diese festen Adressen beeinflussen das übrige Heimnetz nicht - auch wenn diese nicht online sind, verfügt die FritzBox über mehr als genug freie Adressen.</p></div>
+<div class="admonitionblock">
+<table><tbody><tr>
+<td class="icon">
+<div class="title">Anmerkung</div>
+</td>
+<td class="content">Fazit bis hier:<br/>
+Das Netz sollte jetzt stehen und einsatzbereit sein. Im nächsten Schritt folgen die Einrichtung des PostgreSQL-Servers und von pgAdmin4. Im übernächsten geht es dann (endlich) um die Installation der GNUmed-Pakete.</td>
+</tr></tbody></table>
+</div>
 </div>
 </div>
 </div>
@@ -329,16 +498,6 @@ Auch SimpelMed geht (vorerst) von Debian-Systemen (zumindest als GnuMed-Server a
         
       </article>
 
-      
-        <ul class="pager blog-pager">
-          
-            <li class="previous">
-              <a href="https://simpelmed.de/infos/foerderung/" data-toggle="tooltip" data-placement="top" title="">&larr; Letzter Post</a>
-            </li>
-          
-          
-        </ul>
-      
 
 
       
@@ -382,7 +541,7 @@ Auch SimpelMed geht (vorerst) von Debian-Systemen (zumindest als GnuMed-Server a
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 5. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 11. Oktober 2023
           
           
 

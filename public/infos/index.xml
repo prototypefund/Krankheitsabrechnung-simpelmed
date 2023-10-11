@@ -15,7 +15,7 @@
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/arbeitsumgebung/</guid>
       <description>Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
-ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD), eine PostgreSQL-Datenbank (»Server«), sinnvollerweise in virtueller Maschine, (optional, aber sehr empfehlenswert) eine weiterere virtuelle Maschine mit der PostgreSQL-Admin-Oberfläche »pgadmin4«. Diese »drei« Rechner werden über ein lokales Netz verbunden und sind damit gegenseitig ansprechbar/erreichbar über TCP/IP. Vorerst wird ausschließlich eine GNU/Linux-Umgebung verwendet, später kommt - um den Einsatz in einem realen Szenario darzustellen - ein Windows-Client hinzu.</description>
+ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.</description>
     </item>
     
     <item>
@@ -35,7 +35,16 @@ Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt De
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/gnumed-server/</guid>
-      <description> GnuMed Server Installation folgt zeitnah … </description>
+      <description>GnuMed Server Installation → folgt zeitnah …</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/infos/postgresql-pgadmin/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/infos/postgresql-pgadmin/</guid>
+      <description>PostgreSQL pgAdmin → folgt zeitnah …</description>
     </item>
     
     <item>
