@@ -12,7 +12,7 @@
 
       <title>simpelmed - </title>
 
-  <meta name="description" content="Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
+  <meta name="description" content="Arbeitsumgebung SimpelMed / PostgreSQL / Python Benötigt werden:
 ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.">
   <meta name="author" content="Berthold Gehrke"/><script type="application/ld+json">
 {
@@ -62,9 +62,9 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
     "name" : "Berthold Gehrke"
   },
   "headline": "",
-  "description" : "Arbeitsumgebung Python \/ PostgreSQL \/ SimpelMed Benötigt werden:\nein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar\/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.",
+  "description" : "Arbeitsumgebung SimpelMed \/ PostgreSQL \/ Python Benötigt werden:\nein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar\/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.",
   "inLanguage" : "de",
-  "wordCount":  1378 ,
+  "wordCount":  1504 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -84,7 +84,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
 </script>
 
 <meta property="og:title" content="simpelmed" />
-<meta property="og:description" content="Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
+<meta property="og:description" content="Arbeitsumgebung SimpelMed / PostgreSQL / Python Benötigt werden:
 ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.">
 <meta property="og:image" content="https://simpelmed.de/img/simpelmed.jpg" />
 <meta property="og:url" content="https://simpelmed.de/infos/arbeitsumgebung/" />
@@ -92,7 +92,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
 <meta property="og:site_name" content="simpelmed" />
 
   <meta name="twitter:title" content="simpelmed" />
-  <meta name="twitter:description" content="Arbeitsumgebung Python / PostgreSQL / SimpelMed Benötigt werden:
+  <meta name="twitter:description" content="Arbeitsumgebung SimpelMed / PostgreSQL / Python Benötigt werden:
 ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine …">
   <meta name="twitter:image" content="https://simpelmed.de/img/simpelmed.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -102,6 +102,36 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
   <link rel="stylesheet" href="https://simpelmed.de/fontawesome/css/all.css" />
   <link rel="stylesheet" href="https://simpelmed.de/css/bootstrap.min.css" /><link rel="stylesheet" href="https://simpelmed.de/css/main.css" /><link rel="stylesheet" href="https://simpelmed.de/css/fonts.css" /><link rel="stylesheet" href="https://simpelmed.de/css/syntax.css" /><link rel="stylesheet" href="https://simpelmed.de/css/codeblock.css" /><link rel="stylesheet" href="https://simpelmed.de/css/photoswipe.min.css" />
   <link rel="stylesheet" href="https://simpelmed.de/css/photoswipe.default-skin.min.css" />
+
+
+<style>
+
+ 
+
+div.admonitionblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+div.admonitionblock {
+  margin-top: 2.0em;
+  margin-bottom: 2.0em;
+  margin-right: 10%;
+  color: #606060;
+}
+
+
+div.admonitionblock .icon {
+  vertical-align: top;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #527bbd;
+  padding-right: 0.5em;
+}
+div.admonitionblock td.content {
+  padding-left: 0.5em;
+  border-left: 3px solid #dddddd;
+}
+</style>
 
 
   </head>
@@ -139,6 +169,8 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
                   <a href="/infos/gnumed-server">GnuMed-Server</a>
                 
                   <a href="/infos/repo">Repo</a>
+                
+                  <a href="/infos/team">Team</a>
                 
                   <a href="/infos/foerderung">Förderung</a>
                 
@@ -258,7 +290,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
 </div>
 </div>
 <div class="sect1">
-<h2 id="_python_postgresql_simpelmed">Python / PostgreSQL / SimpelMed</h2>
+<h2 id="_simpelmed_postgresql_python">SimpelMed / PostgreSQL / Python</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Benötigt werden:</p></div>
 <div class="ulist"><ul>
@@ -331,7 +363,7 @@ Als Distri für pgAdmin4 wird<br/>
 <div class="sect2">
 <h3 id="_kvm_qemu">KVM/Qemu</h3>
 <div class="paragraph"><p>Statt eines »Virtualbox-Netzwerkes« kann das benötigte Schema mit den drei virtuellen Rechnern auch über KVM/Qemu aufgebaut werden. Diese Lösung scheint nach unserer Erfahrung etwas bessere bzw. stabilere Ergebnisse zu zeigen. Alle weiteren Arbeistschritte finden deswegen auf dieser Plattform statt.</p></div>
-<div class="paragraph"><p>Als Voreinstellung nutzt KVM/Qemu zur Netzanbindung NAT; das ist allerdings hier nicht geeignet, da sich damit die virtuellen Maschinen nicht »sehen« können. Durch das folgende (Python-)Skript kann aber problemlos eine virtuelle Brücke »Bridge« eingerichtet werde. Diese stört den sonstigen Internet in keinster Weise.</p></div>
+<div class="paragraph"><p>Als Voreinstellung nutzt KVM/Qemu zur Netzanbindung NAT; das ist allerdings hier nicht geeignet, da sich damit die virtuellen Maschinen nicht »sehen« können. Durch das folgende (Python-)Skript kann aber problemlos eine virtuelle Brücke »Bridge« eingerichtet werde. Diese stört den sonstigen Internetverkehr in keinster Weise.</p></div>
 <div class="sect3">
 <h4 id="_bridge_für_kvm">Bridge für KVM</h4>
 <div class="paragraph"><p>Im ersten Schritt führen Sie das folgende Kommando aus, um die Daten für Ihren (Host-)Rechner zu erhalten:</p></div>
@@ -349,12 +381,42 @@ Als Distri für pgAdmin4 wird<br/>
     altname enp0s25
     inet 192.168.178.20/24 brd 192.168.178.255 scope global dynamic noprefixroute eno1
        valid_lft 858650sec preferred_lft 858650sec
-&lt;...&gt;
-bge ~ &gt;</code></pre>
+&lt;...&gt;</code></pre>
 </div></div>
 <div class="paragraph"><p>Daraus ist zu entnehmen: der Ethernet-Adapter hat die Bezeichnung <em>eno1</em>, diesem ist die IP-Adresse <em>192.168.178.20/24</em> zugeteilt.<br/>
 Mit diesen Angaben kann das folgende Skript seine Aufgabe erfüllen:<br/>
 Die im Programm gekennzeichneten IP-Adressen des Host-Rechners und des Gateways müssen Sie natürlich an Ihre Daten anpassen!</p></div>
+<div class="paragraph"><p>Die gewünschten Information lassen sich auch durch folgendes kleines Python-Programm auslesen. Sie können die Werte dann Variablen zuweisen und müssen bridge.py nicht manuell konfigurieren. So wie hier geht es etwas schneller, darüber hinaus ist dieser Schritt nur einmal notwendig und eine Optimierung des Vorgehens scheint überflüssig.</p></div>
+<div class="listingblock">
+<div class="title">Python3 Netzwerkkarte/Gateway</div>
+<div class="content">
+<pre><code>#!/usr/bin/env python3
+&#34;&#34;&#34; Ermittel den »Namen« der Netzwerkkarte und die TCP/IP-Adresse
+    des Gateways.
+
+    Root-Rechte sind nicht erforderlich.
+    Beispielhafte Ausgabe:
+
+    [(1, &#39;lo&#39;), (2, &#39;eno1&#39;)]
+    127.0.1.1
+    192.168.178.20
+
+    Falls die Bridge schon eingerichtet wurde, sieht die Ausgabe wie folgt aus:
+
+    [(1, &#39;lo&#39;), (2, &#39;eno1&#39;), (3, &#39;brbr0&#39;), (4, &#39;taptap0&#39;), (5, &#39;vnet0&#39;)]
+    127.0.1.1
+    192.168.178.20&#34;&#34;&#34;
+
+import socket
+
+print(socket.if_nameindex())
+print(socket.gethostbyname(socket.gethostname()))
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect((&#34;8.8.8.8&#34;, 80))
+print(s.getsockname()[0])
+s.close()</code></pre>
+</div></div>
+<div class="paragraph"><p>Mit den jetzt vorliegenden Infos kann die virtuelle Bridge eingerichtet werden.</p></div>
 <div class="listingblock">
 <div class="title">Python3 Einrichten einer virtuellen Bridge (bridge.py)</div>
 <div class="content">
@@ -365,11 +427,10 @@ Die im Programm gekennzeichneten IP-Adressen des Host-Rechners und des Gateways 
 Angelehnt an: »QEMU - Bridged Networking«
 https://www.youtube.com/watch?v=VCAqkyVd7dM
 
-Muss als root/sudo gestartet werden!&#34;&#34;&#34;
+Muss als root/sudo gestartet werden!
+&#39;subprocess&#39; wäre streng genommen gegenüber &#39;os.system&#39; zu bevorzugen ...&#34;&#34;&#34;
 
 import os
-#import socket
-#import subprocess
 import time
 
 print(&#34;Start ...&#34;)
@@ -486,6 +547,7 @@ Jetzt das Zeichen <em>Bearbeiten</em> (in der Fritz-Box ein Bleistift) anklicken
 Das Netz sollte jetzt stehen und einsatzbereit sein. Im nächsten Schritt folgen die Einrichtung des PostgreSQL-Servers und von pgAdmin4. Im übernächsten geht es dann (endlich) um die Installation der GNUmed-Pakete.</td>
 </tr></tbody></table>
 </div>
+<div class="paragraph"><p>-&gt; Weiter zu <a href="../postgresql-pgadmin">postgresql-pgadmin</a>.</p></div>
 </div>
 </div>
 </div>
@@ -541,7 +603,7 @@ Das Netz sollte jetzt stehen und einsatzbereit sein. Im nächsten Schritt folgen
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 11. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 14. Oktober 2023
           
           
 

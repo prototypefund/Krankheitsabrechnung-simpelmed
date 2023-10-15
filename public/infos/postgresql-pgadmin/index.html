@@ -12,7 +12,9 @@
 
       <title>simpelmed - </title>
 
-  <meta name="description" content="PostgreSQL pgAdmin → folgt zeitnah …">
+  <meta name="description" content="PostgreSQL / pgAdmin PostgreSQL-Server Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert: - Thunderbird - LibreOffice - CUPS (Druckerverwaltung) - und andere - allerdings sollten nur eindeutig bekannte Kandidaten entfernt werden, sonst drohen Funktionseinschränkungen. Insbesondere sollten keine Dateien lib* ohne genaue Kenntnis ihrer Funktion deinstalliert werden …
+Nun wird der Postgres-Server aus den Paketen installiert.
+sudo apt install postgresql postgresql-contrib --no-install-recommends Die Option --no-install-recommends kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.">
   <meta name="author" content="Berthold Gehrke"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -61,9 +63,9 @@
     "name" : "Berthold Gehrke"
   },
   "headline": "",
-  "description" : "PostgreSQL pgAdmin → folgt zeitnah …",
+  "description" : "PostgreSQL \/ pgAdmin PostgreSQL-Server Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert: - Thunderbird - LibreOffice - CUPS (Druckerverwaltung) - und andere - allerdings sollten nur eindeutig bekannte Kandidaten entfernt werden, sonst drohen Funktionseinschränkungen. Insbesondere sollten keine Dateien lib* ohne genaue Kenntnis ihrer Funktion deinstalliert werden …\nNun wird der Postgres-Server aus den Paketen installiert.\nsudo apt install postgresql postgresql-contrib --no-install-recommends Die Option --no-install-recommends kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.",
   "inLanguage" : "de",
-  "wordCount":  6 ,
+  "wordCount":  2881 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -83,14 +85,16 @@
 </script>
 
 <meta property="og:title" content="simpelmed" />
-<meta property="og:description" content="PostgreSQL pgAdmin → folgt zeitnah …">
+<meta property="og:description" content="PostgreSQL / pgAdmin PostgreSQL-Server Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert: - Thunderbird - LibreOffice - CUPS (Druckerverwaltung) - und andere - allerdings sollten nur eindeutig bekannte Kandidaten entfernt werden, sonst drohen Funktionseinschränkungen. Insbesondere sollten keine Dateien lib* ohne genaue Kenntnis ihrer Funktion deinstalliert werden …
+Nun wird der Postgres-Server aus den Paketen installiert.
+sudo apt install postgresql postgresql-contrib --no-install-recommends Die Option --no-install-recommends kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.">
 <meta property="og:image" content="https://simpelmed.de/img/simpelmed.jpg" />
 <meta property="og:url" content="https://simpelmed.de/infos/postgresql-pgadmin/" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="simpelmed" />
 
   <meta name="twitter:title" content="simpelmed" />
-  <meta name="twitter:description" content="PostgreSQL pgAdmin → folgt zeitnah …">
+  <meta name="twitter:description" content="PostgreSQL / pgAdmin PostgreSQL-Server Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert: - Thunderbird - …">
   <meta name="twitter:image" content="https://simpelmed.de/img/simpelmed.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
   <link href='https://simpelmed.de/img/simpelmed.ico' rel='icon' type='image/x-icon'/>
@@ -99,6 +103,36 @@
   <link rel="stylesheet" href="https://simpelmed.de/fontawesome/css/all.css" />
   <link rel="stylesheet" href="https://simpelmed.de/css/bootstrap.min.css" /><link rel="stylesheet" href="https://simpelmed.de/css/main.css" /><link rel="stylesheet" href="https://simpelmed.de/css/fonts.css" /><link rel="stylesheet" href="https://simpelmed.de/css/syntax.css" /><link rel="stylesheet" href="https://simpelmed.de/css/codeblock.css" /><link rel="stylesheet" href="https://simpelmed.de/css/photoswipe.min.css" />
   <link rel="stylesheet" href="https://simpelmed.de/css/photoswipe.default-skin.min.css" />
+
+
+<style>
+
+ 
+
+div.admonitionblock {
+  margin-top: 1.0em;
+  margin-bottom: 1.5em;
+}
+div.admonitionblock {
+  margin-top: 2.0em;
+  margin-bottom: 2.0em;
+  margin-right: 10%;
+  color: #606060;
+}
+
+
+div.admonitionblock .icon {
+  vertical-align: top;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #527bbd;
+  padding-right: 0.5em;
+}
+div.admonitionblock td.content {
+  padding-left: 0.5em;
+  border-left: 3px solid #dddddd;
+}
+</style>
 
 
   </head>
@@ -136,6 +170,8 @@
                   <a href="/infos/gnumed-server">GnuMed-Server</a>
                 
                   <a href="/infos/repo">Repo</a>
+                
+                  <a href="/infos/team">Team</a>
                 
                   <a href="/infos/foerderung">Förderung</a>
                 
@@ -250,9 +286,549 @@
     <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
       <article role="main" class="blog-post">
         <div class="sect1">
-<h2 id="_postgresql_pgadmin">PostgreSQL pgAdmin</h2>
+<h2 id="_postgresql_pgadmin">PostgreSQL / pgAdmin</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>→ folgt zeitnah …</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_postgresql_server">PostgreSQL-Server</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert:<br/>
+- Thunderbird<br/>
+- LibreOffice<br/>
+- CUPS (Druckerverwaltung)<br/>
+- und andere - allerdings sollten nur eindeutig bekannte Kandidaten entfernt werden, sonst drohen Funktionseinschränkungen. Insbesondere sollten keine Dateien <em>lib*</em> ohne genaue Kenntnis ihrer Funktion deinstalliert werden …</p></div>
+<div class="paragraph"><p>Nun wird der Postgres-Server aus den Paketen installiert.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>sudo apt install postgresql postgresql-contrib --no-install-recommends</code></pre>
+</div></div>
+<div class="paragraph"><p>Die Option <em>--no-install-recommends</em> kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.</p></div>
+<div class="paragraph"><p>Andere Postgres-Pakete sind auf dem Server (vorerst) nicht notwendig. Je nach Zeitpunkt der Installation wird der PostgreSQL-Server in einer der Versionen 13, 14, 15 oder 16 installiert. Diese Version spielt für die hier verfolgten Zwecke keine Rolle - alle Funktionalitäten werden von den genannten erfüllt.</p></div>
+<div class="paragraph"><p>Fast alle Distributionen installieren die Version 15: Version 16 ist noch etwas »zu neu« und nicht alle Hilfsprogramme funktionieren. 13 und 14 sind »Auslaufmodelle« - im Folgenden wird im Projekt <em>SimpelMed</em> mit Version 15 gearbeitet (auch wenn manchmal in den Listings noch Version 14 auftaucht: alles funktioniert mit Version 15 ganz analog).</p></div>
+<div class="paragraph"><p>Ob alles wie geplant installiert wurde, lässt sich durch folgende Eingaben in einer Konsole überprüfen.<br/></p></div>
+<div class="listingblock">
+<div class="title">Überprüfen der PostgreSQL-Server-Installation</div>
+<div class="content">
+<pre><code>abc@abc:~$ getent passwd
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+...
+hplip:x:127:7:HPLIP system user,,,:/run/hplip:/bin/false
+abc:x:1000:1000:abc,,,:/home/abc:/bin/bash
+sssd:x:128:138:SSSD system user,,,:/var/lib/sss:/usr/sbin/nologin
+vboxadd:x:999:1::/var/run/vboxadd:/bin/false
+postgres:x:112:139:PostgreSQL administrator,,,:/var/lib/postgresql:/bin/bash</code></pre>
+</div></div>
+<div class="paragraph"><p>Dies zeigt an: Nutzer root verfügt über kein Kennwort - wie unter Debian/Ubuntu üblich, werden Admin-Aufgaben per <em>sudo</em> ausgeführt.<br/>
+Unser »normaler« Nutzer ist <em>abc</em> (Kennwort wurde bei Installation beliebig eingegeben).<br/>
+Wie erwartet, wurde der Nutzer <em>postgres</em> hinzugefügt. Dieser ist der »Superuser« für den PostgreSQL-Server - das hat nichts mit dem Superuser root zu tun.</p></div>
+<div class="listingblock">
+<div class="title">Status PostgreSQL (leicht gekürzt)</div>
+<div class="content">
+<pre><code>abc@abc:~$ systemctl status postgresql
+● postgresql.service - PostgreSQL RDBMS
+     Loaded: loaded (/lib/systemd/system/postgresql.service; enabled; vendor preset: enabled)
+     Active: active (exited) since Fri 2023-07-07 14:57:47 CEST; 4min 55s ago
+    Process: 1084 ExecStart=/bin/true (code=exited, status=0/SUCCESS)
+   Main PID: 1084 (code=exited, status=0/SUCCESS)
+        CPU: 1ms
+
+Jul 07 14:57:47 abc systemd[1]: Starting PostgreSQL RDBMS...
+Jul 07 14:57:47 abc systemd[1]: Finished PostgreSQL RDBMS.
+abc@abc:~$ systemctl status postgresql@14-main
+● postgresql@14-main.service - PostgreSQL Cluster 14-main
+     Loaded: loaded (/lib/systemd/system/postgresql@.service; ...)
+     Active: active (running) since Fri 2023-07-07 14:57:47 CEST; 5min ago
+    Process: 773 ExecStart=/usr/bin/pg_ctlcluster --skip-systemctl-redirect 14-main start (code=exited, status=0/SUCCESS)
+   Main PID: 921 (postgres)
+      Tasks: 7 (limit: 6730)
+     Memory: 36.9M
+        CPU: 471ms
+     CGroup: /system.slice/system-postgresql.slice/postgresql@14-main.service
+             ├─921 /usr/lib/postgresql/14/bin/postgres -D /var/lib/postgresql/14/main -c config_file=/etc/postgresql/14/main/postgresql.conf
+             ├─925 &#34;postgres: 14/main: checkpointer &#34; &#34;&#34; &#34;&#34; &#34;&#34; &#34;&#34; &#34;&#34;&#34; &#34;&#34; &#34;&gt;
+             ├─926 &#34;postgres: 14/main: background writer &#34; &#34;&#34; &#34;&#34; &#34;&#34;  &#34;&#34; &#34;&#34;&gt;
+             ├─927 &#34;postgres: 14/main: walwriter &#34; &#34;&#34; &#34;&#34; &#34;&#34; &#34;&#34; &#34;&#34; &#34;&#34;&#34; &#34;&#34; &#34;&gt;
+             ├─928 &#34;postgres: 14/main: autovacuum launcher &#34; &#34;&#34; &#34;&#34; &#34;&#34;&#34; &#34;&#34; &gt;
+             ├─929 &#34;postgres: 14/main: stats collector &#34; &#34;&#34; &#34;&#34; &#34;&#34; &#34;&#34;&#34; &#34;&#34; &#34;&gt;
+             └─930 &#34;postgres: 14/main: logical replication launcher &#34;&#34; &#34;&#34; &gt;
+
+Jul 07 14:57:35 abc systemd[1]: Starting PostgreSQL Cluster 14-main...
+Jul 07 14:57:47 abc systemd[1]: Started PostgreSQL Cluster 14-main.
+~$</code></pre>
+</div></div>
+<div class="paragraph"><p>Ja, und in der Tat, der Dienst »postgresql« läuft, hier wiederum die Version 14 des Servers. Für unsere Version »15« sieht die Meldung entsprechend aus. Diese Statusmeldungen entsprechen dem normalen Verhalten.<br/>
+Schauen wir mal in den Server hinein:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>abc@abc:~$ sudo -u postgres psql
+[sudo] Passwort für abc:
+could not change directory to &#34;/home/abc&#34;: Keine Berechtigung
+psql (14.8 (Ubuntu 14.8-0ubuntu0.22.04.1))
+Type &#34;help&#34; for help.
+
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(3 rows)
+
+postgres=# \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+
+postgres=# \q
+
+abc@abc:~$</code></pre>
+</div></div>
+<div class="paragraph"><p>Der Admin-Nutzer <em>postgres</em> hat - wie hier zu sehen - nach der Installation kein Kennwort.<br/>
+\l (list) zeigt alle Datenbanken, \du (display user) alle eingerichteten Nutzer für PostgreSQL. Auch hier entspricht alles dem Standard einer frischen Installation.</p></div>
+<div class="sect2">
+<h3 id="_test_datenbank_und_test_nutzer_einrichten">Test-Datenbank und Test-Nutzer einrichten</h3>
+<div class="paragraph"><p>Für die weiteren Schritte ist es zur späteren Kontrolle sinnvoll, auf dem PostgreSQL-Server eine kleine Datenbank einzurichten. Darüber hinaus ist es zur Vereinfachung der manchmal verwirrenden Rechte- und Nutzerverwaltung unter PostgreSQL zu empfehlen, einen Nutzer mit der identischen Bezeichnung wie den Standard-Nutzer unter Ubuntu/Mint einzurichten - hier also <em>abc</em>.</p></div>
+<div class="sect3">
+<h4 id="_datenbank_und_oder_nutzer_einrichten">Datenbank und/oder Nutzer einrichten</h4>
+<div class="listingblock">
+<div class="title">Hinzufügen eines Datenbank-Nutzers und einer Tabelle</div>
+<div class="content">
+<pre><code>abc@abc:~$ sudo -u postgres psql
+[sudo] Passwort für abc:
+postgres=#
+postgres=# CREATE ROLE abc;
+CREATE ROLE
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(3 rows)
+
+postgres=# \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ abc       | Cannot login                                               | {}
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+
+postgres=# CREATE DATABASE abc;
+CREATE DATABASE
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ abc       | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(4 rows)
+
+postgres=# ALTER DATABASE abc OWNER TO abc;
+ALTER DATABASE
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ abc       | abc      | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(4 rows)
+
+postgres=# \q
+
+abc@abc~$ psql
+psql: error: connection to server on socket &#34;/var/run/postgresql/.s.PGSQL.5432&#34; failed: FATAL:  role &#34;abc&#34; is not permitted to log in
+abc@abc:~$ \sudo -u postgres psql
+[sudo] Passwort für abc:
+could not change directory to &#34;/home/abc&#34;: Keine Berechtigung
+psql (14.8 (Ubuntu 14.8-0ubuntu0.22.04.1))
+Type &#34;help&#34; for help.
+
+postgres=# ALTER ROLE abc WITH LOGIN;
+ALTER ROLE
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ abc       | abc      | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(4 rows)
+
+postgres=# \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ abc       |                                                            | {}
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+
+postgres=# ALTER ROLE abc WITH CREATEDB;
+ALTER ROLE
+postgres=# \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ abc       | Create DB                                                  | {}
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+
+postgres=# \q
+
+abc@abc:~$ psql
+psql (14.8 (Ubuntu 14.8-0ubuntu0.22.04.1))
+Type &#34;help&#34; for help.
+
+abc=&gt; \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ abc       | abc      | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(4 rows)
+
+abc=&gt; \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ abc       | Create DB                                                  | {}
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+
+abc=&gt; CREATE TABLE kolleginnen(
+kollid SMALLINT PRIMARY KEY,
+name VARCHAR(20),
+spitzname VARCHAR(20),
+telnr INT)
+;
+CREATE TABLE
+abc=&gt; \dt
+          List of relations
+ Schema |    Name     | Type  | Owner
+--------+-------------+-------+-------
+ public | kolleginnen | table | abc
+(1 row)
+
+abc=&gt; INSERT INTO kolleginnen
+(kollid, name, spitzname, telnr)
+VALUES (1, &#39;Anne&#39;, &#39;Aennchen&#39;, 12345);
+INSERT 0 1
+abc=&gt; INSERT INTO kolleginnen
+(kollid, name, spitzname, telnr)
+VALUES (2, &#39;Bilal&#39;, &#39;Billie&#39;, 5682);
+INSERT 0 1
+abc=&gt; INSERT INTO kolleginnen
+(kollid, name, spitzname, telnr)
+VALUES (8, &#39;Norbert&#39;, &#39;Nobsi&#39;, 4321);
+INSERT 0 1
+abc=&gt; \dt
+          List of relations
+ Schema |    Name     | Type  | Owner
+--------+-------------+-------+-------
+ public | kolleginnen | table | abc
+(1 row)
+
+abc=&gt; SELECT * FROM kolleginnen;
+ kollid |  name   | spitzname | telnr
+--------+---------+-----------+-------
+      1 | Anne    | Aennchen  | 12345
+      2 | Bilal   | Billie    |  5682
+      8 | Norbert | Nobsi     |  4321
+(3 rows)
+
+abc=&gt; \q</code></pre>
+</div></div>
+</div>
+<div class="sect3">
+<h4 id="_datenbank_entfernen">Datenbank entfernen</h4>
+<div class="paragraph"><p>Gelegentlich wird natürlich auch das Löschen von Datenbanken und/oder Nutzern notwendig. Für diese Fälle hier ein Beispiel.<br/>
+Falls eine »frische« Datenbank vorliegt, bitte gleich <a href="#edit1">weiter</a>.</p></div>
+<div class="listingblock">
+<div class="title">Entfernen einer Tabelle bzw. eines Datenbank-Mutzers</div>
+<div class="content">
+<pre><code>abc@abc~$ sudo -u postgres psql
+[sudo] Passwort für abc:
+could not change directory to &#34;/home/abc&#34;: Keine Berechtigung
+psql (14.8 (Ubuntu 14.8-0ubuntu0.22.04.1))
+Type &#34;help&#34; for help.
+
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ abc       | abc      | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(4 rows)
+
+postgres=# \c abc
+You are now connected to database &#34;abc&#34; as user &#34;postgres&#34;.
+abc=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ abc       | abc      | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(4 rows)
+
+abc=# \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ abc       | Create DB                                                  | {}
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+
+abc=# \dt
+        List of relations
+ Schema |  Name   | Type  | Owner
+--------+---------+-------+-------
+ public |  test   | table | abc
+(1 row)
+
+abc=# DROP TABLE test;
+DROP TABLE
+abc=# \dt
+Did not find any relations.
+abc=# \c postgres
+You are now connected to database &#34;postgres&#34; as user &#34;postgres&#34;.
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ abc       | abc      | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(4 rows)
+
+postgres=# DROP DATABASE abc;
+DROP DATABASE
+postgres=# \l
+                                  List of databases
+   Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges
+-----------+----------+----------+-------------+-------------+-----------------------
+ postgres  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |
+ template0 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+ template1 | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 | =c/postgres          +
+           |          |          |             |             | postgres=CTc/postgres
+(3 rows)
+
+postgres=# DROP ROLE abc;
+DROP ROLE
+postgres=# \du
+                                   List of roles
+ Role name |                         Attributes                         | Member of
+-----------+------------------------------------------------------------+-----------
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+
+postgres=# \q</code></pre>
+</div></div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="edit1">PostgreSQL-Client einrichten</h3>
+<div class="paragraph"><p>Auf dem PostgreSQL-Server läuft (wer hätte das gedacht?) PostgreSQL. Kommandos werden mittels der der Konsole <em>psql</em> abgesetzt, die z.B. mit <em>sudo -u postgres psql</em> gestartet wird. Dies wurde in den obigen Protokollen bereits demonstriert. Andere Rechner, die auf den Server lesend zugreifen oder ihn sogar steuern sollen, benötigen zwingend eine Schnittstelle zum Server, den <em>PostgreSQl-Client</em>. Dieser wird installiert mittels</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>sudo apt install postgresql-client</code></pre>
+</div></div>
+<div class="paragraph"><p>Es ist in der Regel nicht notwendig, dass die Server- bzw. Client-Versionen exakt identisch sind. So dürfte die Client-Version 14 mit dem Server Version 15 (oder auch andersherum) im hier betrachteten Szenario »nahtlos« funktionieren. Falls die Oberfläche pgAdmin4 genutzt wird (siehe unten), ist die explizite Installierung eines Clients nicht notwendig (aber möglich), da dieser in pgAdmin gewissermaßen enthalten ist.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_postgresql_server_konfiguration_zugriffsrechte">PostgreSQL Server-Konfiguration / Zugriffsrechte</h3>
+<div class="paragraph"><p>Der PostgreSQL-Server kommt nach einer frischen Installation aus Sicherheitsgründen mit einer relativ restriktiven Nutzerverwaltung daher. Für einen produktiven Einsatz müssen daher die entsprechenden Werte in den diversen Konfigurationsdateien angepasst werden.</p></div>
+<div class="paragraph"><p>Zuerst muss der Datenbank-Administrator natürlich herausfinden - wenn er/sie/div nicht sowieso die Lokalisation kennt -, wo sich diese befinden. Das entsprechende Verzeichnis kennt natürlich auch PostgreSQL selbst:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>abc@abc:~$ psql
+...
+Type &#34;help&#34; for help.
+
+abc=&gt; SHOW config_file;
+          config_file
+    -----------------------
+  /etc/postgresql/15/main/postgresql.conf
+...
+abc=&gt; \q</code></pre>
+</div></div>
+<div class="paragraph"><p>Dies ist das Standard-Verzeichnis unter Debian-basierten Distris: <em>/etc/postgresql/&lt;version&gt;/main/</em>, andere GNU/Linux-Varianten mögen andere Eigenschaften besitzen.</p></div>
+<div class="paragraph"><p>In diesem Verzeichnis liegen die zentralen Konfigurations-Dateien</p></div>
+<div class="ulist"><ul>
+<li>
+<p>
+conf.d (Verzeichnis) *
+</p>
+</li>
+<li>
+<p>
+environment *
+</p>
+</li>
+<li>
+<p>
+pg_ctl.conf *
+</p>
+</li>
+<li>
+<p>
+pg_hba.conf
+</p>
+</li>
+<li>
+<p>
+pg_ident.conf *
+</p>
+</li>
+<li>
+<p>
+postgresql.conf
+</p>
+</li>
+<li>
+<p>
+start.conf *
+</p>
+</li>
+</ul></div>
+<div class="paragraph"><p>Die Dateien/Verzeichnisse mit Stern * sind im Moment nicht interessant, ediert werden vorerst nur pg_hba.conf und postgresql.conf.</p></div>
+<div class="sect3">
+<h4 id="_konfiguration_postgresql_conf">Konfiguration postgresql.conf</h4>
+<div class="paragraph"><p>Zur Bearbeitung sind Root-Rechte erforderlich: su oder sudo. Das Anlegen einer Sicherheitskopie ist immer eine gute Idee. Statt vim kann natürlich jeder andere Editor nach Belieben genutzt werden.</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>abc@abc:sudo cp /etc/postgresql/15/main/postgresql.conf /etc/postgresql/15/main/postgresql_conf.ori
+abc@abc:sudo vim /etc/postgresql/15/main/postgresql.conf
+....</code></pre>
+</div></div>
+<div class="paragraph"><p>In der Datei wird nur eine Zeile geändert, in der <em>localhost</em> durch <em>*</em> ersetzt wird. Danach sieht Inhalt ungefähr so aus:</p></div>
+<div class="listingblock">
+<div class="title">postgresql.conf nach Änderung</div>
+<div class="content">
+<pre><code>...
+#listen_addresses = &#39;localhost&#39;         # what IP address(es) to listen on;
+listen_addresses = &#39;*&#39;                  # what IP address(es) to listen on;
+                                                        # comma-separated list of addresses;
+                                                        # defaults to &#39;localhost&#39;; use &#39;*&#39; for all
+                                                        # (change requires restart)
+...</code></pre>
+</div></div>
+<div class="paragraph"><p>Das bedeutet vereinfacht gesagt, dass der Server jetzt auch auf Rechner reagiert, die über ein TCP/IP-Netz auf ihn zugreifen (wollen). In der Standardeinstellung funktioniert dies nur vom physikalisch identischen Rechner - also wenn der anfragende Nutzer vor dem Rechner sitzt, auf dem auch der Server läuft. Das entspricht nicht dem Nutzungsszenario. Der * zeigt an, dass der Server auf allen seinen Netzwerkschnittstellen »lauscht«. In aller Regel hat ein Rechner nur eine Netzwerkkarte, so dass hier keine Sicherheitsschwachstelle entsteht.</p></div>
+<div class="paragraph"><p>Alternativ - gewissermaßen als Paranoia-Einstellung - kann aber auch die <em>eigene</em> IP-Adresse im Netz eingetragen werden, die mittels <em>ip -a</em> ermittel wurde (cave: eben <em>nicht</em> die Adresse der anfragenden Rechner!).</p></div>
+<div class="listingblock">
+<div class="title">postgresql.conf mit eigener Netzadresse</div>
+<div class="content">
+<pre><code>...
+#listen_addresses = &#39;localhost&#39;         # what IP address(es) to listen on;
+listen_addresses = &#39;localhost, 192.168.178.38&#39; # what IP address(es) to listen on;
+                                                        # comma-separated list of addresses;
+                                                        # defaults to &#39;localhost&#39;; use &#39;*&#39; for all
+                                                        # (change requires restart)
+                                    # 192.168.178.38 ist die *eigene* Adresse!
+...</code></pre>
+</div></div>
+</div>
+<div class="sect3">
+<h4 id="_konfiguration_pg_hba_conf">Konfiguration pg_hba.conf</h4>
+<div class="paragraph"><p>Im nächsten Schritt muss die Nutzerverwaltung, die Datei <em>pg_hba.conf</em> ediert werden.<br/>
+Vorerst für die Entwicklung reicht es aus, allen anfragenden Nutzern den Zugriff zu gestatten. Im Produktionsbetrieb muss dies selbstverständlich angepasst werden. Im Vorgriff auf die Arbeit mit unserer GNUmed-Datenbank tragen wir auch schon die dazu notwendigen Nutzer ein.<br/>
+Nach dem Edieren sieht die Datei ungefähr aus wie folgt:</p></div>
+<div class="listingblock">
+<div class="title">Nutzerverwaltung pg_hba.conf</div>
+<div class="content">
+<pre><code>...
+# DO NOT DISABLE!
+# If you change this first entry you will need to make sure that the
+# database superuser can access the database using some other method.
+# Noninteractive access to all databases is required during automatic
+# maintenance (custom daily cronjobs, replication, and similar tasks).
+#
+
+# Database administrative login by Unix domain socket
+local   all             postgres                                peer
+
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+
+# &#34;local&#34; is for Unix domain socket connections only
+local   samegroup       +gm-logins                                      scram-sha-256
+local   all             all                                     peer
+
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            scram-sha-256
+host    all             all             192.168.178.31/32       trust
+
+# IPv6 local connections:
+host    all             all             ::1/128                 reject
+
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            scram-sha-256
+host    replication     all             ::1/128                 scram-sha-256
+...</code></pre>
+</div></div>
+<div class="paragraph"><p>Erläuterung:<br/>
+Der Datenbank-Admin-Nutzer <em>postgres</em> hat unbeschränkten Zugriff, falls er vom Server-Rechner zugreift. Diese Einstellung sollte auf keinen Fall geändert werden, ggf. ist sonst überhaupt keine Bearbeitung mehr möglich.<br/>
+Die Zeile <em>local samegroup +gm-logins</em> gibt allen autorisierten GNUmed-Nutzern Zugriffsrechte (mit Kennwortangabe). Alle Anfragen vom Rechner <em>192.168.178.31/32</em> - das ist der pgAdmin-Rechner (siehe unten) - bekommen Zugriff ohne Kennwortabfrage (<em>trust</em>, im Produktionsbetrieb bitte anpassen). Schließlich sperren wir alle Anfragen über IPv6: <em>reject</em>.</p></div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_neustart_des_datenbank_servers">Neustart des Datenbank-Servers</h3>
+<div class="paragraph"><p>Nach jeder Änderung in einer Konfigurationsdatei muss der Server neu gestartet werden.</p></div>
+<div class="listingblock">
+<div class="title">Neustart PostgreSQL-Server und Statuskontrolle</div>
+<div class="content">
+<pre><code># Neustart
+sudo systemctl restart postgresql
+
+# Kontrolle der Betriebsbereitschaft
+sudo systemctl status postgresql
+# oder
+sudo pg_isready</code></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_pgadmin_einrichten">pgAdmin einrichten</h3>
+<div class="paragraph"><p>Auf der zweiten virtuellen Maschine (hier unser q4os-Rechner) wird - auch hier haben wir vorher einige speicherplatz- und leistungshungrige Standardprogramme wie Thunderbird, LibreOffice und CUPS deinstalliert - die sehr empfehlenswerte grafische Postgres-Verwaltung pgAdmin eingerichtet.<br/>
+Die notwendigen Pakete finden sich nicht in den Debian-Repos, sondern sind direkt auf der Homepage <a href="https://pgadmin.org">pgAdmin</a> erhältlich. Dort stehen alle Varianten bereit, z.B. für unsere Zwecke auf der entsprechende <a href="https://www.pgadmin.org/download/pgadmin-4-apt/">Download-Seite</a>. Die Installation selbst ist dort jeweils ausführlich beschrieben. Für unsere Zwecke reicht die Desktop-Version, die in einer Konsole mit <em>/usr/pgadmin4/bin/pgadmin4</em> oder durch Klick auf das Desktop-Symbol gestartet wird.
+<br/>
+<br/>
+<br/></p></div>
+<div class="paragraph"><p>-&gt; Zurück zu <a href="../arbeitsumgebung">arbeitsumgebung</a>.</p></div>
+<div class="paragraph"><p>-&gt; Weiter zu <a href="../gnumed-server">gnumed-server</a>.</p></div>
+</div>
 </div>
 </div>
 
@@ -307,7 +883,7 @@
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 11. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 14. Oktober 2023
           
           
 
