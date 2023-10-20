@@ -58,11 +58,21 @@ Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt De
     
     <item>
       <title></title>
-      <link>https://simpelmed.de/infos/gnumed-server/</link>
+      <link>https://simpelmed.de/infos/gnumed-einrichtung/</link>
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
-      <guid>https://simpelmed.de/infos/gnumed-server/</guid>
-      <description>GnuMed Server Installation → folgt zeitnah …</description>
+      <guid>https://simpelmed.de/infos/gnumed-einrichtung/</guid>
+      <description> folgt </description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/infos/gnumed-installation/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/infos/gnumed-installation/</guid>
+      <description>GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren 2) Anpassung an deutsche Sprachversion vornehmen 3) → bugfix durchführen (Version vom Oktober 2023 lässt sich ansonsten nicht installieren!) 4) Bootstrap der GNUmed-Datenbank 5) weitere Anpassungen vornehmen.
+Pakete aus dem Repo Der erste Schritt ist schnell durchgeführt.</description>
     </item>
     
     <item>
@@ -72,7 +82,7 @@ Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt De
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/postgresql-pgadmin/</guid>
       <description>PostgreSQL / pgAdmin PostgreSQL-Server Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert: - Thunderbird - LibreOffice - CUPS (Druckerverwaltung) - und andere - allerdings sollten nur eindeutig bekannte Kandidaten entfernt werden, sonst drohen Funktionseinschränkungen. Insbesondere sollten keine Dateien lib* ohne genaue Kenntnis ihrer Funktion deinstalliert werden …
-Nun wird der Postgres-Server aus den Paketen installiert.
+Nun wird der PostgreSQL-Server aus den Paketen installiert.
 sudo apt install postgresql postgresql-contrib --no-install-recommends Die Option --no-install-recommends kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.</description>
     </item>
     

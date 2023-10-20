@@ -64,7 +64,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
   "headline": "",
   "description" : "Arbeitsumgebung SimpelMed \/ PostgreSQL \/ Python Benötigt werden:\nein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar\/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.",
   "inLanguage" : "de",
-  "wordCount":  1504 ,
+  "wordCount":  1495 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -166,7 +166,9 @@ div.admonitionblock td.content {
                 
                   <a href="/infos/postgresql-pgadmin">PostgreSQL-pgAdmin</a>
                 
-                  <a href="/infos/gnumed-server">GnuMed-Server</a>
+                  <a href="/infos/gnumed-installation">GNUmed-Installation</a>
+                
+                  <a href="/infos/gnumed-einrichtung">GNUmed-Einrichtung</a>
                 
                   <a href="/infos/repo">Repo</a>
                 
@@ -362,24 +364,25 @@ Als Distri für pgAdmin4 wird<br/>
 </div>
 <div class="sect2">
 <h3 id="_kvm_qemu">KVM/Qemu</h3>
-<div class="paragraph"><p>Statt eines »Virtualbox-Netzwerkes« kann das benötigte Schema mit den drei virtuellen Rechnern auch über KVM/Qemu aufgebaut werden. Diese Lösung scheint nach unserer Erfahrung etwas bessere bzw. stabilere Ergebnisse zu zeigen. Alle weiteren Arbeistschritte finden deswegen auf dieser Plattform statt.</p></div>
+<div class="paragraph"><p>Statt eines »Virtualbox-Netzwerkes« kann das benötigte Schema mit den drei virtuellen Rechnern auch über KVM/Qemu aufgebaut werden. Diese Lösung scheint nach unserer Erfahrung etwas bessere bzw. stabilere Ergebnisse zu zeigen. Alle weiteren Arbeitsschritte finden deswegen auf dieser Plattform statt.</p></div>
 <div class="paragraph"><p>Als Voreinstellung nutzt KVM/Qemu zur Netzanbindung NAT; das ist allerdings hier nicht geeignet, da sich damit die virtuellen Maschinen nicht »sehen« können. Durch das folgende (Python-)Skript kann aber problemlos eine virtuelle Brücke »Bridge« eingerichtet werde. Diese stört den sonstigen Internetverkehr in keinster Weise.</p></div>
 <div class="sect3">
 <h4 id="_bridge_für_kvm">Bridge für KVM</h4>
-<div class="paragraph"><p>Im ersten Schritt führen Sie das folgende Kommando aus, um die Daten für Ihren (Host-)Rechner zu erhalten:</p></div>
+<div class="paragraph"><p>Im ersten Schritt führen Sie das folgende Kommando aus, um die Daten für Ihren (Host-)Rechner zu erhalten:<br/>
+(Ausgabe leicht gekürzt …)</p></div>
 <div class="listingblock">
 <div class="content">
 <pre><code>bge ~ &gt; ip -a address
-1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc ... UNKNOWN group default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     inet 127.0.0.1/8 scope host lo
        valid_lft forever preferred_lft forever
     inet6 ::1/128 scope host noprefixroute
        valid_lft forever preferred_lft forever
-2: eno1: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc pfifo_fast master brbr0 state UP group default qlen 1000
+2: eno1: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc ...  default qlen 1000
     link/ether 24:be:05:17:7c:e2 brd ff:ff:ff:ff:ff:ff
     altname enp0s25
-    inet 192.168.178.20/24 brd 192.168.178.255 scope global dynamic noprefixroute eno1
+    inet 192.168.178.20/24 brd 192.168.178.255 scope ... noprefixroute eno1
        valid_lft 858650sec preferred_lft 858650sec
 &lt;...&gt;</code></pre>
 </div></div>
@@ -396,13 +399,10 @@ Die im Programm gekennzeichneten IP-Adressen des Host-Rechners und des Gateways 
 
     Root-Rechte sind nicht erforderlich.
     Beispielhafte Ausgabe:
-
     [(1, &#39;lo&#39;), (2, &#39;eno1&#39;)]
     127.0.1.1
     192.168.178.20
-
     Falls die Bridge schon eingerichtet wurde, sieht die Ausgabe wie folgt aus:
-
     [(1, &#39;lo&#39;), (2, &#39;eno1&#39;), (3, &#39;brbr0&#39;), (4, &#39;taptap0&#39;), (5, &#39;vnet0&#39;)]
     127.0.1.1
     192.168.178.20&#34;&#34;&#34;
@@ -438,13 +438,16 @@ try:
     os.system(&#34;modprobe tun tap&#34;)
     print(&#34;modprobe tun tap ... ok&#34;)
     time.sleep(1)
-    os.system(&#34;ip link add brbr0 type bridge&#34;) # &#39;brbr0&#39; ist ein beliebiger Platzhalter
+    # &#39;brbr0&#39; ist ein beliebiger Platzhalter
+    os.system(&#34;ip link add brbr0 type bridge&#34;)
     print(&#34;ip link add brbr0 type bridge ... ok&#34;)
     time.sleep(1)
-    os.system(&#34;ip tuntap add dev taptap0 mode tap&#34;) # &#39;taptap0&#39; ist ein beliebiger Platzhalter
+    # &#39;taptap0&#39; ist ein beliebiger Platzhalter
+    os.system(&#34;ip tuntap add dev taptap0 mode tap&#34;)
     print(&#34;tuntap add dev taptap0 mode tap ... ok&#34;)
     time.sleep(1)
-    os.system(&#34;ip link set dev eno1 master brbr0&#34;)  # &#39;eno1&#39; ist die Bezeichnung der Netzwerkkarte Ihres Rechners
+    # &#39;eno1&#39; ist die Bezeichnung der Netzwerkkarte
+    os.system(&#34;ip link set dev eno1 master brbr0&#34;)
     print(&#34;ip link set dev eno1 master brbr0 ... ok&#34;)
     time.sleep(1)
     os.system(&#34;ip link set dev taptap0 master brbr0&#34;)
@@ -453,13 +456,15 @@ try:
     os.system(&#34;ip link set dev brbr0 up&#34;)
     print(&#34;ip link set dev brbr0 up ... ok&#34;)
     time.sleep(1)
-    os.system(&#34;ip address delete 192.168.178.20/24 dev eno1&#34;) # IP-Adresse entsprechend einsetzen
+    # IP-Adresse entsprechend einsetzen
+    os.system(&#34;ip address delete 192.168.178.20/24 dev eno1&#34;)
     print(&#34;ip address delete 192.168.178.20/24 dev eno1 ... ok&#34;)
     time.sleep(1)
     os.system(&#34;ip address add 192.168.178.20/24 dev brbr0&#34;)
     print(&#34;ip address add 192.168.178.20/24 dev brbr0 ... ok&#34;)
     time.sleep(1)
-    os.system(&#34;ip route add default via 192.168.178.1 dev brbr0&#34;) # Diese IP-Adresse benennt den Gateway
+    # Diese IP-Adresse benennt den Gateway
+    os.system(&#34;ip route add default via 192.168.178.1 dev brbr0&#34;)
     print(&#34;ip route add default via 192.168.178.1 dev brbr0 ... ok&#34;)
     time.sleep(1)
     os.system(&#34;resolvectl dns brbr0 192.168.178.1&#34;)
@@ -482,17 +487,18 @@ Wie bereits erwähnt, kommen hier sinnvollerweise alle Debian-Derivate in Frage.
 <div class="sect2">
 <h3 id="_netzwerk_einrichten_und_prüfen">Netzwerk einrichten und prüfen</h3>
 <div class="paragraph"><p>Egal ob die Virtualbox- oder wie hier im Folgenden die KVM/Qemu-Lösung (über den virtuellen Netzwerkmanager <em>apt-get install virt-manager</em>) gewählt wird:<br/>
-Für die weitere Administration des »Netzwerkes« aus Host und den beiden Guests benötigen wir noch jeweils die internen IP-Adressen. Diese werden mit folgendem Schritt mit dem Kommando <em>ip a</em> ermittelt.</p></div>
+Für die weitere Administration des »Netzwerkes« aus Host und den beiden Guests benötigen wir noch jeweils die internen IP-Adressen. Diese werden mit folgendem Schritt mit dem Kommando <em>ip a</em> ermittelt.
+(Ausgabe leicht gekürzt …)</p></div>
 <div class="listingblock">
 <div class="content">
 <pre><code>&lt;home&gt;:~$ ip a
-1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+1: lo: &lt;LOOPBACK,UP,LOWER_UP&gt; mtu 65536 qdisc noqueue ...default qlen 1000
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     inet 127.0.0.1/8 scope host lo
        valid_lft forever preferred_lft forever
     inet6 ::1/128 scope host
        valid_lft forever preferred_lft forever
-2: enp0s3: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc fq_codel state UP group default qlen 1000
+2: enp0s3: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc ... default qlen 1000
     link/ether 08:00:27:db:24:da brd ff:ff:ff:ff:ff:ff
     inet 192.168.178.63/24 brd 192.168.178.255 scope global dynamic noprefixroute enp0s3
        valid_lft 863740sec preferred_lft 863740sec
@@ -502,7 +508,7 @@ Für die weitere Administration des »Netzwerkes« aus Host und den beiden Guest
        valid_lft 6943sec preferred_lft 3343sec
     inet6 2001:a61:ad3:4c01:2146:46a7:6de2:4847/64 scope global temporary dynamic
        valid_lft 5852sec preferred_lft 2252sec
-    inet6 2001:a61:ad3:4c01:d799:6115:804c:b43f/64 scope global dynamic mngtmpaddr noprefixroute
+    inet6 2001:a61:ad3:4c01:d799:6115:804c:b43f/64 scope ... noprefixroute
        valid_lft 5852sec preferred_lft 2252sec
     inet6 fe80::d228:2500:56e8:ada7/64 scope link noprefixroute
        valid_lft forever preferred_lft forever</code></pre>
@@ -547,6 +553,8 @@ Jetzt das Zeichen <em>Bearbeiten</em> (in der Fritz-Box ein Bleistift) anklicken
 Das Netz sollte jetzt stehen und einsatzbereit sein. Im nächsten Schritt folgen die Einrichtung des PostgreSQL-Servers und von pgAdmin4. Im übernächsten geht es dann (endlich) um die Installation der GNUmed-Pakete.</td>
 </tr></tbody></table>
 </div>
+<div class="paragraph"><p><br/></p></div>
+<div class="paragraph"><p></p><hr/><p></p></div>
 <div class="paragraph"><p>-&gt; Weiter zu <a href="../postgresql-pgadmin">postgresql-pgadmin</a>.</p></div>
 </div>
 </div>
@@ -603,7 +611,7 @@ Das Netz sollte jetzt stehen und einsatzbereit sein. Im nächsten Schritt folgen
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 14. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 20. Oktober 2023
           
           
 

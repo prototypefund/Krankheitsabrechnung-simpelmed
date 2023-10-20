@@ -112,7 +112,9 @@ div.admonitionblock td.content {
                 
                   <a href="/infos/postgresql-pgadmin">PostgreSQL-pgAdmin</a>
                 
-                  <a href="/infos/gnumed-server">GnuMed-Server</a>
+                  <a href="/infos/gnumed-installation">GNUmed-Installation</a>
+                
+                  <a href="/infos/gnumed-einrichtung">GNUmed-Einrichtung</a>
                 
                   <a href="/infos/repo">Repo</a>
                 
@@ -344,7 +346,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
 </article>
           
             <article class="post-preview">
-    <a href="https://simpelmed.de/infos/gnumed-server/">
+    <a href="https://simpelmed.de/infos/gnumed-einrichtung/">
         <h2 class="post-title"></h2>
         
         
@@ -372,12 +374,49 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
     <div class="post-entry">
         
         <div class="sect1">
-<h2 id="_gnumed_server_installation">GnuMed Server Installation</h2>
+<h2 id="_folgt">folgt</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>→ folgt zeitnah …</p></div>
 </div>
 </div>
 
+        
+    </div>
+
+    
+
+</article>
+          
+            <article class="post-preview">
+    <a href="https://simpelmed.de/infos/gnumed-installation/">
+        <h2 class="post-title"></h2>
+        
+        
+        
+    </a>
+
+    <p class="post-meta">
+        <span class="post-meta">
+  
+  
+  <i class="fas fa-calendar"></i>&nbsp;Gepostet am January 1, 0001
+  
+  
+  
+  
+    
+      &nbsp;|&nbsp;<i class="fas fa-user"></i>&nbsp;Berthold Gehrke
+    
+  
+  
+</span>
+
+
+    </p>
+    <div class="post-entry">
+        
+        GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren 2) Anpassung an deutsche Sprachversion vornehmen 3) → bugfix durchführen (Version vom Oktober 2023 lässt sich ansonsten nicht installieren!) 4) Bootstrap der GNUmed-Datenbank 5) weitere Anpassungen vornehmen.
+Pakete aus dem Repo Der erste Schritt ist schnell durchgeführt.
+        <a href="https://simpelmed.de/infos/gnumed-installation/" class="post-read-more">[Mehr]</a>
         
     </div>
 
@@ -414,7 +453,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
     <div class="post-entry">
         
         PostgreSQL / pgAdmin PostgreSQL-Server Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert: - Thunderbird - LibreOffice - CUPS (Druckerverwaltung) - und andere - allerdings sollten nur eindeutig bekannte Kandidaten entfernt werden, sonst drohen Funktionseinschränkungen. Insbesondere sollten keine Dateien lib* ohne genaue Kenntnis ihrer Funktion deinstalliert werden …
-Nun wird der Postgres-Server aus den Paketen installiert.
+Nun wird der PostgreSQL-Server aus den Paketen installiert.
 sudo apt install postgresql postgresql-contrib --no-install-recommends Die Option --no-install-recommends kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.
         <a href="https://simpelmed.de/infos/postgresql-pgadmin/" class="post-read-more">[Mehr]</a>
         
@@ -548,7 +587,7 @@ Berufliche Tätigkeiten in den letzten 20 Jahren: Fachkliniken Innere Medizin un
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 14. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 20. Oktober 2023
           
           
 
