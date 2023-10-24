@@ -12,8 +12,7 @@
 
       <title>simpelmed - </title>
 
-  <meta name="description" content="GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren 2) Anpassung an deutsche Sprachversion vornehmen 3) → bugfix durchführen (Version vom Oktober 2023 lässt sich ansonsten nicht installieren!) 4) Bootstrap der GNUmed-Datenbank 5) weitere Anpassungen vornehmen.
-Pakete aus dem Repo Der erste Schritt ist schnell durchgeführt.">
+  <meta name="description" content="GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren, 2) Anpassung an deutsche Sprachversion vornehmen, 3) → Bugfix durchführen ← (je nach verwendeter Version der Daten lässt sich GNUmed sonst nicht installieren! siehe unten), 4) Bootstrap der GNUmed-Datenbank und schließlich 5) weitere Anpassungen vornehmen.">
   <meta name="author" content="Berthold Gehrke"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -62,9 +61,9 @@ Pakete aus dem Repo Der erste Schritt ist schnell durchgeführt.">
     "name" : "Berthold Gehrke"
   },
   "headline": "",
-  "description" : "GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren 2) Anpassung an deutsche Sprachversion vornehmen 3) → bugfix durchführen (Version vom Oktober 2023 lässt sich ansonsten nicht installieren!) 4) Bootstrap der GNUmed-Datenbank 5) weitere Anpassungen vornehmen.\nPakete aus dem Repo Der erste Schritt ist schnell durchgeführt.",
+  "description" : "GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren, 2) Anpassung an deutsche Sprachversion vornehmen, 3) → Bugfix durchführen ← (je nach verwendeter Version der Daten lässt sich GNUmed sonst nicht installieren! siehe unten), 4) Bootstrap der GNUmed-Datenbank und schließlich 5) weitere Anpassungen vornehmen.",
   "inLanguage" : "de",
-  "wordCount":  454 ,
+  "wordCount":  1143 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -84,8 +83,7 @@ Pakete aus dem Repo Der erste Schritt ist schnell durchgeführt.">
 </script>
 
 <meta property="og:title" content="simpelmed" />
-<meta property="og:description" content="GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren 2) Anpassung an deutsche Sprachversion vornehmen 3) → bugfix durchführen (Version vom Oktober 2023 lässt sich ansonsten nicht installieren!) 4) Bootstrap der GNUmed-Datenbank 5) weitere Anpassungen vornehmen.
-Pakete aus dem Repo Der erste Schritt ist schnell durchgeführt.">
+<meta property="og:description" content="GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren, 2) Anpassung an deutsche Sprachversion vornehmen, 3) → Bugfix durchführen ← (je nach verwendeter Version der Daten lässt sich GNUmed sonst nicht installieren! siehe unten), 4) Bootstrap der GNUmed-Datenbank und schließlich 5) weitere Anpassungen vornehmen.">
 <meta property="og:image" content="https://simpelmed.de/img/simpelmed.jpg" />
 <meta property="og:url" content="https://simpelmed.de/infos/gnumed-installation/" />
 <meta property="og:type" content="website" />
@@ -295,22 +293,24 @@ div.admonitionblock td.content {
 <div class="sectionbody">
 <div class="paragraph"><p>In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden.<br/>
 Etwas vereinfacht sieht dies wie folgt aus:<br/>
-1) Server-Pakete aus den Debian-Repos installieren<br/>
-2) Anpassung an deutsche Sprachversion vornehmen<br/>
-3) → bugfix durchführen (Version vom Oktober 2023 lässt sich ansonsten nicht installieren!)<br/>
-4) <em>Bootstrap</em> der GNUmed-Datenbank<br/>
+1) Server-Pakete aus den Debian-Repos installieren,<br/>
+2) Anpassung an deutsche Sprachversion vornehmen,<br/>
+3) → Bugfix durchführen ← (je nach verwendeter Version der Daten lässt sich GNUmed sonst nicht installieren! siehe unten),<br/>
+4) <em>Bootstrap</em> der GNUmed-Datenbank und schließlich<br/>
 5) weitere Anpassungen vornehmen.</p></div>
 <div class="sect2">
 <h3 id="_pakete_aus_dem_repo">Pakete aus dem Repo</h3>
 <div class="paragraph"><p>Der erste Schritt ist schnell durchgeführt. Die GNUmed-Server-Pakete werden installiert.</p></div>
 <div class="listingblock">
+<div class="title">Installation der Debian-Pakete</div>
 <div class="content">
 <pre><code>apt install --no-install-recommends --no-install-suggests postgresql-client
 apt install --no-install-recommends --no-install-suggests gnumed-server</code></pre>
 </div></div>
-<div class="paragraph"><p>Erläuterung: Die empfohlenen und/oder vorgeschlagenen Paktete braucht es vorerst nicht. Falls noch kein PostgreSQL installiert ist, geschieht dies mit diesem Befehl. Es ist allerdings sicherer, PostgreSQL vorab wie in unserem Vorgehen zu installieren, damit sichergestellt ist, dass nicht z.B. Version 16 (die ist noch zu »frisch«) gewählt wird.</p></div>
-<div class="paragraph"><p>Versucht der geneigte Anwender, nun gleich <em>gm-bootstrap_server</em>, wird dies (Stand Okt. &#39;23) leider nicht fuktionieren - es folgt die Fehlermeldung</p></div>
+<div class="paragraph"><p>Erläuterung: Die empfohlenen und/oder vorgeschlagenen Paktete braucht es vorerst nicht. Falls noch kein PostgreSQL installiert ist, geschieht dies spätestens jetzt zusammen mit <em>gnumed-server</em>. Es ist allerdings sicherer, PostgreSQL vorab wie in unserem Vorgehen zu installieren, damit sichergestellt ist, dass nicht z.B. Version 16 (die ist noch zu »frisch«) und die <em>US-Tastatur</em> gewählt wird.</p></div>
+<div class="paragraph"><p>Versucht der geneigte Anwender, nun gleich <em>gm-bootstrap_server</em> auszuführen, wird dies (Stand Okt. &#39;23) leider nicht immer fuktionieren. Das Programm bricht ab mit folgender Meldung.</p></div>
 <div class="listingblock">
+<div class="title">Abbruch der GNUmed-Server-Installation</div>
 <div class="content">
 <pre><code>...
 ==&gt; transferring users ...
@@ -325,8 +325,9 @@ Please check the log file for details:
 Bootstrapping &#34;gnumed_v22&#34; did not finish successfully (1). Aborting.
 ...</code></pre>
 </div></div>
-<div class="paragraph"><p>und im erwähnten Log-File (gekürzt …)</p></div>
+<div class="paragraph"><p>Im erwähnten Log-File (gekürzt …) könnte wie folgt aussehen:</p></div>
 <div class="listingblock">
+<div class="title">Log-Meldungen zum Abbruch (Ausschnnitt)</div>
 <div class="content">
 <pre><code>...
 2023-09-22 14:37:42  DEBUG     gm.db_pool    [140273691701248 MainThread]  ..
@@ -348,15 +349,16 @@ LINE 1: SELECT md5(gm.concat_table_structure())
 2023-09-22 14:37:42  INFO      gm.bootstrapper  [140273691701248 MainThread] ..
 ...</code></pre>
 </div></div>
-<div class="paragraph"><p>Dringend zu empfehlen oder sogar unumgänglich sind deshalb folgenden Maßnahmen.</p></div>
+<div class="paragraph"><p>Leider läuft der fehlschlagende Installationsversuch noch einige Meldungen weiter, gezeigt im obigen Ausschnitt ist nur die erste Fehlermeldung.<br/>
+Es kann aber auch auf andere Weise »schief gehen«. Dringend zu empfehlen oder sogar unumgänglich sind deshalb folgenden Maßnahmen.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_anpassung_an_die_sprache_deutsch">Anpassung an die Sprache Deutsch</h3>
 <div class="paragraph"><p>Die Standard-Sprache des Gnumed-Server-Pakets ist englisch. Das ist auch nicht weiter tragisch, wenn der Nutzer hierzulande einige Hinweise beachtet. Wurde der PostgreSQL-Server wie dargestellt schon vor den GNUmed-Paketen installiert, ist in der Regel für alle Datenbanken der Zeichensatz de_DE.utf8 voreingestellt. Dies sollte nicht geändert werden, um die Umlaute korrekt darzustellen. Damit ist dieser Punkt bereits durch eine Standard-Installation der PostgreSQL-Pakete erledigt.</p></div>
 </div>
 <div class="sect2">
-<h3 id="_bugfix">Bugfix</h3>
-<div class="paragraph"><p>Sobald das Kommando <em>gm-bootstrap_server</em> (zwingend als root/mittels sudo) aufgerufen wird, führt das Programm im Folgenden auch das Skript <em>bootstrap-latest.sh</em> aus. Diese Datei befindet sich im Ordner <em>/var/lib/gnumed/server/bootstrap</em>. Dies führt zum bereits beschriebenen Abbruch mit der zitierten Fehlermeldung.</p></div>
+<h3 id="_bugfix_für_bestimmte_distributionen">Bugfix für bestimmte Distributionen</h3>
+<div class="paragraph"><p>Sobald das Kommando <em>gm-bootstrap_server</em> (zwingend als root/mittels sudo) aufgerufen wird, führt das Programm im Folgenden auch das Skript <em>bootstrap-latest.sh</em> aus. Diese Datei befindet sich im Ordner <em>/var/lib/gnumed/server/bootstrap</em>. Einige Betriebssystem-Plattformen kommen mit folgender Zeile nicht zurecht, die deshalb angepasst werden sollte.</p></div>
 <div class="paragraph"><p>Eine Zeile der Datei muss geändert werden:</p></div>
 <div class="listingblock">
 <div class="title">Bugfix GNUmed Installation, Datei <em>/var/lib/gnumed/server/bootstrap</em></div>
@@ -367,10 +369,143 @@ CONF=&#34;bootstrap-latest.conf&#34;
 # nachher
 CONF=&#34;./bootstrap-latest.conf&#34;</code></pre>
 </div></div>
+<div class="paragraph"><p>Noch einmal zur Wiederholung: Dieser Schritt ist keineswegs zwingend, sondern nur für einige Betriebssysteme überhaupt notwendig.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_falsche_datei_version">Falsche Datei-Version</h3>
+<div class="paragraph"><p>Weitaus häufiger tritt folgender Fehler auf. In manchen älteren Repos und Download-Dateien findet sich noch eine veraltete Version der Datei <em>../server/sql/v2-v3/dynamic/cfg-set_option.sql</em>. Zu erkennen ist die veraltete Version z.B. auf diese Weise:</p></div>
+<div class="listingblock">
+<div class="title">Veraltete Version <em>cfg-set_option.sql</em></div>
+<div class="content">
+<pre><code>b@bpc~$ sed -n 95,100p /var/lib/gnumed/server/sql/v2-v3/dynamic/cfg-set_option.sql
+
+(gekürzt)
+begin
+        -- determine data type
+        if _value is of (text, char, varchar, name) then
+                val_type := &#39;&#39;string&#39;&#39;;
+        elsif _value is of (smallint, integer, bigint, numeric, boolean) then
+                val_type := &#39;&#39;numeric&#39;&#39;;
+b@bpc:~$</code></pre>
+</div></div>
+<div class="paragraph"><p>Die gewünschte neuere Version lieferte hier:</p></div>
+<div class="listingblock">
+<div class="title">Korrekte Version <em>cfg-set_option.sql</em></div>
+<div class="content">
+<pre><code>b@bpc~$ sed -n 85,100p /var/lib/gnumed/server/sql/v2-v3/dynamic/cfg-set_option.sql
+
+(gekürzt)
+begin
+-- determine data type
+        if pg_typeof(_value) in (&#39;&#39;text&#39;&#39;::regtype, &#39;&#39;char&#39;&#39;: &lt;gekürzt&gt; ...::regtype) then
+                val_type := &#39;&#39;string&#39;&#39;;
+        elsif pg_typeof(_value) in (&#39;&#39;smallint&#39;&#39;::regtype, &lt;gekürzt&gt; ... ::regtype) then
+                val_type := &#39;&#39;numeric&#39;&#39;;
+b@bpc:~$</code></pre>
+</div></div>
+<div class="paragraph"><p>Der Unterschied ist klar: in der neuen Version wird die eingebaute Funktion pg_typeof() verwendet.<br/></p></div>
 </div>
 <div class="sect2">
 <h3 id="_repo_simpelmed">Repo SimpelMed</h3>
-<div class="paragraph"><p>Die Dateien finden sich im SimpelMed-Repo → TODO</p></div>
+<div class="paragraph"><p>Bei Bedarf findet sich die korrekte Version - wie alle erwähnten Dateien - im Simpelmed-Repo:</p></div>
+<div class="paragraph"><p><a href="https://gitlab.com/bgehrke/simpelmed">Simpelmed-Repo</a>.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_bootstrap_der_gnumed_datenbank">Bootstrap der GNUmed-Datenbank</h3>
+<div class="paragraph"><p>Nun ist es an der Zeit, endlich die eigene GNUmed-Datenbank zu erzeugen:</p></div>
+<div class="listingblock">
+<div class="title">Bootstrap (erfolgreich - Ausgabe gekürzt!)</div>
+<div class="content">
+<pre><code> h@hpc:~$ sudo gm-bootstrap_server
+ ===========================================================
+ Bootstrapping latest GNUmed database.
+
+ This will set up a GNUmed database of version v22
+ with the name &#34;gnumed_v22&#34;.
+ Creating module import symlink ...
+  real dir: /var/lib/gnumed/server
+      link: /var/lib/gnumed/Gnumed
+ Adjusting PYTHONPATH ...
+ =======================================
+ Bootstrapping GNUmed database system...
+ =======================================
+ You are about to install the following parts of GNUmed:
+ -------------------------------------------------------
+ bundle &#34;config&#34; in &lt;gnumed_v2&gt; (or overridden) on &lt;&gt;
+ bundle &#34;reference&#34; in &lt;gnumed_v2&gt; (or overridden) on &lt;&gt;
+ bundle &#34;demographics&#34; in &lt;gnumed_v2&gt; (or overridden) on &lt;&gt;
+ bundle &#34;clinical&#34; in &lt;gnumed_v2&gt; (or overridden) on &lt;&gt;
+ bundle &#34;documents&#34; in &lt;gnumed_v2&gt; (or overridden) on &lt;&gt;
+ bundle &#34;office&#34; in &lt;gnumed_v2&gt; (or overridden) on &lt;&gt;
+ -------------------------------------------------------
+ This will set up a monolithic GNUmed backend with all bundles
+ ...
+ ...
+ ==&gt; bootstrapping &#34;v9-v10-static&#34; ...
+ ==&gt; cloning [gnumed_v9] (23 MB) as target database [gnumed_v10] ...
+ ==&gt; reindexing target database (can take a while) ...
+ ==&gt; revalidating constraints in target database (can take a while) ...
+ ==&gt; transferring users ...
+ ==&gt; bootstrapping &#34;v9-v10-dynamic&#34; ...
+ ==&gt; bootstrapping &#34;v10-fixups&#34; ...
+ ==&gt; setting up auditing ...
+     ... skipped (disabled)
+ ==&gt; setting up encounter/episode FKs and IDXs ...
+ ==&gt; upgrading reference data sets ...
+     ... skipped (no scripts to run)
+ You are about to install the following parts of GNUmed:
+ -------------------------------------------------------
+ bundle &#34;v10_fixups-pre_v11&#34; in &lt;gnumed_v11&gt; (or overridden) on &lt;&gt;
+ bundle &#34;v10-v11-static&#34; in &lt;gnumed_v11&gt; (or overridden) on &lt;&gt;
+ bundle &#34;v10-v11-dynamic&#34; in &lt;gnumed_v11&gt; (or overridden) on &lt;&gt;
+ bundle &#34;v11-fixups&#34; in &lt;gnumed_v11&gt; (or overridden) on &lt;&gt;
+ bundle &#34;v11-test_data&#34; in &lt;gnumed_v11&gt; (or overridden) on &lt;&gt;
+ -------------------------------------------------------
+ This will update an existing GNUmed version 10
+ database to the version 11 schema. It does not do
+ any harm to the data contained within.
+ ...
+ ...
+ This will update an existing GNUmed version 21
+ database to the version 22 schema. It does not do
+ any harm to the data contained within.
+ ...
+ ...
+ ==&gt; checking migrated data for plausibility ...
+ ==&gt; sanity checking PostgreSQL authentication settings ...
+
+ Note that even after successfully bootstrapping the GNUmed
+ database PostgreSQL may still need to be configured to
+ allow GNUmed clients to connect to it.
+
+ In many standard PostgreSQL installations this amounts to
+ adding (or uncommenting) the authentication directive:
+
+   &#34;local   samerole    +gm-logins   md5&#34;
+
+ in the proper place of the file:
+
+   /etc/postgresql/15/main/pg_hba.conf
+
+ For details refer to the GNUmed documentation at:
+
+   http://wiki.gnumed.de/bin/view/Gnumed/ConfigurePostgreSQL
+
+ Done bootstrapping GNUmed database: We very likely succeeded.
+ log: /var/log/gnumed/server/bootstrap-latest.log
+ Dropping obsoleted staging database gnumed_v2 ...
+ ...
+ ...
+ Dropping obsoleted staging database gnumed_v20 ...
+ (you may need to provide the password for root)
+ h@hpc:~$</code></pre>
+</div></div>
+<div class="paragraph"><p>Dieser Vorgang benötigt auch auf einem modernen, schnellen PC ca. drei Minuten …</p></div>
+</div>
+<div class="sect2">
+<h3 id="_download_vorkonfigurierter_datenbank_pakete">Download vorkonfigurierter Datenbank-Pakete</h3>
+<div class="paragraph"><p>Falls die Erstellung der eigenen Datenbank - aus welchen Gründen auch immer - nicht vollständig durchläuft oder das Bootstrapping umgangen werden soll, stehen »fertige« Pakete zum Download bereit. Im Einzelnen sind das folgende Varianten:</p></div>
+<div class="paragraph"><p>FOLGT</p></div>
 <div class="admonitionblock">
 <table><tbody><tr>
 <td class="icon">
@@ -441,7 +576,7 @@ CONF=&#34;./bootstrap-latest.conf&#34;</code></pre>
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 20. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 24. Oktober 2023
           
           
 

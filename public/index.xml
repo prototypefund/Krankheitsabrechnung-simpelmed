@@ -51,7 +51,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/foerderung/</guid>
-      <description>Förderung Das Projekt wird gefördert durch Mittel des BMBF. Was bedeutet das? Um nicht alles abtippen zu müssen, verweisen wir Sie am besten auf die Beschreibung des Projektträgers. Dort findet sich alles zu diesem Vorhaben; darüber hinaus erhalten Sie umfassende Informationen zu anderen Projekten.
+      <description>Förderung Das Projekt wird gefördert durch Mittel des BMBF. Was bedeutet das? Um nicht alles abtippen zu müssen, verweisen wir auf die Beschreibung des Projektträgers. Dort findet sich alles zu diesem Vorhaben; darüber hinaus erhalten Sie umfassende Informationen zu anderen Projekten.
 https://prototypefund.de/project/krankheitsabrechnung-zurueck-in-aerztinnenhand/
 Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt Detailinfos zu seiner Arbeit, seinen Auftraggebern und Finanzierungsmodellen.</description>
     </item>
@@ -71,8 +71,7 @@ Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt De
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/gnumed-installation/</guid>
-      <description>GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren 2) Anpassung an deutsche Sprachversion vornehmen 3) → bugfix durchführen (Version vom Oktober 2023 lässt sich ansonsten nicht installieren!) 4) Bootstrap der GNUmed-Datenbank 5) weitere Anpassungen vornehmen.
-Pakete aus dem Repo Der erste Schritt ist schnell durchgeführt.</description>
+      <description>GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren, 2) Anpassung an deutsche Sprachversion vornehmen, 3) → Bugfix durchführen ← (je nach verwendeter Version der Daten lässt sich GNUmed sonst nicht installieren! siehe unten), 4) Bootstrap der GNUmed-Datenbank und schließlich 5) weitere Anpassungen vornehmen.</description>
     </item>
     
     <item>
