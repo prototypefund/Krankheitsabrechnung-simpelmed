@@ -63,7 +63,7 @@
   "headline": "",
   "description" : "GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren, 2) Anpassung an deutsche Sprachversion vornehmen, 3) → Bugfix durchführen ← (je nach verwendeter Version der Daten lässt sich GNUmed sonst nicht installieren! siehe unten), 4) Bootstrap der GNUmed-Datenbank und schließlich 5) weitere Anpassungen vornehmen.",
   "inLanguage" : "de",
-  "wordCount":  1143 ,
+  "wordCount":  1458 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -407,8 +407,11 @@ b@bpc:~$</code></pre>
 </div>
 <div class="sect2">
 <h3 id="_repo_simpelmed">Repo SimpelMed</h3>
-<div class="paragraph"><p>Bei Bedarf findet sich die korrekte Version - wie alle erwähnten Dateien - im Simpelmed-Repo:</p></div>
-<div class="paragraph"><p><a href="https://gitlab.com/bgehrke/simpelmed">Simpelmed-Repo</a>.</p></div>
+<div class="paragraph"><p>Bei Bedarf findet sich die korrekte Version - wie alle erwähnten Dateien - im</p></div>
+<a href="https://gitlab.com/bgehrke/simpelmed">Simpelmed-Repo</a>.
+<br/>
+<img align="left" width="30" height="30" src="/leeres_png.png"/>
+<br/>
 </div>
 <div class="sect2">
 <h3 id="_bootstrap_der_gnumed_datenbank">Bootstrap der GNUmed-Datenbank</h3>
@@ -500,26 +503,65 @@ b@bpc:~$</code></pre>
  (you may need to provide the password for root)
  h@hpc:~$</code></pre>
 </div></div>
-<div class="paragraph"><p>Dieser Vorgang benötigt auch auf einem modernen, schnellen PC ca. drei Minuten …</p></div>
+<div class="paragraph"><p>Dieser Vorgang benötigt auch auf einem modernen, schnellen PC ca. vier Minuten …</p></div>
+<br/>
+<img align="left" width="30" height="30" src="/leeres_png.png"/>
+<br/>
 </div>
 <div class="sect2">
-<h3 id="_download_vorkonfigurierter_datenbank_pakete">Download vorkonfigurierter Datenbank-Pakete</h3>
-<div class="paragraph"><p>Falls die Erstellung der eigenen Datenbank - aus welchen Gründen auch immer - nicht vollständig durchläuft oder das Bootstrapping umgangen werden soll, stehen »fertige« Pakete zum Download bereit. Im Einzelnen sind das folgende Varianten:</p></div>
-<div class="paragraph"><p>FOLGT</p></div>
-<div class="admonitionblock">
-<table><tbody><tr>
-<td class="icon">
-<div class="title">Anmerkung</div>
-</td>
-<td class="content">Fazit bis hier:<br/>
-→ TODO</td>
-</tr></tbody></table>
-</div>
+<h3 id="_download_vorkonfigurierter_gnumed_datenbanken">Download vorkonfigurierter GNUmed-Datenbanken</h3>
+<div class="paragraph"><p>Falls die Erstellung der eigenen Datenbank - aus welchen Gründen auch immer - nicht vollständig durchläuft oder das Bootstrapping umgangen werden soll, stehen »fertige« Pakete zum Download bereit. Das Download-Verzeichnis wird bereitgestellt unter <a href="https://datenbahn.de/simpelmed">https://datenbahn.de/simpelmed</a><br/>
+Im Einzelnen sind das folgende Varianten.</p></div>
+<div class="paragraph"><p><strong>pg15gnumed.tar</strong><br/>
+Dies ist das Archiv einer frischen, vollständig installierten, sonst »leeren«, GNUmed-PostgreSQL Datenbank. Nur verwendbar mit Version 15 und nur auf einer Debian oder Ubuntu Plattform eines GNU/Linux-Systems. Darüber hinuas müssen natürlich noch die entsprechenden Berechtigungen in den PostgreSQL-Konfigurationsdateien eingerichtet werden.</p></div>
+<br/>
+<img align="left" width="55" height="55" src="/warning.png"/><br/>   Alle Dateien des Postgres-Clusters werden durch diesen Vorgang unwiederbringlich gelöscht! Alle Tabellen, Schemata, Nutzer etc. des bisherigen PostgreSQL-Servers werden ohne Warnung und ohne Backup überschrieben und sind -&gt;* weg *&lt;- !
+<br/>
+<div class="paragraph"><p>Vorgehen:<br/>
+1) Download des Archivs</p></div>
+wget https://datenbahn.de/simpelmed/pg15gnumed.tar
+<div class="paragraph"><p>2) Stoppen des PostgreSQL-15 Servers</p></div>
+sudo systemctl stop postgresql
+<div class="paragraph"><p>3) Überprüfung des Inhaltes der tar-Datei</p></div>
+tar -tvf ./pg15gnumed.tar
+<div class="paragraph"><p>Wird das Archiv tatsächlich an den korrekten Ort installiert, z.B.<br/>
+/var/lib/postgresql/15/main?</p></div>
+<div class="paragraph"><p>4) Installation/Entpacken</p></div>
+sudo tar -xzf ./pg15gnumed.tar -C /
+<div class="paragraph"><p>Die Option <em>-C</em> und das schließende <em>/</em> sind notwendig!</p></div>
+<div class="paragraph"><p>5) Starten des PostgreSQL-15 Servers</p></div>
+sudo systemctl start postgresql
+<br/>
+<img align="left" width="30" height="30" src="/leeres_png.png"/>
+<br/>
+<div class="paragraph"><p><strong>dumpall_gnumed_simpelmed_start.sql</strong><br/>
+Dies ist ein vollständiger Dump der Datenbank nach Installation des GNUmed-Servers aus den Repos. Der Vorteil dieses Vorgehens besteht darin, daß auch andere Versionen als 15 Zielserver sein können; auch ein Plattformwechsel zu Nicht-Debian oder hin zu Windows ist möglich. Hier werden darüber hinaus keine Dateien überschrieben oder gehen verloren, es dürfen allerdings keine GNUmed-Datei oder gleichnamige Nutzer vorhanden sein.</p></div>
+<div class="paragraph"><p>Vorgehen:<br/>
+1) Download des Dumps</p></div>
+wget https://datenbahn.de/simpelmed/dumpall_gnumed_simpelmed_start.sql
+<div class="paragraph"><p>2) Der PostgreSQL-Servers muss laufen - überprüfen mit</p></div>
+sudo systemctl status postgresql
+<div class="paragraph"><p>3) Einspielen der Dump-Datei</p></div>
+sudo -u postgres psql &lt; dumpall_gnumed_simpelmed_start.sql
+<br/>
+<img align="left" width="30" height="30" src="/leeres_png.png"/>
+<br/>
+<br/>
+<img align="left" width="55" height="55" src="/tip.png"/><br/>   Zur Vermeidung der Fehlermeldung &#39;cannot execute CREATE TABLE in a read-only transaction&#39; und ähnlichem wurde die Dump-Datei an zwei Stellen modifiziert.
+<div class="paragraph"><p>Vorher:<br/>
+ALTER DATABASE gnumed_v21 SET default_transaction_read_only TO <em>on</em>;<br/>
+nachher:<br/>
+ALTER DATABASE gnumed_v21 SET default_transaction_read_only TO <em>off</em>;<br/>
+Analog in der Zeile <em>ALTER DATABASE gnumed_v22 SET default_ …</em><br/>
+Einmal also für gnumed_v21, einmal für gnumed_v22.</p></div>
+<br/>
+<img align="left" width="55" height="55" src="/note.png"/> Fazit bis hier:
+Die Installation der GNUmed-Pakete aus den Repos sollte nun abgeschlossen sein. Der nächste Schritt besteht darin, die internationale Standard Erstinstallation für die weiteren Zwecke einzurichten.
+<div class="paragraph"><p>Diese oben unter »Punkt 5) weitere Anpassungen vornehmen« Schritte werden im nächsten Abschnitt »gnumed-einrichtung« beschrieben.</p></div>
 <div class="paragraph"><p><br/></p></div>
 <div class="paragraph"><p></p><hr/><p></p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../arbeitsumgebung">arbeitsumgebung</a>.</p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../postgresql-pgadmin">postgresql-pgadmin</a>.</p></div>
-<div class="paragraph"><p>-&gt; Zurück zu <a href="../gnumed-server">gnumed-server</a>.</p></div>
 <div class="paragraph"><p>-&gt; Weiter zu <a href="../gnumed-einrichtung">gnumed-einrichtung</a>.</p></div>
 </div>
 </div>
@@ -576,7 +618,7 @@ b@bpc:~$</code></pre>
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 24. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 2. November 2023
           
           
 

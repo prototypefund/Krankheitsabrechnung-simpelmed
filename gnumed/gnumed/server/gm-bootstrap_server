@@ -1,35 +1,67 @@
 #!/bin/sh
 
 #==============================================================
-# This wrapper is intended to be installed into a systemwide
-# admin-only executable directory such as "/usr/sbin/"
+# Diese Datei findet sich nach der Standard-Installation unter
+# GNU/Linux im Verzeichnis "/usr/sbin/" und kann deshalb nur
+# vom "Superuser" ausgeführt werden.
 #
-# It should be run as root and will call the upstream script to
-# actually bootstrap the latest database from scratch.
+# Nach einige Routineabfragen richtet das Skript die eigentliche
+# PostgreSQL-Datenbank ein.
 #
-# author: Andreas Tille, Karsten Hilbert
-# license: GPL v2 or later
+# "gm-Bootstrap_server" (diese Datei) ruft auf
+#   -> "./bootstrap-latest.sh" diese ruft auf
+#    -> "./bootstrap_gm_db_system.py". Dieses Python-Script 
+#       erledigt die eigentliche Installation.   
 #
+# Autoren des Original-Skripts: Andreas Tille, Karsten Hilbert
+# (siehe unter https://gnumed.de)
+#
+# Dieses Skript wurde modifiziert, "verdeutscht" (mehr oder
+# weniger) sowie ggf. ergänzt von
+# (c) 2023 Berthold Gehrke <kontakt@simpelmed.de>
+# License: Affero GPL v3 or later (AGPLv3+)
+
 #==============================================================
-# those probably need some adjustment from package maintainers:
+# Die beiden folgenden Verzeichnisse werden während der
+# Installation (unter GNU/Linux) angelegt.
+# Ersteres ist anfangs leer, das zweite enthält diverse 
+# conf-Dateien und Skripte, welche später noch benötigt werden.
 
 GM_LOG_BASE="/var/log/gnumed/server"
 GM_SERVER_DIR="/var/lib/gnumed/server/bootstrap"
 
 #==============================================================
-# do not run twice
-[ "${FLOCKER}" != "$0" ] && exec env FLOCKER="$0" flock --exclusive --nonblock "$0" "$0" "$@" || :
-
-# consider entirely removing this check, for example
-# because it does not honour $GM_PORT
-if ! su -c "psql -t -d template1 -c \"show lc_ctype;\"" -l postgres | grep -q -e C -e UTF-8 ; then
-	echo "Your PostgreSQL installation seems not to have lc_ctype UTF-8 or C."
-	echo "This will most probably lead to failures of the GNUmed server installation."
+# Dieses Skript verlangt "Superuser-Power":
+if [ "$'ud -u'" > 0 ]
+    then echo "*** Sie sollten über root/su/sudo/Admin-Rechte verfügen! ***"
+        echo "*** Weiter auf eigene Gefahr (Abbruch mit zB Ctrl-C). ***"
+        echo "*** Falls sie 'sudo' genutzt haben, ist alles in Ordnung! ***"
+        echo ""
 fi
 
-cd ${GM_SERVER_DIR} || ( echo "=> Cannot change into ${GM_SERVER_DIR}. Aborting." ; exit 1 )
+# Diese Datei darf nur einmal zum selben Zeitpunkt ausgeführt werden:
+# "flock" sperrt diese, nach Beendigung dieses Skripts wird die
+# Sperre aufgehoben.
+### Kann für Zwecke des DEBUG temporär auskommentiert werden. ###
+[ "${FLOCKER}" != "$0" ] && exec env FLOCKER="$0" flock --exclusive --nonblock "$0" "$0" "$@" || :
+
+# für DEBUG temporär auskommentiert
+# "show lc_ctype" hat bei Standardinstallation den Wert "de_DE.UTF-8"
+
+#if ! su -c "psql -t -d template1 -c \"show lc_ctype;\"" -l postgres | grep -q -e C -e UTF-8 ; then
+#	echo "Your PostgreSQL installation seems not to have lc_ctype UTF-8 or C."
+#	echo "This will most probably lead to failures of the GNUmed server installation."
+#fi
+
+# Wechsle in das oben definiert Verzeichnis "/var/lib/gnumed/server/bootstrap" ...
+cd ${GM_SERVER_DIR} || ( echo "=> Wechsel nach ${GM_SERVER_DIR} schlug fehl! Abbruch :-(" ; exit 1 )
+# ... und erzeuge, fals noch nicht vorhanden, das Verzeichnis "/var/log/gnumed/server" ...
 mkdir -p ${GM_LOG_BASE}
+# ... und setze diesen Pfad als (Umgebungs-)Variable.
 export GM_LOG_BASE
+# Starte jetzt das Skript "./bootstrap-latest.sh".
+# Dies befindet sich im Ordner "GM_SERVER_DIR", in den wir vor drei Zeilen gewechselt sind.
 ./bootstrap-latest.sh
 
+# (Ende)
 #==============================================================

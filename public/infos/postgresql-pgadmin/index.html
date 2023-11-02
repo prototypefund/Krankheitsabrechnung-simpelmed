@@ -65,7 +65,7 @@ sudo apt install postgresql postgresql-contrib --no-install-recommends Die Optio
   "headline": "",
   "description" : "PostgreSQL \/ pgAdmin PostgreSQL-Server Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert: - Thunderbird - LibreOffice - CUPS (Druckerverwaltung) - und andere - allerdings sollten nur eindeutig bekannte Kandidaten entfernt werden, sonst drohen Funktionseinschränkungen. Insbesondere sollten keine Dateien lib* ohne genaue Kenntnis ihrer Funktion deinstalliert werden …\nNun wird der PostgreSQL-Server aus den Paketen installiert.\nsudo apt install postgresql postgresql-contrib --no-install-recommends Die Option --no-install-recommends kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.",
   "inLanguage" : "de",
-  "wordCount":  3093 ,
+  "wordCount":  3092 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -836,15 +836,9 @@ Die notwendigen Pakete finden sich nicht in den Debian-Repos, sondern nur direkt
 6) den zugreifenden Nutzer angeben: entweder den Superuser <em>postgres</em> oder einen anderen, der natürlich vorher in der Datenbank eingerichtet werden muss.<br/>
 Im Produktivbetrieb muss selbstverständlich ein expliziter pgAdmin-Nutzer eingerichtet werden mit Superuser-Rechten auf der GNUmed-Datenbank und mit (sehr!) starkem Kennwort, wenn die Bedienung über diese Plattform erwünscht ist. pgAdmin kann auch als »Fernzugriff«-Werkzeug genutzt werden von externen Dienstleistern, in diesem Fall ist deshalb hier besondere Vorsicht geboten.<br/>
 Für die Entwicklungsdatenbank gelten nicht so strikte Regeln, da (noch) nicht mit realen Gesundheitsdaten gearbeitet wird.<br/></p></div>
-<div class="admonitionblock">
-<table><tbody><tr>
-<td class="icon">
-<div class="title">Anmerkung</div>
-</td>
-<td class="content">Fazit bis hier:<br/>
-Das virtuelle Netz mit den beiden Rechnern, einem mit dem PostgreSQL-Server, der zweite mit pgAdmin (der dritte ist unser Gastgeber-/Hostrechner) ist installiert und eingerichtet. Im nächsten Schritt folgt die Installierung der GNUmed-Pakete (Server/Client) und die Konfiguration als Test- bzw. Entwicklungsumgebung.</td>
-</tr></tbody></table>
-</div>
+<br/>
+<img align="left" width="55" height="55" src="/note.png"/> Fazit bis hier:
+Das virtuelle Netz mit den beiden Rechnern, einem mit dem PostgreSQL-Server, der zweite mit pgAdmin (der dritte ist unser Gastgeber-/Hostrechner) ist installiert und eingerichtet. Im nächsten Schritt folgt die Installierung der GNUmed-Pakete (Server/Client) und die Konfiguration als Test- bzw. Entwicklungsumgebung.
 <div class="paragraph"><p><br/></p></div>
 <div class="paragraph"><p></p><hr/><p></p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../arbeitsumgebung">arbeitsumgebung</a>.</p></div>
@@ -905,7 +899,7 @@ Das virtuelle Netz mit den beiden Rechnern, einem mit dem PostgreSQL-Server, der
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 24. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 2. November 2023
           
           
 

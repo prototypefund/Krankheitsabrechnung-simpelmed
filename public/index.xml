@@ -18,7 +18,8 @@
       <description>Hier einige Infos zu SimpelMed auf einen Blick. Klicken Sie auf die Überschrift, um die Antworten zu sehen. Mit einem zweiten Klick werden sie wieder eingeklappt ...
 Diese Seite wird fortlaufend ergänzt. Falls Sie weitere Fragen stellen möchten, bitte per Mail an kontakt ädd simpelmed.de
 Was ist SimpelMed? Eine auf die deutsche Situation abgestimmte Ergänzung zum Projekt GNUmed.
-Welche Personen stecken hinter SimpelMed? Informieren Sie sich zum Team.</description>
+Welche Personen stecken hinter SimpelMed? Informieren Sie sich zum Team.
+Wie werden die Seiten der Homepage &amp;#39;simpelmed.</description>
     </item>
     
     <item>
@@ -62,7 +63,8 @@ Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt De
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/gnumed-einrichtung/</guid>
-      <description> folgt </description>
+      <description>GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.
+Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft.</description>
     </item>
     
     <item>

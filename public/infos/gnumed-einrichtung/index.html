@@ -12,7 +12,8 @@
 
       <title>simpelmed - </title>
 
-  <meta name="description" content=" folgt ">
+  <meta name="description" content="GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.
+Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft.">
   <meta name="author" content="Berthold Gehrke"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -61,9 +62,9 @@
     "name" : "Berthold Gehrke"
   },
   "headline": "",
-  "description" : " folgt ",
+  "description" : "GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.\nDer erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft.",
   "inLanguage" : "de",
-  "wordCount":  1 ,
+  "wordCount":  182 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -83,14 +84,15 @@
 </script>
 
 <meta property="og:title" content="simpelmed" />
-<meta property="og:description" content=" folgt ">
+<meta property="og:description" content="GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.
+Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft.">
 <meta property="og:image" content="https://simpelmed.de/img/simpelmed.jpg" />
 <meta property="og:url" content="https://simpelmed.de/infos/gnumed-einrichtung/" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="simpelmed" />
 
   <meta name="twitter:title" content="simpelmed" />
-  <meta name="twitter:description" content=" folgt ">
+  <meta name="twitter:description" content="GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« …">
   <meta name="twitter:image" content="https://simpelmed.de/img/simpelmed.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
   <link href='https://simpelmed.de/img/simpelmed.ico' rel='icon' type='image/x-icon'/>
@@ -284,8 +286,35 @@ div.admonitionblock td.content {
     <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
       <article role="main" class="blog-post">
         <div class="sect1">
-<h2 id="_folgt">folgt</h2>
+<h2 id="_gnumed_einrichtung">GNUmed Einrichtung</h2>
 <div class="sectionbody">
+</div>
+</div>
+<div class="sect1">
+<h2 id="_fahrplan_und_schritte">Fahrplan und Schritte</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden.<br/>
+Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.</p></div>
+<div class="paragraph"><p>Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft. Dies ist für das Procedere der Anwendungsentwicklung das einfachste Vorgehen. Später kann (genau genommen: muss) jeweils ein Client auf jedem Praxisrechner installiert werden, der mit SimpelMed arbeiten soll.</p></div>
+<div class="listingblock">
+<div class="title">Installation der Client-Pakete</div>
+<div class="content">
+<pre><code>apt install gnumed-client</code></pre>
+</div></div>
+<div class="paragraph"><p>Die Client-Pakete ziehen eine relativ umfangreiche Menge an verbindlicher anderer Software mit, z. B. Teile von LaTeX und LibreOffice. Dadurch ist die Datenmenge groß und das Einspielen dauert seine Zeit.</p></div>
+<div class="paragraph"><p>Wenn alles geladen ist, läßt sich (endlich) GNUmed starten mit</p></div>
+<div class="listingblock">
+<div class="title">Start des GNUmed-Clients</div>
+<div class="content">
+<pre><code>gnumed</code></pre>
+</div></div>
+<div class="paragraph"><p>Schon beim ersten Start fallen mehrere Punkte ins Auge.</p></div>
+<div class="paragraph"><p><strong>FOLGT</strong></p></div>
+<div class="paragraph"><p><br/></p></div>
+<div class="paragraph"><p></p><hr/><p></p></div>
+<div class="paragraph"><p>-&gt; Zurück zu <a href="../arbeitsumgebung">arbeitsumgebung</a>.</p></div>
+<div class="paragraph"><p>-&gt; Zurück zu <a href="../postgresql-pgadmin">postgresql-pgadmin</a>.</p></div>
+<div class="paragraph"><p>-&gt; Zurück zu <a href="../gnumed-installation">gnumed-installation</a>.</p></div>
 </div>
 </div>
 
@@ -340,7 +369,7 @@ div.admonitionblock td.content {
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 24. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 2. November 2023
           
           
 

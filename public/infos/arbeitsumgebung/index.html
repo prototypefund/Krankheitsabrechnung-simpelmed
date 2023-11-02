@@ -64,7 +64,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
   "headline": "",
   "description" : "Arbeitsumgebung SimpelMed \/ PostgreSQL \/ Python Benötigt werden:\nein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreichend schneller Festplatte (vorzugseise SSD) eine PostgreSQL-Datenbank, Server sinnvollerweise in virtueller Maschine (optional, aber empfehlenswert) eine weiterere virtuelle Maschine mit der DB-Management-Oberfläche pgadmin4 diese »drei« Rechner werden über ein lokales Netz verbunden und sind gegenseitig ansprechbar\/erreichbar. Die Login-Namen der Standard-Nutzer des Host- und der Gastrechner sind unerheblich und könnten ohne Einschränkungen sogar identisch sein.",
   "inLanguage" : "de",
-  "wordCount":  1495 ,
+  "wordCount":  1492 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -344,23 +344,11 @@ Adapter … Netzwerkbrücke, nicht die Versäumniseinstellung »NAT«.</p></div>
 Obwohl 1b) eine grafische Oberfläche bedienen muss, gibt es hier keinen nenennswerten, messbaren Performance-Abfall. Im Folgenden wird nur noch Mint (Xfce) betrachtet.
 Als Distri für pgAdmin4 wird<br/>
 1c) <a href="https://q4os.org/">https://q4os.org/</a> q4OS gewählt.</p></div>
-<div class="admonitionblock">
-<table><tbody><tr>
-<td class="icon">
-<div class="title">Anmerkung</div>
-</td>
-<td class="content">Grundsätzlich steht die Wahl der Linux-Distribution im Ermessen des Anwenders - auch Windows10/11 ist möglich (aber nicht empfehlenswert). Alle Installationsvorgaben gehen vom Einsatz einer von Debian abgeleiteten Distri aus - Damit sind wir mit Ubuntu/Mint/q4os auf dem richtigen Weg. Die Clients z.B. im Praxisbetrieb können auch unter Windows laufen …</td>
-</tr></tbody></table>
-</div>
+<br/>
+<img align="left" width="55" height="55" src="/tip.png"/> Grundsätzlich steht die Wahl der Linux-Distribution im Ermessen des Anwenders - auch Windows10/11 ist möglich (aber nicht empfehlenswert). Alle Installationsvorgaben gehen vom Einsatz einer von Debian abgeleiteten Distri aus - Damit sind wir mit Ubuntu/Mint/q4os auf dem richtigen Weg. Die Clients z.B. im Praxisbetrieb können auch unter Windows laufen ...
+<br/>
 <div class="paragraph"><p>Es werden unter Virtualbox zwei Maschinen eingerichtet, der einfacheren Bedienung wegen jeweils mit Gasterweiterungen und gemeinsamen Ordner: je einmal Mint (Download der Xfce-Edition <a href="https://linuxmint.com/edition.php?id=304">https://linuxmint.com/edition.php?id=304</a>) für den PostgreSQL-Server und einmal q4os (Download der empfehlenswerten Trinity-Version <a href="https://sourceforge.net/projects/q4os/files/stable/q4os-4.12-x64-instcd.r1.iso/download">https://sourceforge.net/projects/q4os/files/stable/q4os-4.12-x64-instcd.r1.iso/download</a>) für pgAdmin4.</p></div>
-<div class="admonitionblock">
-<table><tbody><tr>
-<td class="icon">
-<div class="title">Anmerkung</div>
-</td>
-<td class="content">Das eigentliche Einrichten/Installieren von VirtualBox und seinen virtuellen Maschinen wird hier nicht beschrieben. Es lässt sich falls gewünscht durch ein Script automatisieren: <a href="https://blogs.oracle.com/virtualization/post/guide-for-virtualbox-vm-unattended-installation">https://blogs.oracle.com/virtualization/post/guide-for-virtualbox-vm-unattended-installation</a> oder <a href="https://www.youtube.com/watch?v=ypkItN4d4Y0">https://www.youtube.com/watch?v=ypkItN4d4Y0</a></td>
-</tr></tbody></table>
-</div>
+<div class="paragraph"><p>Das eigentliche Einrichten/Installieren von VirtualBox und seinen virtuellen Maschinen wird hier nicht beschrieben. Es lässt sich falls gewünscht durch ein Script automatisieren: <a href="https://blogs.oracle.com/virtualization/post/guide-for-virtualbox-vm-unattended-installation">https://blogs.oracle.com/virtualization/post/guide-for-virtualbox-vm-unattended-installation</a> oder <a href="https://www.youtube.com/watch?v=ypkItN4d4Y0">https://www.youtube.com/watch?v=ypkItN4d4Y0</a></p></div>
 </div>
 <div class="sect2">
 <h3 id="_kvm_qemu">KVM/Qemu</h3>
@@ -544,15 +532,9 @@ bge ~ &gt;</code></pre>
 </div></div>
 <div class="paragraph"><p>Im Reiter <em>Netzwerkverbindungen</em> erscheinen unsere drei Netzrechner mit den eben ermittelten IP-Adressen.<br/>
 Jetzt das Zeichen <em>Bearbeiten</em> (in der Fritz-Box ein Bleistift) anklicken, im nächsten Schritt die Zeile <em>Adressen im Heimnetz (IP-Adressen)</em> anklicken und einen Haken bei »Diesem Netzwerkgerät immer die gleiche IPv4-Adresse zuweisen.« Dann noch »Übernehmen«. Diese Schritte wie gesagt für alle beteiligten drei (virtuellen) Rechner durchführen. Diese festen Adressen beeinflussen das übrige Heimnetz nicht - auch wenn diese nicht online sind, verfügt die FritzBox über mehr als genug freie Adressen.</p></div>
-<div class="admonitionblock">
-<table><tbody><tr>
-<td class="icon">
-<div class="title">Anmerkung</div>
-</td>
-<td class="content">Fazit bis hier:<br/>
-Das Netz sollte jetzt stehen und einsatzbereit sein. Im nächsten Schritt folgen die Einrichtung des PostgreSQL-Servers und von pgAdmin4. Im übernächsten geht es dann (endlich) um die Installation der GNUmed-Pakete.</td>
-</tr></tbody></table>
-</div>
+<br/>
+<img align="left" width="55" height="55" src="/note.png"/> Fazit bis hier:
+Das Netz sollte jetzt stehen und einsatzbereit sein. Im nächsten Schritt folgen die Einrichtung des PostgreSQL-Servers und von pgAdmin4. Im übernächsten geht es dann (endlich) um die Installation der GNUmed-Pakete.
 <div class="paragraph"><p><br/></p></div>
 <div class="paragraph"><p></p><hr/><p></p></div>
 <div class="paragraph"><p>-&gt; Weiter zu <a href="../postgresql-pgadmin">postgresql-pgadmin</a>.</p></div>
@@ -611,7 +593,7 @@ Das Netz sollte jetzt stehen und einsatzbereit sein. Im nächsten Schritt folgen
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 24. Oktober 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 2. November 2023
           
           
 
