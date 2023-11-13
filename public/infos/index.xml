@@ -24,7 +24,7 @@ ein Arbeitsrechner mit genügend RAM (mindestens 8 GB, besser 16 GB) und ausreic
       <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/foerderung/</guid>
-      <description>Förderung Das Projekt wird gefördert durch Mittel des BMBF. Was bedeutet das? Um nicht alles abtippen zu müssen, verweisen wir auf die Beschreibung des Projektträgers. Dort findet sich alles zu diesem Vorhaben; darüber hinaus erhalten Sie umfassende Informationen zu anderen Projekten.
+      <description>Förderung Das Projekt wird gefördert durch Mittel des BMBF. Was bedeutet das? Um nicht alles abtippen zu müssen, verweisen wir auf die Informationen des Projektträgers. Dort findet sich alles zu den Formalitäten dieses Vorhabens nebst einer offiziellen Beschreibung. Darüber hinaus erhalten Sie umfassendes Material zu weiteren geförderten Projekten.
 https://prototypefund.de/project/krankheitsabrechnung-zurueck-in-aerztinnenhand/
 Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt Detailinfos zu seiner Arbeit, seinen Auftraggebern und Finanzierungsmodellen.</description>
     </item>
@@ -36,7 +36,8 @@ Nicht zuletzt stellt sich der Prototype Fund ausführlich selbst vor und gibt De
       <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
       <guid>https://simpelmed.de/infos/gnumed-einrichtung/</guid>
       <description>GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.
-Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft.</description>
+1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung
+Client-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.</description>
     </item>
     
     <item>

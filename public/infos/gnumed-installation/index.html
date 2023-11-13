@@ -63,7 +63,7 @@
   "headline": "",
   "description" : "GNUmed Datenbank Installation Fahrplan In mehreren Schritten wird nun eine »leere« GNUmed-Datenbank installiert und eingerichtet, auf der die darauf folgenden Entwicklungsschritte stattfinden werden. Etwas vereinfacht sieht dies wie folgt aus: 1) Server-Pakete aus den Debian-Repos installieren, 2) Anpassung an deutsche Sprachversion vornehmen, 3) → Bugfix durchführen ← (je nach verwendeter Version der Daten lässt sich GNUmed sonst nicht installieren! siehe unten), 4) Bootstrap der GNUmed-Datenbank und schließlich 5) weitere Anpassungen vornehmen.",
   "inLanguage" : "de",
-  "wordCount":  1458 ,
+  "wordCount":  1613 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -554,6 +554,44 @@ nachher:<br/>
 ALTER DATABASE gnumed_v21 SET default_transaction_read_only TO <em>off</em>;<br/>
 Analog in der Zeile <em>ALTER DATABASE gnumed_v22 SET default_ …</em><br/>
 Einmal also für gnumed_v21, einmal für gnumed_v22.</p></div>
+<div class="paragraph"><p>Dies ist auch mit folgendem kurzen Python-Programm möglich, bitte setzen Sie die eigenen Parameter ein:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>#!/usr/bin/env python3
+&#34;&#34;&#34; Setze alle &#39;default_transaction_read_only&#39; auf &#39;off&#39;
+
+    Autor: Berthold Gehrke &lt;kontakt@simpelmed.de&gt;
+    (c) 2023, GPLv3
+    &#34;&#34;&#34;
+
+#import re   # für diese einfache Aufgbae nicht notwendig, auskommentieren bei Bedarf
+
+# Eingabe-Datei
+eingabe = &#39;/home/&lt;user&gt;/original.sql&#39;
+ausgabe = &#39;/home/&lt;user&gt;/bearbeitet.sql&#39;
+
+# Die Original-Datei wird gelesen - diese wird nicht verändert.
+with open(eingabe, &#34;r&#34;) as die_eingabe:
+    a = die_eingabe.read()
+
+print(&#34;Eingabe:&#34;, eingabe)
+print(&#34;Ausgabe:&#34;, ausgabe)
+
+a, zaehler = re.subn(r&#34;SET default_transaction_read_only TO &#39;on&#39;;&#34;, r&#34;SET default_transaction_read_only TO &#39;off&#39;;&#34;, a)
+print(&#34;&#34;)
+print(&#34;Bearbeite die Ersetzung vorher - SET default_transaction_read_only TO &#39;on&#39; - jetzt - SET default_transaction_read_only TO &#39;off&#39;;&#34;)
+print(&#34;&#34;)
+print(&#34;Die Ersetzung wurde wie oft durchgeführt?&#34;, zaehler, &#34;Mal.&#34;)
+
+a, zaehler = re.subn(r&#34;SET default_transaction_read_only = on;&#34;, r&#34;SET default_transaction_read_only = off;&#34;, a)
+print(&#34;&#34;)
+print(&#34;Bearbeite die Ersetzung vorher - SET default_transaction_read_only = on; - jetzt - SET default_transaction_read_only = off;&#34;)
+print(&#34;&#34;)
+print(&#34;Die Ersetzung wurde wie oft durchgeführt?&#34;, zaehler, &#34;Mal.&#34;)
+
+with open(ausgabe, &#34;w&#34;) as die_ausgabe:
+    die_ausgabe.write(a)</code></pre>
+</div></div>
 <br/>
 <img align="left" width="55" height="55" src="/note.png"/> Fazit bis hier:
 Die Installation der GNUmed-Pakete aus den Repos sollte nun abgeschlossen sein. Der nächste Schritt besteht darin, die internationale Standard Erstinstallation für die weiteren Zwecke einzurichten.
@@ -618,7 +656,7 @@ Die Installation der GNUmed-Pakete aus den Repos sollte nun abgeschlossen sein. 
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 2. November 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 13. November 2023
           
           
 

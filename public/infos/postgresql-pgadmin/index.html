@@ -65,7 +65,7 @@ sudo apt install postgresql postgresql-contrib --no-install-recommends Die Optio
   "headline": "",
   "description" : "PostgreSQL \/ pgAdmin PostgreSQL-Server Optional: Auf dem virtuellen Rechner, der als PostgreSQL-Server dienen soll, werden alle offensichtlich nicht benötigten Programme deinstalliert: - Thunderbird - LibreOffice - CUPS (Druckerverwaltung) - und andere - allerdings sollten nur eindeutig bekannte Kandidaten entfernt werden, sonst drohen Funktionseinschränkungen. Insbesondere sollten keine Dateien lib* ohne genaue Kenntnis ihrer Funktion deinstalliert werden …\nNun wird der PostgreSQL-Server aus den Paketen installiert.\nsudo apt install postgresql postgresql-contrib --no-install-recommends Die Option --no-install-recommends kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.",
   "inLanguage" : "de",
-  "wordCount":  3092 ,
+  "wordCount":  3155 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -306,8 +306,9 @@ div.admonitionblock td.content {
 <pre><code>sudo apt install postgresql postgresql-contrib --no-install-recommends</code></pre>
 </div></div>
 <div class="paragraph"><p>Die Option <em>--no-install-recommends</em> kann auch weggelassen werden - dann wird auch die Dokumentation installiert, die hier vorerst nicht benötigt wird.</p></div>
-<div class="paragraph"><p>Andere Postgres-Pakete sind auf dem Server (vorerst) nicht notwendig. Je nach Zeitpunkt der Installation wird der PostgreSQL-Server in einer der Versionen 13, 14, 15 oder 16 installiert. Diese Version spielt für die hier verfolgten Zwecke keine Rolle - alle Funktionalitäten werden von den genannten erfüllt.</p></div>
-<div class="paragraph"><p>Fast alle Distributionen installieren die Version 15: Version 16 ist noch etwas »zu neu« und nicht alle Hilfsprogramme funktionieren. 13 und 14 sind »Auslaufmodelle« - im Folgenden wird im Projekt <em>SimpelMed</em> mit Version 15 gearbeitet (auch wenn manchmal in den Listings noch Version 14 auftaucht: alles funktioniert mit Version 15 ganz analog).</p></div>
+<div class="paragraph"><p>Andere Postgres-Pakete sind auf dem Server (vorerst) nicht notwendig. Je nach Zeitpunkt der Installation und der eingesetzten Distribution wird der PostgreSQL-Server in einer der Versionen 13, 14, 15 oder 16 installiert. Grundsätzlich spielt die Version für die Funktionalität keine Rolle, alle genannten Versionen verfügen über die notwendigen Eigenschaften. Das liegt auch daran, dass das GNUmed/Simpelmed-Paket nur sehr zurückhaltende Anforderungen an die Datenbank stellt und auf neue »Gimmicks« bewusst verichtet.<br/>
+Dennoch wird an dieser Stelle davon abgeraten, die »zu alte« Version 13 oder die »zu neue« Version 16 einzusetzen. Die Version 13 wid nicht mehr lange (von einigen Hilfsprogrammen) unterstützt, Version 16 dagegen noch nicht vollstädnig. Empfohlen wird ausdrücklich die Version 15, auf die sich auch alle weiteren Infos beziehen. Fast alle Distributionen installieren heute (Stand Nov. 2023) die Version 15.<br/>
+Im Folgenden wird aus diesen Gründen im Projekt <em>SimpelMed</em> mit Version 15 gearbeitet (auch wenn manchmal in den Listings noch Version 14 auftaucht: alles funktioniert mit Version 15 ganz analog).</p></div>
 <div class="paragraph"><p>Ob alles wie geplant installiert wurde, lässt sich durch folgende Eingaben in einer Konsole überprüfen.<br/></p></div>
 <div class="listingblock">
 <div class="title">Überprüfen der PostgreSQL-Server-Installation</div>
@@ -899,7 +900,7 @@ Das virtuelle Netz mit den beiden Rechnern, einem mit dem PostgreSQL-Server, der
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 2. November 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 13. November 2023
           
           
 

@@ -13,7 +13,8 @@
       <title>simpelmed - </title>
 
   <meta name="description" content="GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.
-Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft.">
+1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung
+Client-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.">
   <meta name="author" content="Berthold Gehrke"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -62,9 +63,9 @@ Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf 
     "name" : "Berthold Gehrke"
   },
   "headline": "",
-  "description" : "GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.\nDer erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft.",
+  "description" : "GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.\n1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung\nClient-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.",
   "inLanguage" : "de",
-  "wordCount":  182 ,
+  "wordCount":  875 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -85,7 +86,8 @@ Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf 
 
 <meta property="og:title" content="simpelmed" />
 <meta property="og:description" content="GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.
-Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft.">
+1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung
+Client-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.">
 <meta property="og:image" content="https://simpelmed.de/img/simpelmed.jpg" />
 <meta property="og:url" content="https://simpelmed.de/infos/gnumed-einrichtung/" />
 <meta property="og:type" content="website" />
@@ -295,26 +297,150 @@ div.admonitionblock td.content {
 <div class="sectionbody">
 <div class="paragraph"><p>Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden.<br/>
 Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.</p></div>
-<div class="paragraph"><p>Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht auf dem (virtuellen) Rechner, auch dem auch der PostgreSQL-Server mit der Datenbank läuft. Dies ist für das Procedere der Anwendungsentwicklung das einfachste Vorgehen. Später kann (genau genommen: muss) jeweils ein Client auf jedem Praxisrechner installiert werden, der mit SimpelMed arbeiten soll.</p></div>
+<div class="paragraph"><p>1) Client-Pakete<br/>
+2) Start GNUmed<br/>
+3) Inspektion<br/>
+4) Bereinigung</p></div>
+<div class="sect2">
+<h3 id="_client_paktete">Client-Paktete</h3>
+<div class="paragraph"><p>Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht im erstn Schritt auf dem selben (virtuellen) Rechner, auf dem auch der PostgreSQL-Server mit der Datenbank läuft. Dies ist für das Procedere der Anwendungsentwicklung zum Start das einfachste Vorgehen. Später kann (genau genommen: muss) jeweils ein Client auf jedem Praxisrechner installiert werden, der mit SimpelMed arbeiten soll. Auch in der Entwicklungsumgebung wird später auf verschiedenen Rechnern der Client installiert, um dieses Szenario real zu testen.</p></div>
 <div class="listingblock">
 <div class="title">Installation der Client-Pakete</div>
 <div class="content">
 <pre><code>apt install gnumed-client</code></pre>
 </div></div>
-<div class="paragraph"><p>Die Client-Pakete ziehen eine relativ umfangreiche Menge an verbindlicher anderer Software mit, z. B. Teile von LaTeX und LibreOffice. Dadurch ist die Datenmenge groß und das Einspielen dauert seine Zeit.</p></div>
-<div class="paragraph"><p>Wenn alles geladen ist, läßt sich (endlich) GNUmed starten mit</p></div>
+<div class="paragraph"><p>Die Client-Pakete ziehen (leider) eine relativ umfangreiche Menge an verbindlicher anderer Software mit, z. B. Teile von LaTeX und LibreOffice. Dadurch ist die Datenmenge groß (auf einem Minimalsystem auch schon mal 1GB) und das Einspielen dauert seine Zeit.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_start_gnumed">Start GNUmed</h3>
+<div class="paragraph"><p>Wenn alles geladen ist, läßt sich (endlich, hoffentlich) GNUmed starten.</p></div>
 <div class="listingblock">
-<div class="title">Start des GNUmed-Clients</div>
+<div class="title">Start des GNUmed-Clients in einer Konsole</div>
 <div class="content">
-<pre><code>gnumed</code></pre>
+<pre><code>xyz@xyz_pc:~$ gnumed
+Log File: &lt;...&gt;/gnumed/logs/gnumed/gnumed/gnumed-&lt;datum_zeit&gt;.log
+Temp dir: /tmp/gnumed-&lt;laufwerk&gt;/&lt;zufaelliger_name&gt;</code></pre>
 </div></div>
-<div class="paragraph"><p>Schon beim ersten Start fallen mehrere Punkte ins Auge.</p></div>
+<div class="paragraph"><p>Im sich öffnenden Fenster »Willkomen bei GNUmed - Arbeitsplatz GNUmed default (Version 1.x.y)« müssen folgende Eingaben getätigt werden:<br/>
+- Anmeldung bei: GNUmed database on this machine/local (gnumed_v22@)<br/>
+- Nutzer: »any-doc«<br/>
+- Passwort: »any-doc«<br/>
+und dann »ok«</p></div>
+<div class="paragraph"><p>Nur mit diessen Einstellungen ist jetzt ein Starten GNUmeds möglich; und das auch nur dann, wenn die PostgreSQL-eigene Firewall mittels der Datei »pg_hba.conf«, in der Regel im Verzeichnis »/etc/postgresql/15/main/«, korrekt modifiziert wurde (siehe unter »postgresql - pgadmin«).</p></div>
+<div class="paragraph"><p>Als nächstes erscheint ein Fenster mit folgenden Angaben:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>GmD: Verifiziere Datenbankeinstellungen
+
+Die Datenbankeinstellungen sind riskant gewählt:
+Option [log_connections]: off
+...
+Die Logdatei enthält genauere Angaben!
+
+OK</code></pre>
+</div></div>
+<div class="paragraph"><p>Dies wird mit »ok« bestätigt und vorerst ignoriert. Es geht hier die Einhaltung bestimmter (Sicherheits-)Standards für medizinische Systeme, die insbesondere für den US-Raum verplichtend sind. Das erwähnte »HIPAA« steht für den »Health Insurance Portability and Accountability Act«. Dieser ist (ganz entfernt jedenfalls) mit den europäischen Datenschutzregeln verwandt, beide sind allerdings weder austauschbar noch gleichwertig.<br/>
+Die Logdatei findet sich im oben angegebenen Ordner.</p></div>
+<div class="paragraph"><p>Nach dem »ok« erscheint der nächste Hinweis:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>GmD: Verifiziere Datenbank
+
+Datenbank gnumed_v22 auf localhost
+
+Zweigstelle Generic Praxis Branch ...
+...
+
+Verbinden          Abmelden</code></pre>
+</div></div>
+<div class="paragraph"><p>Wie bestätigen natürlich »Verbinden«. Nun folgt (zumeist)</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>GmD: Updates suchen
+
+Eine neue Version von GNUmed ist verfügbar
+...
+
+OK</code></pre>
+</div></div>
+<div class="paragraph"><p>Auch hier geht es weiter mit »OK«. Ab jetzt sind wir im GNUmed-Hauptprogramm und können darin »herumklicken« und uns einen Überblick verschaffen.</p></div>
+</div>
+<div class="sect2">
+<h3 id="_inspektion">Inspektion</h3>
+<div class="paragraph"><p>Bemerkenswert ist<br/>
+- das frisch installierte GNUmed ist keineswegs »leer«. Es sind einige Patienten (augenscheinlich aus dem Universum der US-Serie Star Trek »Raumschiff Enterprise«), Befunde und weitere Daten vorhanden.<br/>
+- Ein Blick in den Server als Administrator zeigt auch, dass eine Datenbank »gnumed_v21«, also die vorherige Version, sowie einge Rollen/Nutzerkonti außer dem bekannten »any-doc« angelegt sind.</p></div>
+<div class="listingblock">
+<div class="title">Datenbanken und Rollen einer »frischen« GNUmed-Installation (gekürzt)</div>
+<div class="content">
+<pre><code>h@hpc:~$ sudo -u postgres psql
+[sudo] Passwort für h:
+...
+psql (15.3 (Debian 15.3-0+deb12u1))
+Type &#34;help&#34; for help.
+
+postgres=# \l
+                                                  List of databases
+    Name    |  Owner   | Encoding |   Collate   |    Ctype    | ICU Locale | Locale Provider |   Access privileges
+------------+----------+----------+-------------+-------------+------------+-----------------+
+ gnumed_v21 | gm-dbo   | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |            | libc            |
+ gnumed_v22 | gm-dbo   | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |            | libc            |
+ postgres   | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |            | libc            |
+ template0  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |            | libc            | =c/postgres          +
+            |          |          |             |             |            |                 | postgres=CTc/postgres
+ template1  | postgres | UTF8     | de_DE.UTF-8 | de_DE.UTF-8 |            | libc            | =c/postgres          +
+            |          |          |             |             |            |                 | postgres=CTc/postgres
+(6 rows)
+
+postgres=# \du
+                                                List of roles
+   Role name    |     Attributes                                             | Member of
+ any-doc        |                                                            | {gnumed_v6,gnumed_v7,...}
+ any-staff      |                                                            | {gnumed_v20,gnumed_v17,...}
+ gm-dbo         | Create role, Create DB                                     | {gnumed_v6,gnumed_v7,...}
+ gm-doctors     | Cannot login                                               | {gm-staff,gm-public}
+ gm-logins      | Cannot login                                               | {}
+ gm-public      | Cannot login                                               | {}
+ gm-staff       | Cannot login                                               | {gm-public}
+ gnumed_v10     | Cannot login                                               | {}
+ gnumed_v11     | Cannot login                                               | {}
+ gnumed_v12     | Cannot login                                               | {}
+ gnumed_v13     | Cannot login                                               | {}
+ gnumed_v14     | Cannot login                                               | {}
+ gnumed_v15     | Cannot login                                               | {}
+ gnumed_v16     | Cannot login                                               | {}
+ gnumed_v17     | Cannot login                                               | {}
+ gnumed_v18     | Cannot login                                               | {}
+ gnumed_v19     | Cannot login                                               | {}
+ gnumed_v2      | Cannot login                                               | {}
+ gnumed_v20     | Cannot login                                               | {}
+ gnumed_v21     | Cannot login                                               | {}
+ gnumed_v22     | Cannot login                                               | {}
+ gnumed_v3      | Cannot login                                               | {}
+ gnumed_v4      | Cannot login                                               | {}
+ gnumed_v5      | Cannot login                                               | {}
+ gnumed_v6      | Cannot login                                               | {}
+ gnumed_v7      | Cannot login                                               | {}
+ gnumed_v8      | Cannot login                                               | {}
+ gnumed_v9      | Cannot login                                               | {}
+ postgres       | Superuser, Create role, Create DB, Replication, Bypass RLS | {}
+ test-doc       | Password valid until 2004-12-31 00:00:00+01                | {gm-doctors,gm-public}
+ test-nurse     | Password valid until 2004-12-31 00:00:00+01                | {gm-public}
+ test-secretary | Password valid until 2004-12-31 00:00:00+01                | {gm-public}
+
+\q</code></pre>
+</div></div>
+<div class="sect3">
+<h4 id="_bereinigung">Bereinigung</h4>
+<div class="paragraph"><p>Nun stehen die Aufgaben an, die »frische« Datenbank für die Entwicklungsarbeiten vorzubereiten.</p></div>
 <div class="paragraph"><p><strong>FOLGT</strong></p></div>
 <div class="paragraph"><p><br/></p></div>
 <div class="paragraph"><p></p><hr/><p></p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../arbeitsumgebung">arbeitsumgebung</a>.</p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../postgresql-pgadmin">postgresql-pgadmin</a>.</p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../gnumed-installation">gnumed-installation</a>.</p></div>
+</div>
+</div>
 </div>
 </div>
 
@@ -369,7 +495,7 @@ Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja n
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 2. November 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 13. November 2023
           
           
 
