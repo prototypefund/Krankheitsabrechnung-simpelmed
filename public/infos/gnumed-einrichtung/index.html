@@ -14,7 +14,7 @@
 
   <meta name="description" content="GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.
 1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung
-Client-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.">
+Client-Pakete Der erste Schritt besteht im Installieren der Client-Pakete.">
   <meta name="author" content="Berthold Gehrke"/><script type="application/ld+json">
 {
     "@context": "http://schema.org",
@@ -63,9 +63,9 @@ Client-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.">
     "name" : "Berthold Gehrke"
   },
   "headline": "",
-  "description" : "GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.\n1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung\nClient-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.",
+  "description" : "GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.\n1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung\nClient-Pakete Der erste Schritt besteht im Installieren der Client-Pakete.",
   "inLanguage" : "de",
-  "wordCount":  875 ,
+  "wordCount":  2847 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -87,7 +87,7 @@ Client-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.">
 <meta property="og:title" content="simpelmed" />
 <meta property="og:description" content="GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.
 1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung
-Client-Paktete Der erste Schritt besteht im Installieren der Client-Pakete.">
+Client-Pakete Der erste Schritt besteht im Installieren der Client-Pakete.">
 <meta property="og:image" content="https://simpelmed.de/img/simpelmed.jpg" />
 <meta property="og:url" content="https://simpelmed.de/infos/gnumed-einrichtung/" />
 <meta property="og:type" content="website" />
@@ -302,7 +302,7 @@ Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja n
 3) Inspektion<br/>
 4) Bereinigung</p></div>
 <div class="sect2">
-<h3 id="_client_paktete">Client-Paktete</h3>
+<h3 id="_client_pakete">Client-Pakete</h3>
 <div class="paragraph"><p>Der erste Schritt besteht im Installieren der Client-Pakete. Dies geschieht im erstn Schritt auf dem selben (virtuellen) Rechner, auf dem auch der PostgreSQL-Server mit der Datenbank läuft. Dies ist für das Procedere der Anwendungsentwicklung zum Start das einfachste Vorgehen. Später kann (genau genommen: muss) jeweils ein Client auf jedem Praxisrechner installiert werden, der mit SimpelMed arbeiten soll. Auch in der Entwicklungsumgebung wird später auf verschiedenen Rechnern der Client installiert, um dieses Szenario real zu testen.</p></div>
 <div class="listingblock">
 <div class="title">Installation der Client-Pakete</div>
@@ -327,7 +327,7 @@ Temp dir: /tmp/gnumed-&lt;laufwerk&gt;/&lt;zufaelliger_name&gt;</code></pre>
 - Passwort: »any-doc«<br/>
 und dann »ok«</p></div>
 <div class="paragraph"><p>Nur mit diessen Einstellungen ist jetzt ein Starten GNUmeds möglich; und das auch nur dann, wenn die PostgreSQL-eigene Firewall mittels der Datei »pg_hba.conf«, in der Regel im Verzeichnis »/etc/postgresql/15/main/«, korrekt modifiziert wurde (siehe unter »postgresql - pgadmin«).</p></div>
-<div class="paragraph"><p>Als nächstes erscheint ein Fenster mit folgenden Angaben:</p></div>
+<div class="paragraph"><p>Als nächstes erscheint (möglicherweise - hängt von den Datenbankeinstellungen ab) ein Fenster mit folgenden Angaben:</p></div>
 <div class="listingblock">
 <div class="content">
 <pre><code>GmD: Verifiziere Datenbankeinstellungen
@@ -363,7 +363,8 @@ Eine neue Version von GNUmed ist verfügbar
 
 OK</code></pre>
 </div></div>
-<div class="paragraph"><p>Auch hier geht es weiter mit »OK«. Ab jetzt sind wir im GNUmed-Hauptprogramm und können darin »herumklicken« und uns einen Überblick verschaffen.</p></div>
+<div class="paragraph"><p>Auch hier geht es weiter mit »OK«. Ab jetzt sind wir im GNUmed-Hauptprogramm und können darin »herumklicken« und uns einen Überblick verschaffen.<br/>
+Die letzten drei Meldunen werden am Ende dieser Seite nochmals betrachtet.</p></div>
 </div>
 <div class="sect2">
 <h3 id="_inspektion">Inspektion</h3>
@@ -432,15 +433,386 @@ postgres=# \du
 </div></div>
 <div class="sect3">
 <h4 id="_bereinigung">Bereinigung</h4>
-<div class="paragraph"><p>Nun stehen die Aufgaben an, die »frische« Datenbank für die Entwicklungsarbeiten vorzubereiten.</p></div>
-<div class="paragraph"><p><strong>FOLGT</strong></p></div>
+<div class="paragraph"><p>Nun stehen die Aufgaben an, die »frische« Datenbank für die Entwicklungsarbeiten vorzubereiten. Die Analyse der Programmaufrufe im Sourcecode bringt dabei einige wertvolle Erkenntnisse zu Tage, die unmittelbar zur Optimierung dienen können.<br/>
+Im Folgenden daher die Schritte auf Sourcecode-Ebene im Einzelnen.</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_em_gnumed_em"><em>gnumed</em></h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Durch den Start des Programms durch den Anwender mittels des Konsolen-Kommandos <em>h@pc: gnumed</em> startet das Skript<br/>
+<em>/usr/bin/gnumed</em><br/>
+Dieses Skript startet, führt aus und schließt zum hoffentlich guten Ende eine SimpelMed/GNUmed-Sitzung.</p></div>
+<div class="paragraph"><p><em>gnumed-client.conf</em><br/>
+Für das Skript zwingend vorhanden sein muss die Datei <em>SYSCONF=&#34;/etc/gnumed/gnumed-client.conf&#34;</em>, da sonst die Ausführung sofort abgebrochen wird.
+Diese Datei steuert das zum Start sichtbare Auswahlmenü, sonstige Präferenzen, die zu ladendenden Plugins und den »Workplace« (die Module, welche die Nutzerin »zu sehen« bekommt).
+Dazu später mehr.</p></div>
+<div class="paragraph"><p>Als erstes kann <em>/usr/bin/gnumed</em> Nutzer- oder Datenbank-spezifische Skripte (systemweit und/oder lokal angelegt) ausführen - in einer Standardinstallation gibt es solche nicht.<br/>
+Vor dem »eigentlichen« Programm erfolgt noch eine <em>Paranoia</em>-Einstellung (Paranoia, da heutzutage normalerweise nicht (mehr) notwendig):<br/>
+export PYTHONIOENCODING=utf-8:surrogateescape</p></div>
+<div class="paragraph"><p>Nun startet endlich das »eigentliche« Programm <em>gnumed.py</em>:<br/>
+Schließlich zum Shutdown sind wiederum user-spezifische Skripte systemweit und/oder lokal möglich (Standard: Fehlanzeige). Alle genannten Skripte werden an bestimmten Stellen im Verzeichnisbaum eingehängt.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_gnumed_py">gnumed.py</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Das zentrale Programm <em>gnumed.py</em>, das durch /usr/bin/gnumed aufgerufen wird, findet sich hier:<br/>
+<em>/usr/share/gnumed/Gnumed/gnumed.py</em></p></div>
+<div class="paragraph"><p>Im Quelltext ist die Aufgabe benannt: »main - launch the GNUmed wxPython GUI client«.</p></div>
+<div class="paragraph"><p>Der Quellcode lässt sich wie üblich gliedern in die logischen Teile<br/>
+1) setup,<br/>
+2) main/run<br/>
+3) shutdown.</p></div>
+<div class="paragraph"><p>1) setup:<br/>
+Hier folgen Initialisierungen für das Logging und Pfade sowie die Prüfung auf bestimmte Hilfsprogramme etc.<br/>
+Bei einer Standardanmeldung, z.B. als any-doc, wird ausgeführt:<br/>
+→     exit_code = run_gui()   ←<br/>
+Der Terminus <em>exit_code</em> scheint etwas missverständlich. Damit ist gemeint, die grafische Oberfläche wird gestartet/ausgeführt. Zur Zeit besteht hier nur eine einzige Option, nämlich wxPython (= wxp).<br/>
+Wie schon beim vorherigen Skripts können vor und nach der Ausführung der grafischen Oberfläche individuelle Skripts/Hooks eingebunden werden.</p></div>
+<div class="paragraph"><p>Ein Blick in den Quellcode verdeutlicht das Gesagte.</p></div>
+<div class="listingblock">
+<div class="title">Funktion <em>run_gui</em> innerhalb <em>gnumed.py</em> (/usr/share/gnumed/Gnumed/gnumed.py)</div>
+<div class="content">
+<pre><code>def run_gui():
+        gmHooks.run_hook_script(hook = &#39;startup-before-GUI&#39;)
+
+        if ui_type == &#39;wxp&#39;:
+                from Gnumed.wxpython import gmGuiMain
+                profile_file = _cfg.get(option = &#39;--profile&#39;, source_order = [(&#39;cli&#39;, &#39;return&#39;)])
+                if profile_file is not None:
+                        _log.info(&#39;writing profiling data into %s&#39;, profile_file)
+                        import profile
+                        profile.run(&#39;gmGuiMain.main()&#39;, profile_file)
+                else:
+                        gmGuiMain.main()
+        #elif ui_type == u&#39;web&#39;:
+        #       from Gnumed.proxiedpyjamas import gmWebGuiServer
+        #       gmWebGuiServer.main()
+        #elif ui_type == u&#39;chweb&#39;:
+        #       from Gnumed.CherryPy import gmGuiWeb
+        #       gmGuiWeb.main()
+
+        gmHooks.run_hook_script(hook = &#39;shutdown-post-GUI&#39;)
+
+        return 0</code></pre>
+</div></div>
+<div class="paragraph"><p>Zur Zeit sind wie gesagt keine Hooks gesetzt, weder <em>startup-before-GUI</em> noch <em>shutdown-post-GUI</em>.<br/>
+Zum Zweiten sieht man, dass <em>ui_type</em> immer gleich <em>wxp</em> ist → als Nächstes wird <em>import gmGuiMain</em> importiert und entweder mit oder ohne <em>profile_file</em> gestartet.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_warnungen_und_fehler_im_log">Warnungen und Fehler im Log</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>An dieser Stelle unterbrechen wir für einen Moment die weitere Ausführung und betrachten das informative Log, welches GNUmed standardmäßig schreibt. Dieses finden wir (siehe die Meldung <em>Log File</em> beim Start oben) unter<br/>
+<em>/home/&lt;user/.gnumed/gnumed/logs/gnumed/gnumed/gnumed-&lt;datum_zeit&gt;</em><br/>
+Es handelt sich also um einen (unter Linux) <em>versteckten</em> Ordner, der explizit geöffnet werden muss.</p></div>
+<div class="paragraph"><p>In unserer Umgebung zeigten sich mehrere Warnungen/Fehler, die allesamt aber nicht zu einem Abbruch des Programms führten, sondern <em>ignoriert</em> werden. Die nicht ladbaren Komponenten werden schlicht und einfach übersprungen und sind in der Folge eben nicht nutzbar. Der folgenden Auszug aus dem Log zeigt die interessanten Punkte.</p></div>
+<div class="sect2">
+<h3 id="_getrefcount_getsizeof_lt_cannot_log_gt">getrefcount / getsizeof: &lt;cannot log&gt;</h3>
+<div class="paragraph"><p>Als erstes begegnen uns zwei Warnungen bei der Abfrage bestimmter Infos aus Pythons Modul <em>sys</em></p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>2023-11-14 15:35:29  INFO      gm.launcher   [139817169768512 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #380):              getrecursionlimit: 1000
+2023-11-14 15:35:29  ERROR     gm.launcher   [139817169768512 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #382):                    getrefcount: &lt;cannot log&gt;
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/gnumed.py&#34;, line 380, in log_startup_info
+    _log.info(&#39;%s: %s&#39;, attr_name.rjust(30), attr())
+                                             ^^^^^^
+TypeError: sys.getrefcount() takes exactly one argument (0 given)
+2023-11-14 15:35:29  ERROR     gm.launcher   [139817169768512 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #382):                      getsizeof: &lt;cannot log&gt;
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/gnumed.py&#34;, line 380, in log_startup_info
+    _log.info(&#39;%s: %s&#39;, attr_name.rjust(30), attr())
+                                             ^^^^^^
+TypeError: getsizeof() missing required argument &#39;object&#39; (pos 1)
+2023-11-14 15:35:29  INFO      gm.launcher   [139817169768512 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #380):              getswitchinterval: 0.005</code></pre>
+</div></div>
+<div class="paragraph"><p>Diese Meldungen tauchen bei bestimmten Python-Version auf - ab Python3.11. Frühere Versionen <em>laufen durch</em>.<br/>
+FIX: Um die Kompatibiltät zu erhalten, wird an den kritischen Stellen im Code eine Ausnahme geprüft und abgefangen. Das ist möglich, da die inkriminierten Infos aus <em>sys</em> (im Regelfall) nicht von Belang sind.</p></div>
+<br/>    Hier gilt, wie überhaupt bei jeder
+<img align="left" width="55" height="55" src="/warning.png"/><br/>   Edierung der Python-Quellcode-Dateien: <br/>
+   Als erster Schritt sollen/müssen alle Tabs in 4 Leerschritte umgewandelt werden: <br/>
+expand -t4 -i ./gnumed.alt &gt; gnumed.py
+<br/>
+<img align="left" width="30" height="30" src="/leeres_png.png"/>
+<br/>
+<div class="paragraph"><p>Ein Schnipsel aus der angepassten Datei zeigt das Ergebnis.</p></div>
+<div class="listingblock">
+<div class="title">Korrigierte <em>gnumed.py</em> (Ausschnitt)</div>
+<div class="content">
+<pre><code>...
+#### Begin FIX
+##        if callable(attr):
+##            try:
+##                _log.info(&#39;%s: %s&#39;, attr_name.rjust(30), attr())
+##            except Exception:
+##                _log.exception(&#39;%s: &lt;cannot log&gt;&#39;, attr_name.rjust(30))
+##            continue
+#### End FIX
+         if callable(attr):
+            try:
+                _log.info(&#39;%s: %s&#39;, attr_name.rjust(30), attr())
+            except TypeError:
+                try:
+                    _log.info(&#39;%s: %s&#39;, attr_name.rjust(30), attr(object))
+                except Exception:
+                    _log.exception(&#39;%s: &lt;cannot log&gt;&#39;, attr_name.rjust(30))
+                continue
+            except Exception:
+                _log.exception(&#39;%s: &lt;cannot log&gt;&#39;, attr_name.rjust(30))
+            continue
+...</code></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_system_alias_uname_result_lt_cannot_log_gt_sc_equiv_class_max">system_alias / uname_result &lt;cannot log&gt; / SC_EQUIV_CLASS_MAX</h3>
+<div class="paragraph"><p>Ganz analog lassen sich die drei nächsten Warnungen/Fehler beschreiben und berichtigen:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>&lt;....&gt;
+2023-11-14 16:53:29  ERROR     gm.launcher   [140027945967680 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #412):                   system_alias: &lt;cannot log&gt;
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/gnumed.py&#34;, line 410, in log_startup_info
+    _log.info(&#39;%s: %s&#39;, attr_name.rjust(30), attr())
+                                             ^^^^^^
+TypeError: system_alias() missing 3 required positional arguments: &#39;system&#39;, &#39;release&#39;, and &#39;version&#39;
+2023-11-14 16:53:29  INFO      gm.launcher   [140027945967680 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #410):                          uname: uname_result(system=&#39;Linux&#39;, node=&#39;hpc&#39;, release=&#39;6.1.0-13-amd64&#39;, version=&#39;#1 SMP PREEMPT_DYNAMIC Debian 6.1.55-1 (2023-09-29)&#39;, machine=&#39;x86_64&#39;)
+2023-11-14 16:53:29  ERROR     gm.launcher   [140027945967680 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #412):                   uname_result: &lt;cannot log&gt;
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/gnumed.py&#34;, line 410, in log_startup_info
+    _log.info(&#39;%s: %s&#39;, attr_name.rjust(30), attr())
+                                             ^^^^^^
+TypeError: uname_result_base.__new__() missing 5 required positional arguments: &#39;system&#39;, &#39;node&#39;, &#39;release&#39;, &#39;version&#39;, and &#39;machine&#39;
+2023-11-14 16:53:29  INFO      gm.launcher   [140027945967680 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #410):                        version: #1 SMP PREEMPT_DYNAMIC Debian 6.1.55-1 (2023-09-29)
+
+&lt;....&gt;
+2023-11-14 16:53:29  INFO      gm.launcher   [140027945967680 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #421):               sysconf[SC_DELAYTIMER_MAX]: 2147483647
+2023-11-14 16:53:29  ERROR     gm.launcher   [140027945967680 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #423):    sysconf[SC_EQUIV_CLASS_MAX]: &lt;invalid&gt; ??
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/gnumed.py&#34;, line 421, in log_startup_info
+    _log.info(&#39;%s: %s&#39;, (&#39;sysconf[%s]&#39; % n).rjust(40), os.sysconf(n))
+                                                       ^^^^^^^^^^^^^
+OSError: [Errno 22] Invalid argument
+2023-11-14 16:53:29  INFO      gm.launcher   [140027945967680 MainThread]  (/usr/share/gnumed/Gnumed/gnumed.py::log_startup_info() #421):                sysconf[SC_EXPR_NEST_MAX]: 32
+&lt;....&gt;</code></pre>
+</div></div>
+<div class="paragraph"><p>Diese Meldungen werden ebenso durch entsprechende Ausnahmeklauseln abgfangen, die in den Code zu <em>gnumed.py</em> eingefügt werden.<br/>
+Die vollständige <em>gefixte</em> Datei gnumed.py findet sich im Simpelmed-Repo<br/>
+<a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads</a></p></div>
+</div>
+<div class="sect2">
+<h3 id="_wxgridselectrows">wxGridSelectRows</h3>
+<div class="paragraph"><p>Der nächste Error betrifft die wxpython-Datei <em>gmMedicationWidgets.py</em>, zu finden im Verzeichnis <em>/usr/share/gnumed/Gnumed/wxpython/</em></p></div>
+<div class="listingblock">
+<div class="title">Fehlermeldung »attribute <em>wxGridSelectRows</em>«</div>
+<div class="content">
+<pre><code>&lt;....&gt;
+
+2023-11-14 19:18:16  ERROR     gm.ui         [140644204879936 MainThread]  (/usr/share/gnumed/Gnumed/wxpython/gmHorstSpace.py::__load_plugins() #293): failed to load plugin gmCurrentSubstancesPlugin
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmHorstSpace.py&#34;, line 286, in __load_plugins
+    plugin.register()
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmAccessPermissionWidgets.py&#34;, line 60, in _func_decorated_with_required_role_checking
+    return original_function(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gui/gmCurrentSubstancesPlugin.py&#34;, line 34, in register
+    gmPlugin.cNotebookPlugin.register(self)
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmPlugin.py&#34;, line 92, in register
+    widget = self.GetWidget(nb)
+             ^^^^^^^^^^^^^^^^^^
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gui/gmCurrentSubstancesPlugin.py&#34;, line 40, in GetWidget
+    self._widget = gmMedicationWidgets.cCurrentSubstancesPnl(parent, -1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmMedicationWidgets.py&#34;, line 1977, in __init__
+    wxgCurrentSubstancesPnl.wxgCurrentSubstancesPnl.__init__(self, *args, **kwargs)
+  File &#34;/usr/share/gnumed/Gnumed/wxGladeWidgets/wxgCurrentSubstancesPnl.py&#34;, line 27, in __init__
+    self._grid_substances = cCurrentSubstancesGrid(self, wx.ID_ANY, size=(1, 1))
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmMedicationWidgets.py&#34;, line 1346, in __init__
+    self.__init_ui()
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmMedicationWidgets.py&#34;, line 1828, in __init_ui
+    self.SetSelectionMode(wx.grid.Grid.wxGridSelectRows)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object &#39;Grid&#39; has no attribute &#39;wxGridSelectRows&#39;
+
+&lt;....&gt;</code></pre>
+</div></div>
+<div class="paragraph"><p>Hier scheint es einen Wechsel in der wxPython-API zu geben. In einer Version heißt es <em>wxGridSelectRows</em>, in einer anderen <em>GridSelectRows</em> ohne wx zu Beginn.<br/>
+Die <em>gefixte Version</em> der Datei steht ebenso im Repo <a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads</a></p></div>
+<div class="paragraph"><p>+</p></div>
+</div>
+<div class="sect2">
+<h3 id="_modul_humblewx_fehlt">Modul humblewx fehlt</h3>
+<div class="paragraph"><p>Den nächsten Error verursacht das Modul <em>humblewx</em>, das in bestimmte Python/wxPython-Umgebungen nicht gefunden wird. Die Log-Meldung dazu:</p></div>
+<div class="listingblock">
+<div class="title">ModuleNotFoundError: No module named <em>humblewx</em></div>
+<div class="content">
+<pre><code>2023-11-14 19:18:16  ERROR     gm.ui         [140644204879936 MainThread]  (/usr/share/gnumed/Gnumed/wxpython/gmPlugin.py::__gm_import() #265): Cannot __import__() module [Gnumed.wxpython.gui.gmEMRTimelinePlugin].
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmPlugin.py&#34;, line 263, in __gm_import
+    mod = __import__(module_name)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gui/gmEMRTimelinePlugin.py&#34;, line 14, in &lt;module&gt;
+    from Gnumed.wxpython import gmPlugin, gmEMRTimelineWidgets
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmEMRTimelineWidgets.py&#34;, line 38, in &lt;module&gt;
+    from Gnumed.timelinelib.canvas.data import TimePeriod
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/canvas/__init__.py&#34;, line 23, in &lt;module&gt;
+    from timelinelib.canvas.events import EVT_DIVIDER_POSITION_CHANGED
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/canvas/__init__.py&#34;, line 25, in &lt;module&gt;
+    from timelinelib.canvas.timelinecanvas import TimelineCanvas
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/canvas/timelinecanvas.py&#34;, line 22, in &lt;module&gt;
+    from timelinelib.canvas.timelinecanvascontroller import TimelineCanvasController
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/canvas/timelinecanvascontroller.py&#34;, line 21, in &lt;module&gt;
+    from timelinelib.canvas.appearance import Appearance
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/canvas/appearance.py&#34;, line 22, in &lt;module&gt;
+    from timelinelib.wxgui.components.font import Font
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/wxgui/components/__init__.py&#34;, line 19, in &lt;module&gt;
+    from .categorychoice import CategoryChoice
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/wxgui/components/categorychoice.py&#34;, line 23, in &lt;module&gt;
+    from timelinelib.wxgui.dialogs.editcategory.view import EditCategoryDialog
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/wxgui/dialogs/editcategory/view.py&#34;, line 19, in &lt;module&gt;
+    from timelinelib.wxgui.dialogs.editcategory.controller import EditCategoryDialogController
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/wxgui/dialogs/editcategory/controller.py&#34;, line 19, in &lt;module&gt;
+    from timelinelib.wxgui.framework import Controller
+  File &#34;/usr/share/gnumed/Gnumed/timelinelib/wxgui/framework.py&#34;, line 19, in &lt;module&gt;
+    from humblewx import Controller
+ModuleNotFoundError: No module named &#39;humblewx&#39;</code></pre>
+</div></div>
+<div class="paragraph"><p>Wie gesagt, trifft dieser Fehler nur in den neueren Python-Version ab 11 und höher auf. Zugrunde liegt möglichwerweise ein modifiziertes Import- bzw. Modulkonzept (Suchphrase für weitere Recherchen: <em>error: externally-managed-environment This environment is externally managed …</em>; hierauf gehen wir nicht weiter ein, da erhebliche Eingriffe ins System notwendig wären, dieses Verhlaten zu ändern). Der Fix besteht darin, das Modul <em>humblewx.py</em> händisch in das Verzeichnis zu kopieren.<br/>
+Kopieren Sie dazu die Datei humblewx.py (im Repo: <a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads</a>) auf Ihren Rechner und kopieren diese dann in das Heimatverzeichnis von <em>framework.py</em>, da letzteres hier zuerst nach Modulen zum Import sucht.</p></div>
+<div class="listingblock">
+<div class="title">Kopieren der Datei humblewx.py (root/sudo !)</div>
+<div class="content">
+<pre><code>sudo cp ./humblewx.py /usr/share/gnumed/Gnumed/timelinelib/wxgui/humblewx.py</code></pre>
+</div></div>
+</div>
+<div class="sect2">
+<h3 id="_konsolekalendar">konsolekalendar</h3>
+<div class="paragraph"><p>Relativ einfach ist die nächste Meldung zu unterdrücken bzw. abzuhaken. Das Programm meldet, <em>konsolekalendar</em> nicht finden zu können.</p></div>
+<div class="listingblock">
+<div class="title">cannot detect &#34;konsolekalendar&#34;</div>
+<div class="content">
+<pre><code>&lt;...&gt;
+2023-11-14 19:18:16  ERROR     gm.ui         [140644204879936 MainThread]  (/usr/share/gnumed/Gnumed/wxpython/gmHorstSpace.py::__load_plugins() #293): failed to load plugin gmEMRTimelinePlugin
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmHorstSpace.py&#34;, line 284, in __load_plugins
+    plugin = gmPlugin.instantiate_plugin(&#39;gui&#39;, curr_plugin)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmPlugin.py&#34;, line 300, in instantiate_plugin
+    plugin_class = module_from_package.__dict__[plugin_name]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: &#39;NoneType&#39; object has no attribute &#39;__dict__&#39;
+2023-11-14 19:18:16  ERROR     gm.ui         [140644204879936 MainThread]  (/usr/share/gnumed/Gnumed/wxpython/gmPlugin.py::instantiate_plugin() #310): Cannot open module &#34;gui.gmKOrganizerPlugin&#34;.
+Traceback (most recent call last):
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gmPlugin.py&#34;, line 308, in instantiate_plugin
+    plugin = plugin_class()
+             ^^^^^^^^^^^^^^
+  File &#34;/usr/share/gnumed/Gnumed/wxpython/gui/gmKOrganizerPlugin.py&#34;, line 35, in __init__
+    raise gmExceptions.ConstructorError(&#39;cannot detect &#34;konsolekalendar&#34; via [%s]&#39; % cmd)
+Gnumed.pycommon.gmExceptions.ConstructorError: cannot detect &#34;konsolekalendar&#34; via [None]
+2023-11-14 19:18:16  ERROR     gm.ui         [140644204879936 MainThread]  (/usr/share/gnumed/Gnumed/wxpython/gmHorstSpace.py::__load_plugins() #289): plugin [gmKOrganizerPlugin] not loaded, see errors above
+&lt;...&gt;</code></pre>
+</div></div>
+<div class="paragraph"><p>Das liegt ganz banal daran, dass dieses Programm nicht installiert ist. Abhilfe schafft ein einfaches <em>sudo apt install konsolekalendar</em>.</p></div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_datenbankeinstellungen">Datenbankeinstellungen</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Bei den meisten Neuinstallationen begrüßt Sie das Programm mit folgender oder einer ähnlichen Meldung:</p></div>
+<div class="listingblock">
+<div class="content">
+<pre><code>Die Datenbankeinstellungen sind riskant gewählt:
+
+ Option [log_connections]: off
+  Risiko: non-compliance with HIPAA
+ Option [log_disconnections]: off
+  Risiko: non-compliance with HIPAA
+ Option [track_commit_timestamp]: off
+  Risiko: suboptimal auditing
+
+Eventuell müssen Sie Ihren Systembetreuer zu Rate ziehen.
+
+Die Logdatei enthält genauere Angaben !</code></pre>
+</div></div>
+<div class="paragraph"><p>Die entsprechenden Log-Einträge sehen so aus:</p></div>
+<div class="listingblock">
+<div class="title">database settings warning</div>
+<div class="content">
+<pre><code>2023-11-15 17:45:35  WARNING   gm.db         [140030872350720 MainThread]  (/usr/share/gnumed/Gnumed/pycommon/gmPG2.py::sanity_check_database_settings() #2087): PG option [log_connections] set to [off], expected [&#39;on&#39;], risk: &lt;non-compliance with HIPAA&gt;
+2023-11-15 17:45:35  WARNING   gm.db         [140030872350720 MainThread]  (/usr/share/gnumed/Gnumed/pycommon/gmPG2.py::sanity_check_database_settings() #2087): PG option [log_disconnections] set to [off], expected [&#39;on&#39;], risk: &lt;non-compliance with HIPAA&gt;
+2023-11-15 17:45:35  WARNING   gm.db         [140030872350720 MainThread]  (/usr/share/gnumed/Gnumed/pycommon/gmPG2.py::sanity_check_database_settings() #2087): PG option [track_commit_timestamp] set to [off], expected [&#39;on&#39;], risk: &lt;suboptimal auditing&gt;</code></pre>
+</div></div>
+<div class="paragraph"><p>Das stellt keinen Grund zur Aufregung dar und beeinflusst die Ausführung in keinster Weise. Es geht hier um bestimmte Aufzeichnungen innerhalb der Datenbank, die für eine forensische Analyse der Nutzereingaben und Sitzungszeiten notwendig sind. Insbesondere US-Behörden interessieren sich (im Falle des Falles, wenn etwas wirklich schiefgeht mit Personenschaden) für diese Informationen. Dennoch ist es sicherlich eine gute Idee, diese Meldungen zu umgehen, zumal damit keine Einbuße an Komfort oder Geschwindigkeit einhergeht.<br/>
+Der Datenbankadministrator muss dazu die PostgreSQL-Konfiguration anpassen - danach ist PostgreSQL neu zu starten.</p></div>
+<div class="listingblock">
+<div class="title"><em>Riskante</em> Datenbankeinstellungen /etc/postgresql/15/main/postgresql.conf</div>
+<div class="content">
+<pre><code>&lt;...&gt;
+#------------------------------------------------------------------------------
+# REPLICATION
+#------------------------------------------------------------------------------
+
+track_commit_timestamp = on     # collect timestamp of transaction commit
+                                            # (change requires restart)
+&lt;...&gt;
+#------------------------------------------------------------------------------
+# REPORTING AND LOGGING
+#------------------------------------------------------------------------------
+&lt;...&gt;
+
+# - What to Log -
+&lt;...&gt;
+
+log_connections = on
+log_disconnections = on</code></pre>
+</div></div>
+<div class="paragraph"><p>Dargestellt sind hier nur die notwendigen Änderungen, gezeigt ist jeweils die Zeile nach Edierung. Damit erscheinen die genannte Risikowarnung nicht mehr.</p></div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_weitere_meldungen_zum_start">Weitere Meldungen zum Start</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>Zu guter letzt sollen die folgenden Meldungen - sie sind natürlich kein eigentlicher Fehler - erwähnt werden.</p></div>
+<div class="listingblock">
+<div class="title">Versionsinfo</div>
+<div class="content">
+<pre><code>Eine neue Version von GNUmed ist verfügbar.
+ Ihre jetzige Version: &#34;1.8.9&#34;
+
+ Neue Version: &#34;1.8.15&#34;
+ - ausschließlich Fehlerkorrekturen
+ - Datenbank-Fixes können nötig sein
+
+Achtung: Es kann natürlich sein, daß für Ihr System diese Version noch nicht bereitgestellt wurde.
+Details are found on &lt;http://www.gnumed.de&gt;.
+
+Versionsinformationen geladen von:
+ [https://www.gnumed.de/downloads/gnumed-versions.txt]</code></pre>
+</div></div>
+<div class="paragraph"><p>Hier besteht kein Handlungsbedarf.</p></div>
+<br/>
+<img align="left" width="30" height="30" src="/leeres_png.png"/>
+<br/>
+<div class="paragraph"><p>In statu nascendi begrüßt uns eine geradzu kosmische Praxis:</p></div>
+<div class="listingblock">
+<div class="title">Begrüßung der Raumflottenpraxis</div>
+<div class="content">
+<pre><code>Zweigstelle &#34;generic praxis branch&#34; der &#34;generic praxis&#34;
+...
+Uncle Pawel Wants You! --- Sign up for Starfleet Now!
+...</code></pre>
+</div></div>
+<div class="paragraph"><p>Auch hier muss nichts sofort geändert werden, die »richtigen« Daten werden später noch ins System eingepflegt.</p></div>
 <div class="paragraph"><p><br/></p></div>
 <div class="paragraph"><p></p><hr/><p></p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../arbeitsumgebung">arbeitsumgebung</a>.</p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../postgresql-pgadmin">postgresql-pgadmin</a>.</p></div>
 <div class="paragraph"><p>-&gt; Zurück zu <a href="../gnumed-installation">gnumed-installation</a>.</p></div>
-</div>
-</div>
 </div>
 </div>
 
@@ -495,7 +867,7 @@ postgres=# \du
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 13. November 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 17. November 2023
           
           
 
