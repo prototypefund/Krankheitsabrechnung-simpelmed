@@ -19,6 +19,7 @@ NEW: login: focus previously used praxis branch
 NEW: file describer: include pdffonts
 NEW: export area: escrow passphrases used during file export
 NEW: tool: get_object_passphrases
+NEW: plugins: gmIncomingAreaPlugin supercedes gmScanIdxMedDocsPlugin
 
 IMPROVED: GUI: show current patient in window titles
 IMPROVED: placeholder: $current_provider_name$
@@ -46,10 +47,18 @@ FIX: CLI: --ui= not needed anymore
 FIX: documentation: links (wiki -> static pages)
 FIX: date/time: formatting intervals medically
 FIX: Py3.13: will remove mailcap module
+FIX: forward-port fix for grid selection constant names
 
 ------------------------------------------------
 # rel-1-8-maint
 ------------------------------------------------
+
+	1.8.16
+
+FIX: SQL plugin: exception on faulty query
+FIX: meds plugin: grid selection constant names
+
+IMPROVED: plugin PACS: layout
 
 	1.8.15
 
@@ -2279,6 +2288,7 @@ IMPROVED: bootstrap script permissions warning
 IMRPOVED: clin.v_narrative4search: add some demographics (port from 1.8.6)
 
 FIX: PG14 does not support IS OF anymore, use pg_typeof()
+FIX: revoke CREATE from PUBLIC on schema PUBLIC (thanks PG)
 
 ------------------------------------------------
 # gnumed_v22
