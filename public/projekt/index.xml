@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Projekts on simpelmed</title>
+    <link>https://simpelmed.de/projekt/</link>
+    <description>Recent content in Projekts on simpelmed</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>de</language>
+    <managingEditor>kontakt@simpelmed.de (Berthold Gehrke)</managingEditor>
+    <webMaster>kontakt@simpelmed.de (Berthold Gehrke)</webMaster><atom:link href="https://simpelmed.de/projekt/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/projekt/remote-zugriff/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/projekt/remote-zugriff/</guid>
+      <description>Live-Demo Remote Nicht jede(r) Interessent(in) am Projekt SimpelMed möchte verständlicherweie auf ihrem/seinem Rechner das Paket installieren. Zumal dessen Einrichtung, wie aus den Infos dieser Homepage hervorgeht, nicht immer so glatt gelingt …
+Windows Zur Verfügung steht der Windows-Remote Desktop, siehe z. B. hier: https://praxistipps.chip.de/windows-remote-desktop-einrichten-so-gehts_127765 Dieses Feature steht kostenlos und in der Regel schon fix und fertig betriebsbereit zur Verfügung.
+GNU/Linux Zugriff z. B. über Reminna oder VNC, hier stehen je nach persönlicher Vorliebe eine Vielzahl von Paketen bereit.</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/projekt/simpelmed-start-i/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/projekt/simpelmed-start-i/</guid>
+      <description>ZUR ZEIT IN BEARBEITUNG, Sie sehen hier einen Platzhalter!</description>
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://simpelmed.de/projekt/simpelmed-start-ii/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      <author>kontakt@simpelmed.de (Berthold Gehrke)</author>
+      <guid>https://simpelmed.de/projekt/simpelmed-start-ii/</guid>
+      <description>FOLGT</description>
+    </item>
+    
+  </channel>
+</rss>

@@ -65,7 +65,7 @@ Client-Pakete Der erste Schritt besteht im Installieren der Client-Pakete.">
   "headline": "",
   "description" : "GNUmed Einrichtung Fahrplan und Schritte Nun, da eine »leere« GNUmed-Installation vorliegt, muss diese noch an ein realistisches Szenario angepasst werden. Ganz zu Anfang muss der »GNUmed-Client« installiert werden: bisher läuft ja nur der GNUmed-Server, der allerdings einzig für den Administrator überhaupt »sichtbar« ist. Eine Anwenderin für die Alltags-Benutzung existiert (noch) nicht, es gibt keine Zugangsdaten und keine graphische Oberfläche.\n1) Client-Pakete 2) Start GNUmed 3) Inspektion 4) Bereinigung\nClient-Pakete Der erste Schritt besteht im Installieren der Client-Pakete.",
   "inLanguage" : "de",
-  "wordCount":  2847 ,
+  "wordCount":  2904 ,
   "datePublished" : "0001-01-01T00:00:00",
   "dateModified" : "0001-01-01T00:00:00",
   "image" : "https:\/\/simpelmed.de\/img\/simpelmed.jpg",
@@ -176,6 +176,21 @@ div.admonitionblock td.content {
                   <a href="/infos/team">Team</a>
                 
                   <a href="/infos/foerderung">Förderung</a>
+                
+              </div>
+            </li>
+          
+        
+          
+            <li class="navlinks-container">
+              <a class="navlinks-parent">Projekt</a>
+              <div class="navlinks-children">
+                
+                  <a href="/projekt/simpelmed-start-i">SimpelMed-Start I</a>
+                
+                  <a href="/projekt/simpelmed-start-ii">SimpelMed-Start II</a>
+                
+                  <a href="/projekt/remote-zugriff">Remote-Zugriff</a>
                 
               </div>
             </li>
@@ -469,9 +484,9 @@ Schließlich zum Shutdown sind wiederum user-spezifische Skripte systemweit und/
 <div class="paragraph"><p>1) setup:<br/>
 Hier folgen Initialisierungen für das Logging und Pfade sowie die Prüfung auf bestimmte Hilfsprogramme etc.<br/>
 Bei einer Standardanmeldung, z.B. als any-doc, wird ausgeführt:<br/>
-→     exit_code = run_gui()   ←<br/>
+ … exit_code = run_gui()<br/>
 Der Terminus <em>exit_code</em> scheint etwas missverständlich. Damit ist gemeint, die grafische Oberfläche wird gestartet/ausgeführt. Zur Zeit besteht hier nur eine einzige Option, nämlich wxPython (= wxp).<br/>
-Wie schon beim vorherigen Skripts können vor und nach der Ausführung der grafischen Oberfläche individuelle Skripts/Hooks eingebunden werden.</p></div>
+Wie schon beim vorherigen Skript können vor und nach der Ausführung der grafischen Oberfläche individuelle Skripts/Hooks eingebunden werden.</p></div>
 <div class="paragraph"><p>Ein Blick in den Quellcode verdeutlicht das Gesagte.</p></div>
 <div class="listingblock">
 <div class="title">Funktion <em>run_gui</em> innerhalb <em>gnumed.py</em> (/usr/share/gnumed/Gnumed/gnumed.py)</div>
@@ -532,13 +547,14 @@ TypeError: getsizeof() missing required argument &#39;object&#39; (pos 1)
 </div></div>
 <div class="paragraph"><p>Diese Meldungen tauchen bei bestimmten Python-Version auf - ab Python3.11. Frühere Versionen <em>laufen durch</em>.<br/>
 FIX: Um die Kompatibiltät zu erhalten, wird an den kritischen Stellen im Code eine Ausnahme geprüft und abgefangen. Das ist möglich, da die inkriminierten Infos aus <em>sys</em> (im Regelfall) nicht von Belang sind.</p></div>
-<br/>    Hier gilt, wie überhaupt bei jeder
-<img align="left" width="55" height="55" src="/warning.png"/><br/>   Edierung der Python-Quellcode-Dateien: <br/>
-   Als erster Schritt sollen/müssen alle Tabs in 4 Leerschritte umgewandelt werden: <br/>
-expand -t4 -i ./gnumed.alt &gt; gnumed.py
-<br/>
-<img align="left" width="30" height="30" src="/leeres_png.png"/>
-<br/>
+<br/>    Hier gilt, wie überhaupt bei jeder Edierung der
+<img align="left" width="55" height="55" src="/warning.png"/><br/>   Python-Quellcode-Dateien: <br/>
+   Als erster Schritt sollen/müssen alle Tabs in vier Leerschritte umgewandelt werden: <br/>
+<div class="listingblock">
+<div class="title">Python-Quellcode: Tabs zu Leerschritten</div>
+<div class="content">
+<pre><code>expand -t4 -i ./gnumed.alt &gt; gnumed.py</code></pre>
+</div></div>
 <div class="paragraph"><p>Ein Schnipsel aus der angepassten Datei zeigt das Ergebnis.</p></div>
 <div class="listingblock">
 <div class="title">Korrigierte <em>gnumed.py</em> (Ausschnitt)</div>
@@ -566,6 +582,9 @@ expand -t4 -i ./gnumed.alt &gt; gnumed.py
             continue
 ...</code></pre>
 </div></div>
+<br/>
+<img align="left" width="30" height="15" src="/leeres_png.png"/>
+<br/>
 </div>
 <div class="sect2">
 <h3 id="_system_alias_uname_result_lt_cannot_log_gt_sc_equiv_class_max">system_alias / uname_result &lt;cannot log&gt; / SC_EQUIV_CLASS_MAX</h3>
@@ -600,8 +619,8 @@ OSError: [Errno 22] Invalid argument
 &lt;....&gt;</code></pre>
 </div></div>
 <div class="paragraph"><p>Diese Meldungen werden ebenso durch entsprechende Ausnahmeklauseln abgfangen, die in den Code zu <em>gnumed.py</em> eingefügt werden.<br/>
-Die vollständige <em>gefixte</em> Datei gnumed.py findet sich im Simpelmed-Repo<br/>
-<a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads</a></p></div>
+Die vollständige, <em>gefixte</em>, Datei gnumed.py findet sich im Simpelmed-Repo<br/>
+<a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main/gnumed/gnumed/client?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main/gnumed/gnumed/client?ref_type=heads</a></p></div>
 </div>
 <div class="sect2">
 <h3 id="_wxgridselectrows">wxGridSelectRows</h3>
@@ -641,8 +660,8 @@ AttributeError: type object &#39;Grid&#39; has no attribute &#39;wxGridSelectRow
 &lt;....&gt;</code></pre>
 </div></div>
 <div class="paragraph"><p>Hier scheint es einen Wechsel in der wxPython-API zu geben. In einer Version heißt es <em>wxGridSelectRows</em>, in einer anderen <em>GridSelectRows</em> ohne wx zu Beginn.<br/>
-Die <em>gefixte Version</em> der Datei steht ebenso im Repo <a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads</a></p></div>
-<div class="paragraph"><p>+</p></div>
+Die <em>gefixte Version</em> der Datei steht ebenso im Repo<br/>
+<a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main/gnumed/gnumed/client/wxpython?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main/gnumed/gnumed/client/wxpython?ref_type=heads</a></p></div>
 </div>
 <div class="sect2">
 <h3 id="_modul_humblewx_fehlt">Modul humblewx fehlt</h3>
@@ -681,12 +700,12 @@ Traceback (most recent call last):
     from humblewx import Controller
 ModuleNotFoundError: No module named &#39;humblewx&#39;</code></pre>
 </div></div>
-<div class="paragraph"><p>Wie gesagt, trifft dieser Fehler nur in den neueren Python-Version ab 11 und höher auf. Zugrunde liegt möglichwerweise ein modifiziertes Import- bzw. Modulkonzept (Suchphrase für weitere Recherchen: <em>error: externally-managed-environment This environment is externally managed …</em>; hierauf gehen wir nicht weiter ein, da erhebliche Eingriffe ins System notwendig wären, dieses Verhlaten zu ändern). Der Fix besteht darin, das Modul <em>humblewx.py</em> händisch in das Verzeichnis zu kopieren.<br/>
-Kopieren Sie dazu die Datei humblewx.py (im Repo: <a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main?ref_type=heads</a>) auf Ihren Rechner und kopieren diese dann in das Heimatverzeichnis von <em>framework.py</em>, da letzteres hier zuerst nach Modulen zum Import sucht.</p></div>
+<div class="paragraph"><p>Wie gesagt, trifft dieser Fehler nur in den neueren Python-Version ab 11 und höher auf. Zugrunde liegt möglicherweise ein modifiziertes Import- bzw. Modulkonzept (Suchphrase für weitere Recherchen: <em>error: externally-managed-environment This environment is externally managed …</em>; hierauf gehen wir nicht weiter ein, da erhebliche Eingriffe ins System notwendig wären, dieses Verhalten zu ändern). Der Fix besteht darin, das Modul <em>humblewx.py</em> händisch in das »Wurzelverzeichnis« zu kopieren.<br/>
+Kopieren Sie dazu die Datei humblewx.py (im Repo: <a href="https://gitlab.com/bgehrke/simpelmed/-/tree/main/gnumed/gnumed/client?ref_type=heads">https://gitlab.com/bgehrke/simpelmed/-/tree/main/gnumed/gnumed/client?ref_type=heads</a>) auf Ihren Rechner und kopieren diese dann in das Heimatverzeichnis des Clients zu kopieren, da dieser hier zuerst nach Modulen zum Import sucht. An dieser Stelle im Verzeichnisbaum liegt im Übrigen auch die Datei <em>gnumed.py</em>.</p></div>
 <div class="listingblock">
-<div class="title">Kopieren der Datei humblewx.py (root/sudo !)</div>
+<div class="title">Kopieren der Datei humblewx.py (root/sud!)</div>
 <div class="content">
-<pre><code>sudo cp ./humblewx.py /usr/share/gnumed/Gnumed/timelinelib/wxgui/humblewx.py</code></pre>
+<pre><code>sudo cp ./humblewx.py /usr/share/gnumed/Gnumed/humblewx.py</code></pre>
 </div></div>
 </div>
 <div class="sect2">
@@ -717,6 +736,9 @@ Gnumed.pycommon.gmExceptions.ConstructorError: cannot detect &#34;konsolekalenda
 &lt;...&gt;</code></pre>
 </div></div>
 <div class="paragraph"><p>Das liegt ganz banal daran, dass dieses Programm nicht installiert ist. Abhilfe schafft ein einfaches <em>sudo apt install konsolekalendar</em>.</p></div>
+<br/>    Da das Modul nicht zwingend erforderlich ist, kann auf die
+<img align="left" width="55" height="55" src="/tip.png"/><br/>   Installation auch verzichtet werden.<br/>
+   Der Grund für diesen Ratschlag: Damit vermeidet man die notwendige Installation des Paketes »Akonadi«, einer notorischen »Datenkrake«. Insbesondere im Gesundheitsumfeld scheint der Einsatz dieser Software als eher bedenklich.<br/>
 </div>
 </div>
 </div>
@@ -867,7 +889,7 @@ Uncle Pawel Wants You! --- Sign up for Starfleet Now!
 
           &nbsp;&copy;&nbsp;2023
           
-          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 17. November 2023
+          by Berthold Gehrke & Alexandra Rupp GbR &nbsp;&bull;&nbsp;letzte Änderung am 4. Dezember 2023
           
           
 
