@@ -1,9 +1,19 @@
-# -*- coding: utf8 -*-
-"""GNUmed Praxis related middleware."""
-#============================================================
-__license__ = "GPL"
-__author__ = "K.Hilbert <Karsten.Hilbert@gmx.net>"
+#!/usr/bin/env python3
 
+"""
+SimpelMed / GNUmed Middleware bezüglich Praxis(-einstellungen)
+
+Autor: karsten.hilbert@gmx.net
+Modifikationen des Originals durch
+
+(c) 2024 by Berthold Gehrke <kontakt@simpelmed.de>
+AGPLv3 or higher
+"""
+#########
+## Die Datei enthält einige (auskommentierte) print-Anweisungen,
+## die nach DEBUG entfernt werden können.
+## Außerdem einige Kommentare zum Programmablauf ...
+#########
 
 import sys
 import logging
@@ -362,7 +372,7 @@ class gmCurrentPraxisBranch(gmBorg.cBorg):
     def __init__(self, branch=None):
         #print("jdjd 363", sys._getframe(2))
         try:
-            #print("Zeile 364 noch nicht init - das erste Mal")
+            #print("Zeile 364 noch nicht init")
             #input()
             self.has_been_initialized
             #print("Zeile 365 init yes has_been_init!")
@@ -398,7 +408,7 @@ class gmCurrentPraxisBranch(gmBorg.cBorg):
         if attribute == 'has_been_initialized':
             raise AttributeError
         if attribute in ['branch', 'waiting_list_patients', 'help_desk', 'db_logon_banner', 'active_workplace', 'workplaces', 'user_email']:
-            print("Zeile 398 attribute", attribute)
+            #print("Zeile 398 attribute", attribute)
             return getattr(self, attribute)
         return getattr(self.branch, attribute)
 
@@ -407,7 +417,7 @@ class gmCurrentPraxisBranch(gmBorg.cBorg):
     #--------------------------------------------------------
     def __getitem__(self, attribute = None):
         """Return any attribute if known how to retrieve it by proxy."""
-        print("getitem branch")
+        #print("getitem branch")
         return self.branch[attribute]
 
     #--------------------------------------------------------
@@ -535,8 +545,10 @@ where
 
         The first occurrence counts.
         """
+        return 'SimpelMedStandard'
+
         if self.__active_workplace is not None:
-            print("activeworkplace 539", self.__active_workplace)
+            #print("activeworkplace 539", self.__active_workplace)
             return self.__active_workplace
 
         self.__active_workplace = gmTools.coalesce (
@@ -553,7 +565,7 @@ where
             ),
             'Local Default'
         )
-        print("activeworkplace 555", self.__active_workplace)
+        #print("activeworkplace 555", self.__active_workplace)
         return self.__active_workplace
 
     active_workplace = property(_get_workplace, _set_workplace)

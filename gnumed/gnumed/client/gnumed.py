@@ -1,5 +1,26 @@
 #!/usr/bin/env python3
 
+"""
+SimpelMed GUI Management ...
+
+Autoren
+H. Herb <hherb@gnumed.net>, K. Hilbert <Karsten.Hilbert@gmx.net>,
+I. Haywood <i.haywood@ugrad.unimelb.edu.au>
+
+Modifikationen des Originals durch
+
+(c) 2024 by Berthold Gehrke <kontakt@simpelmed.de>
+AGPLv3 or higher
+"""
+
+
+#########
+## Die Datei enthält einige (auskommentierte) print-Anweisungen,
+## die nach DEBUG entfernt werden können.
+## Außerdem einige Kommentare zum Programmablauf ...
+#########
+
+
 __doc__ = """GNUmed client launcher.
 
 This is the launcher for the GNUmed GUI client. It takes
@@ -55,9 +76,6 @@ care of all the pre- and post-GUI runtime environment setup.
  Show this help.
 """
 #==========================================================
-# SPDX-License-Identifier: GPL-2.0-or-later
-__author__ = "H. Herb <hherb@gnumed.net>, K. Hilbert <Karsten.Hilbert@gmx.net>, I. Haywood <i.haywood@ugrad.unimelb.edu.au>"
-__license__ = "GPL v2 or later (details at http://www.gnu.org)"
 
 
 # standard library
