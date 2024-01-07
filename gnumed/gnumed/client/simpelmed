@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# Script ehemals 'gnumed' umbenannt zu 'simpelmed',
-# sonst keine Änderung!
+# Script 'gnumed' umbenannt zu 'simpelmed',
+# Änderungen bzgl. sys.argv durch
+# Berthold Gehrke kontakt@simpelmed.de
+# (c) 2024 Lizenz AGPLv3 oder höher
 # Speicherort zB als /usr/bin/simpelmed
 
 #==================================================
@@ -53,8 +55,8 @@ fi
 
 # now run the client
 export PYTHONIOENCODING=utf-8:surrogateescape
-python3 -m Gnumed.gnumed ${OPTIONS}
-
+#python3 -m Gnumed.gnumed ${OPTIONS}
+python3 -m Gnumed.gnumed --skip-update-check --log-file='~/simpellog.log' 'SimpelMedStandard'
 
 # source systemwide shutdown extension shell script if it exists
 if [ -r /etc/gnumed/gnumed-shutdown-local.sh ] ; then

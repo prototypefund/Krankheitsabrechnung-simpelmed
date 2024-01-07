@@ -3,17 +3,30 @@
 """
 SimpelMed / GNUmed Middleware bezüglich Praxis(-einstellungen)
 
-Autor: karsten.hilbert@gmx.net
-Modifikationen des Originals durch
+Die Datei enthält einige (auskommentierte) print-Anweisungen,
+die nach DEBUG entfernt werden können.
+Außerdem einige Kommentare zum Programmablauf ...
 
+In der Funktion 'def _get_workplace(...)' der Klasse
+'class gmCurrentPraxisBranch(...)' - ca. ab Zeile 550 -
+wird der zu ladende Arbeitsplatz 'workplace (client profile)'
+bestimmt, d. h., welche plugins geladen werden und wie sich
+der Arbeitsplatz darstellt.
+Hier sind drei Möglichkeiten implementiert:
+1) Aufruf durch 'gnumed' -> das von GNUmed bekannte Verhalten,
+2) Aufruf durch 'simpelmed' -> SimpelmedStandard oder
+3) Aufruf durch 'simpelmedabrechnung' bzw. GKV-Abrechnung
+ -> es erscheint das 'Analysefenster' als Start, alle anderen
+ Plugins bleiben natürlich erreichbar.
+Programmtechnisch ermöglicht dieses Verhalten die Nutzung der
+'sys.argv'.
+
+Autor: karsten.hilbert@gmx.net
+Die oben genannten Modifikationen des Originals für
+Simpelmed erledigte
 (c) 2024 by Berthold Gehrke <kontakt@simpelmed.de>
 AGPLv3 or higher
 """
-#########
-## Die Datei enthält einige (auskommentierte) print-Anweisungen,
-## die nach DEBUG entfernt werden können.
-## Außerdem einige Kommentare zum Programmablauf ...
-#########
 
 import sys
 import logging
@@ -542,11 +555,16 @@ where
 
     def _get_workplace(self):
         """Return the current workplace (client profile) definition.
-
         The first occurrence counts.
-        """
-        return 'SimpelMedStandard'
 
+        Simpelmed testet sys.argv und bestimmt damit den Workplace.
+        """
+        if 'gkvaChefin' in sys.argv:
+            return 'gkvaChefin'
+        if 'SimpelMedStandard' in sys.argv:
+            return 'SimpelMedStandard'
+
+        # Workplace gemäß GNUmed-Standard       
         if self.__active_workplace is not None:
             #print("activeworkplace 539", self.__active_workplace)
             return self.__active_workplace
