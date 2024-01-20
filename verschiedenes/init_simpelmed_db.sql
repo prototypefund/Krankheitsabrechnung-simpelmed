@@ -8,13 +8,14 @@
 
 DROP TABLE IF EXISTS GKVA.q124;
 DROP TABLE IF EXISTS GKVA.q124neu;
+DROP TABLE IF EXISTS GKVA.q124ebm;
 DROP SCHEMA IF EXISTS GKVA;
 
 CREATE SCHEMA GKVA;
 
 CREATE TABLE IF NOT EXISTS GKVA.q124 (
-   lastnames VARCHAR ( 50 ) NOT NULL,
-   names VARCHAR ( 50 ) NOT Null,
+   firstnames VARCHAR ( 50 ) NOT NULL,
+   lastnames VARCHAR ( 50 ) NOT Null,
    kontakt TIMESTAMP NOT NULL,
    pk_patient SMALLINT,
    quartal TIMESTAMP,
@@ -27,8 +28,8 @@ CREATE TABLE IF NOT EXISTS GKVA.q124 (
 -- Dummy-Eintrag. Wird entfernt, sobald das erste
 -- mal 'GKVAbrechnung' aufgerufen wird.
 
-INSERT INTO GKVA.q124(lastnames, names, kontakt) VALUES
-  ('Gibtesnicht', 'Petronella-Marianne', '2024-01-01');
+INSERT INTO GKVA.q124(firstnames, lastnames, kontakt) VALUES
+  ('Petronella-Marianne', 'Gibtesnicht', '2024-01-01');
 UPDATE GKVA.q124 SET quartal = date_trunc('quarter', "kontakt");
 
 -- Die Tabelle GKVA.q124neu hat außer q124_id die  
@@ -36,8 +37,8 @@ UPDATE GKVA.q124 SET quartal = date_trunc('quarter', "kontakt");
 -- zur Aktualisierung von q124 (wenn neue Pat. dazukommen)
 
 CREATE TABLE IF NOT EXISTS GKVA.q124neu (
-   lastnames VARCHAR ( 50 ) NOT NULL,
-   names VARCHAR ( 50 ) NOT Null,
+   firstnames VARCHAR ( 50 ) NOT NULL,
+   lastnames VARCHAR ( 50 ) NOT Null,
    kontakt TIMESTAMP NOT NULL,
    pk_patient SMALLINT,
    quartal TIMESTAMP,

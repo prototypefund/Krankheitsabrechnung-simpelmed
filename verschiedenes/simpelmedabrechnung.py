@@ -32,7 +32,7 @@ import io
 ##Starten Sie das Programm als »normaler« Nutzer.""")
 ##    sys.exit(1)
 
-print("Guten Tag aus /usr/share/gnumed/simpelmedabrechnung.py!")
+#print("Guten Tag aus /usr/share/gnumed/simpelmedabrechnung.py!")
 
 HOST = 'localhost'
 DATENBANK = 'gnumed_v22'
@@ -64,13 +64,13 @@ cursor.execute("""DELETE FROM GKVA.q124neu
                WHERE quartal < '2024-01-01';""")
 
 cursor.execute("""INSERT INTO GKVA.q124
-               (lastnames, names, kontakt, pk_patient, quartal)
-               (SELECT lastnames, names, kontakt, pk_patient, quartal
+               (firstnames, lastnames, kontakt, pk_patient, quartal)
+               (SELECT firstnames, lastnames, kontakt, pk_patient, quartal
                FROM GKVA.q124neu
                WHERE kontakt > (SELECT MAX(kontakt) FROM GKVA.q124));""")
 
 cursor.execute("""DELETE FROM GKVA.q124
-               WHERE test_id = 1;""")
+               WHERE q124_id = 1;""")
 
 cursor.execute("""SELECT * FROM GKVA.q124neu;""")
 
@@ -80,6 +80,8 @@ print(result)
 conn.commit()
 cursor.close()
 conn.close()
-#os.system('simpelmed gkvaChefin')
-os.system("python3 -m Gnumed.gnumed --skip-update-check --log-file='~/gkvabrechnung.log' 'gkvaChefin'")
-print("Auf Wiedersehen aus /usr/share/gnumed/simpelmedabrechnung.py!")
+os.system("python3 -m Gnumed.gnumed --skip-update-check --log-file='~/gkvabrechnung.log' 'gkvaChefin' &")
+os.system("libreoffice --base ~/gnumed/simpelmed_pg.odb &")
+
+#print("Auf Wiedersehen aus /usr/share/gnumed/simpelmedabrechnung.py!")
+sys.exit()
