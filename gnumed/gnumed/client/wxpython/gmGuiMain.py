@@ -846,17 +846,23 @@ class gmTopLevelFrame(wx.Frame):
 
         # ----- NEU BEGIN SimpelMed Abrechnung ----- #
         simpelmed_menu = wx.Menu()
-        # mit den beiden Unterpunkten GKV-Abrechnung ...
+        # mit den Unterpunkten GKV-Abrechnung ...
         item = simpelmed_menu.Append(-1, 'GKV-Abrechnung', 'GKV-Abrechnung')
         # welche Funktion wird bei Klick ausgeführt?
-        # hier noch als Platzhalter "on_add_tag2person" Zeile 2914
+        # Hier - kaum zu glauben - '__start_GKVAbrechnung' ca. Zeile 3309
         self.Bind(wx.EVT_MENU, self.__start_GKVAbrechnung, item)
- 
-        # ... und BU-Abrechnung (bleibt vorerst ein »Platzhalter«).
+
+        # ... und BU-Abrechnung - im Moment noch ein Platzhalter ...
         item = simpelmed_menu.Append(-1, 'BU-Abrechnung', 'BU-Abrechnung')
         # welche Funktion wird bei Klick ausgeführt?
-        # hier noch als Platzhalter "on_add_tag2person" Zeile 2914
-        self.Bind(wx.EVT_MENU, self.__on_add_tag2person, item)
+        # Hier noch Hinweistext - siehe sogleich #!#
+        self.Bind(wx.EVT_MENU, self.__zeige_hinweis, item)
+
+        # ... sowie Abrechnungsdatei zum Einreichen bei der KV erstellen.
+        item = simpelmed_menu.Append(-1, '--> Abrechnungsdatei <--', '--> Abrechnungsdatei <--')
+        # welche Funktion wird bei Klick ausgeführt?
+        # Hier __datei_erstellen' ca. Zeile 3315
+        self.Bind(wx.EVT_MENU, self.__datei_erstellen, item)
 
         self.mainmenu.Append(simpelmed_menu, 'KASSENABRECHNUNG')
         self.__gb['main.simpelmedmenu'] = simpelmed_menu
@@ -865,6 +871,17 @@ class gmTopLevelFrame(wx.Frame):
         # and activate menu structure
         self.SetMenuBar(self.mainmenu)
 
+    #!#
+    def __zeige_hinweis(self,evt):
+        gmGuiHelpers.gm_show_info(aMessage=None, aTitle=None,
+                                  info="BU-Abrechnung ist noch nicht eingefügt.",
+                                  title="... bitte warten!")
+        # Das ist der gelb blinkende Hinweis am unteren Rand:
+        gmDispatcher.send(signal = 'statustext',
+                          msg = 'BU-Abrechnung ist noch nicht eingefügt!',
+                          beep = True)
+    #!#
+        
     #----------------------------------------------
     def __load_plugins(self):
         pass
@@ -1120,7 +1137,7 @@ class gmTopLevelFrame(wx.Frame):
     #----------------------------------------------
     def OnAbout(self, event):
 
-        return
+        #return
 
         # segfaults on wxPhoenix
         from Gnumed.wxpython import gmAbout
@@ -2201,7 +2218,7 @@ class gmTopLevelFrame(wx.Frame):
 
     #----------------------------------------------
     def __on_dicom_viewer(self, evt):
-
+        
         found, cmd = gmShellAPI.detect_external_binary(binary = 'ginkgocadx')
         if found:
             gmShellAPI.run_command_in_shell(cmd, blocking=False)
@@ -3291,9 +3308,16 @@ class gmTopLevelFrame(wx.Frame):
 
     ### SimpelMed Abrechnung ### 
     def __start_GKVAbrechnung(self, evt):
-        import simpelabrechnung
-        _log.debug('import simpelabrechnung erfolgreich Zeile 3270-3280 gmGuiMain')
-        print("Grüße aus def __start_GKVAbrechnung!")
+        gmShellAPI.run_command_in_shell("/usr/share/gnumed/simpelmedabrechnung.py",
+                                        blocking = False)
+
+    def __datei_erstellen(self, evt):
+        heimatverzeichnis = os.path.expanduser('~')
+        gmDispatcher.send(signal = 'statustext',
+                          msg = """Abrechnungsdatei wird erstellt in Ihrem Heimatverzeichnis /gnumed/<zeitstempel>.con!""",
+                          beep = True)
+        gmShellAPI.run_command_in_shell("/usr/share/gnumed/congenerator.py",
+                                        blocking = False)
 
 #==============================================================================
 class cStatusBar(wx.StatusBar):
@@ -3764,8 +3788,8 @@ class gmApp(wx.App):
     #----------------------------------------------
     def __update_workplace_list(self):
         wps = gmPraxis.gmCurrentPraxisBranch().workplaces
-        print("wps gGM Zeile 3736", wps)
-        if len(wps) == 0:
+        #print("wps gGM Zeile 3736", wps)
+        if not wps == 0:
             return
 
         prefs_file = _cfg.get(option = 'user_preferences_file')

@@ -73,6 +73,8 @@ DATEI_TUPEL = (
      '/usr/share/gnumed/Gnumed/wxpython/gui/gmGKVAbrechnungPlugin.py', 0),
     ('./simpelmedabrechnung.py',
      '/usr/share/gnumed/simpelmedabrechnung.py', 0),
+    ('./congenerator.py',
+     '/usr/share/gnumed/congenerator.py', 0),
     ('./simpelmed.png', '/usr/share/gnumed/bitmaps/simpelmed.png', 0),
     ('./simpelmed', '/usr/bin/simpelmed', 0),)
 
@@ -81,10 +83,11 @@ for item in DATEI_TUPEL:
         sicherkopie(item[1])
     shutil.copyfile(item[0], item[1])
 
-# Ausführungsrechte gewähren
-os.chmod('/usr/bin/simpelmed', 0o755)
-os.chmod('/usr/share/gnumed/simpelmedabrechnung.py', 0o755)
-
 loginuser = os.getlogin()
 shutil.copyfile('./simpelmed_pg.odb',
                 '/home/'+loginuser+'/gnumed/simpelmed_pg.odb')
+
+# Ausführungsrechte gewähren
+os.chmod('/usr/bin/simpelmed', 0o755)
+os.chmod('/usr/share/gnumed/simpelmedabrechnung.py', 0o755)
+os.chmod('/usr/share/gnumed/congenerator.py', 0o755)
