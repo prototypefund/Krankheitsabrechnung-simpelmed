@@ -99,8 +99,10 @@ PORT = "5432"
 
 # Hole die Daten der »Abrechnungstabelle« q124.
 # Jede Zeile der Liste 'ergebnis' stellt einen Datensatz dar.
+global ergebnis
 ergebnis = list()
 def verbindung():
+    global ergebnis
     try:
         connection = psycopg2.connect(user=DATENBANK_NUTZER,
                                       password=DATENBANBK_KENNWORT,
@@ -130,6 +132,11 @@ condatei_erlaeuterung = 'ja'
 
 # Die Liste »elemente« enthält jeweils eine Zeile der con-Datei.
 elemente = list()
+#print(f"{ergebnis=}")
+##if ergebnis:
+##    for zeile in ergebnis:
+##        print(zeile)
+##    print("")
 if condatei_erlaeuterung:
     elemente.append("8000 con0"+"                        // con-Datei")
 else:

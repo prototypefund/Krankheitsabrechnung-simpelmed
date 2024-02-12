@@ -20,6 +20,7 @@ im Archiv natürlich nur der Basis-Name.
 
 simpelmed_install.py (diese Datei)
 /usr/share/gnumed/simpelmedabrechnung.py (Start-Script)
+/usr/share/gnumed/congenerator.py
 /usr/share/gnumed/bitmaps/simpelmed.png (Logo SimpelMed)
 /usr/share/gnumed/Gnumed/gnumed.py
 /usr/share/gnumed/Gnumed/humblewx.py
