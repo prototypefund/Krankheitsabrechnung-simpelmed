@@ -1,5 +1,5 @@
 -- Tabelle »EBM-Katalog« im Schema GKVA (GKV-Abrechnung) erstellen,
--- gültig für das Q1 2024.
+-- gültig für das Q2 2024.
 -- Es handelt sich um eine Demo. 
 
 \c gnumed_v22;
