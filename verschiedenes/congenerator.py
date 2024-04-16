@@ -14,6 +14,7 @@ Einzelheiten siehe https://www.gnu.org/licenses/agpl-3.0.en.html
 import csv
 import datetime as dt
 import os
+import secrets
 import sys
 
 # Fremdmodule
@@ -99,8 +100,12 @@ PORT = "5432"
 
 # Hole die Daten der »Abrechnungstabelle« q124.
 # Jede Zeile der Liste 'ergebnis' stellt einen Datensatz dar.
+global ergebnis
 ergebnis = list()
+
+
 def verbindung():
+    global ergebnis
     try:
         connection = psycopg2.connect(user=DATENBANK_NUTZER,
                                       password=DATENBANBK_KENNWORT,
@@ -124,12 +129,28 @@ def verbindung():
     ##        print(zeile)
     ##    print("")
 
+
+# Tupel von ICD / Klartext-Diagnosen (Demo),
+# je ein Eintrag wird den Patient(inn)en zufällig zugeordnet.
+icd_diagnose = (
+    ("F10.2", "Alkoholabhängigkeit"),
+    ("F31.2", "Bipolare Störung"),
+    ("F32.1", "mittelschwere Depression"),
+    ("J10.8", "Grippe"),
+    ("L40.1", "Schuppenflechte"),
+    )
+
 verbindung()
 # Final auf '' <leerer string> setzen.
 condatei_erlaeuterung = 'ja'
 
 # Die Liste »elemente« enthält jeweils eine Zeile der con-Datei.
 elemente = list()
+#print(f"{ergebnis=}")
+##if ergebnis:
+##    for zeile in ergebnis:
+##        print(zeile)
+##    print("")
 if condatei_erlaeuterung:
     elemente.append("8000 con0"+"                        // con-Datei")
 else:
@@ -161,6 +182,9 @@ for datensatz in ergebnis:
     elemente.append("3101 "+datensatz[1])
     elemente.append("3102 "+datensatz[0])
     elemente.append("3103 "+str(datensatz[2])[:10])
+    diagnose = secrets.choice(icd_diagnose)
+    if condatei_erlaeuterung:
+        elemente.append("6001 "+str(diagnose[0])+"                      // "+diagnose[1])
     elemente.append("--  --  --  --  --  --")
     if condatei_erlaeuterung:
         elemente.append("5000 "+str(datensatz[7])+"                      // Leistungsziffer")
